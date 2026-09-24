@@ -8,10 +8,12 @@
  * xy: 2 little-endian halfwords; color: 4 bytes; quad: 4 packed xy words.
  */
 uint32_t sub_8002AF9C(RRJMemory *, const void *quad, const void *color, void *link);
+uint32_t sub_8002B080(RRJMemory *, const void *quad, const void *color, void *link);
 uint32_t sub_8002B164(RRJMemory *, const void *quad, const void *color, void *link);
 uint32_t sub_8002B258(RRJMemory *, const void *quad, const void *color, uint32_t type, void *link);
 uint32_t sub_8002B3FC(RRJMemory *, const void *xy, const void *color, uint32_t width, uint32_t height, uint8_t type, void *link);
 uint32_t sub_8002B4A0(RRJMemory *, const void *xy, const void *color, uint32_t width, uint32_t height, void *link);
 uint32_t sub_8002B5B4(RRJMemory *, const void *xy, const void *color, uint32_t width, uint32_t height, void *link);
 uint32_t sub_8002B68C(RRJMemory *, const void *xy, const void *color, uint32_t width, uint32_t height, void *link);
+uint32_t sub_8002B878(RRJMemory *, const void *xy, const void *color, void *link);
 #endif

@@ -2,6 +2,7 @@
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32"><Configuration>Debug</Configuration><Platform>Win32</Platform></ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32"><Configuration>Release</Configuration><Platform>Win32</Platform></ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion><Keyword>Win32Proj</Keyword>
@@ -9,14 +10,18 @@
     <RootNamespace>RRJ</RootNamespace><WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
-  <PropertyGroup Label="Configuration">
+  <PropertyGroup Condition="'$(Configuration)'=='Debug'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType><UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset><CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset><CharacterSet>MultiByte</CharacterSet><SupportJustMyCode>false</SupportJustMyCode>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)'=='Release'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType><UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset><CharacterSet>MultiByte</CharacterSet><WholeProgramOptimization>true</WholeProgramOptimization>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <PropertyGroup>
     <OutDir>$(ProjectDir)..\..\..\bin\</OutDir>
-    <IntDir>$(ProjectDir)..\..\..\_build\x86\Debug\</IntDir>
+    <IntDir>$(ProjectDir)..\..\..\_build\x86\$(Configuration)\</IntDir>
     <TargetName>RRJ</TargetName><LinkIncremental>false</LinkIncremental>
     <LocalDebuggerWorkingDirectory>$(OutDir)</LocalDebuggerWorkingDirectory>
     <LocalDebuggerCommand>$(TargetPath)</LocalDebuggerCommand><DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
@@ -24,30 +29,55 @@
   <ItemDefinitionGroup>
     <ClCompile>
       <WarningLevel>Level4</WarningLevel><TreatWarningAsError>true</TreatWarningAsError>
-      <SDLCheck>true</SDLCheck><Optimization>Disabled</Optimization>
-      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary><DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <DisableSpecificWarnings>4100;4142;4189;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <SDLCheck>true</SDLCheck><Optimization>MaxSpeed</Optimization><IntrinsicFunctions>true</IntrinsicFunctions><FavorSizeOrSpeed>Speed</FavorSizeOrSpeed><BasicRuntimeChecks>Default</BasicRuntimeChecks><SupportJustMyCode>false</SupportJustMyCode><InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <RuntimeLibrary Condition="'$(Configuration)'=='Debug'">MultiThreadedDebugDLL</RuntimeLibrary><RuntimeLibrary Condition="'$(Configuration)'=='Release'">MultiThreaded</RuntimeLibrary><DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <CompileAs>CompileAsC</CompileAs><LanguageStandard_C>stdc17</LanguageStandard_C>
-      <PreprocessorDefinitions>_DEBUG;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions Condition="'$(Configuration)'=='Debug'">_DEBUG;_CRT_SECURE_NO_WARNINGS;WND_TITLE=&quot;Road Rash: Jailbreak (xport)&quot;;WND_WIDTH=960;WND_HEIGHT=768;FIELD_RATE=60;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition="'$(Configuration)'=='Release'">NDEBUG;_CRT_SECURE_NO_WARNINGS;WND_TITLE=&quot;Road Rash: Jailbreak (xport)&quot;;WND_WIDTH=960;WND_HEIGHT=768;FIELD_RATE=60;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\..;$(ProjectDir)..\..\..\..\xport\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <ProgramDataBaseFileName>$(IntDir)RRJ-compile.pdb</ProgramDataBaseFileName>
     </ClCompile>
-    <Link><SubSystem>Console</SubSystem><TargetMachine>MachineX86</TargetMachine>
+    <Link><SubSystem>Windows</SubSystem><TargetMachine>MachineX86</TargetMachine>
+      <BaseAddress>0x02000000</BaseAddress><RandomizedBaseAddress>false</RandomizedBaseAddress><EnableCOMDATFolding>false</EnableCOMDATFolding>
       <GenerateDebugInformation>true</GenerateDebugInformation><ProgramDatabaseFile>$(IntDir)RRJ.pdb</ProgramDatabaseFile>
       <ImportLibrary>$(IntDir)RRJ.lib</ImportLibrary>
       <AdditionalDependencies>user32.lib;gdi32.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
-  <ItemGroup><ClCompile Include="main.c" /><ClCompile Include="..\..\wip.c" /><ClCompile Include="audio_waveout.c" /><ClCompile Include="..\..\fixed_math.c" />
+  <ItemGroup><ClCompile Include="..\..\game.c" /><ClCompile Include="..\..\wip.c" /><ClCompile Include="..\..\fixed_math.c" />
     <ClCompile Include="..\..\psx_memory.c" /><ClCompile Include="..\..\packet.c" /><ClCompile Include="..\..\flare.c" />
-    <ClCompile Include="platform.c" />
-    <ClCompile Include="..\..\psx.c" />
-    <ClCompile Include="..\..\raster.c" />
+    <ClCompile Include="..\..\platform_smoke.c" />
+    <ClCompile Include="..\..\..\..\xport\src\platform\win\main.c"><ObjectFileName>$(IntDir)xport_main.obj</ObjectFileName></ClCompile>
+    <ClCompile Include="..\..\..\..\xport\src\psx.c"><ObjectFileName>$(IntDir)xport_psx.obj</ObjectFileName></ClCompile>
+    <ClCompile Include="..\..\..\..\xport\src\psx_gpu.c"><ObjectFileName>$(IntDir)xport_psx_gpu.obj</ObjectFileName><Optimization>MaxSpeed</Optimization><BasicRuntimeChecks>Default</BasicRuntimeChecks></ClCompile>
+    <ClCompile Include="..\..\..\..\xport\src\psx_pad.c"><ObjectFileName>$(IntDir)xport_psx_pad.obj</ObjectFileName></ClCompile>
+    <ClCompile Include="..\..\..\..\xport\src\psx_spu.c"><ObjectFileName>$(IntDir)xport_psx_spu.obj</ObjectFileName></ClCompile>
     <ClCompile Include="..\..\gpu.c" />
     <ClCompile Include="..\..\race_step.c" />
     <ClCompile Include="..\..\race_global.c" />
     <ClCompile Include="..\..\race_services.c" />
     <ClCompile Include="..\..\race_frame.c" />
+    <ClCompile Include="..\..\race_leaf.c" />
+    <ClCompile Include="..\..\race_leaf_frontier.c" />
+    <ClCompile Include="..\..\race_leaf_batch_000.c" />
+    <ClCompile Include="..\..\race_leaf_batch_001.c" />
+    <ClCompile Include="..\..\race_leaf_batch_002.c" />
+    <ClCompile Include="..\..\race_leaf_batch_003.c" />
+    <ClCompile Include="..\..\race_leaf_batch_004.c" />
+    <ClCompile Include="..\..\race_leaf_80080D1C.c" />
+    <ClCompile Include="..\..\race_leaf_batch_005.c" />
+    <ClCompile Include="..\..\race_leaf_batch_006.c" />
+    <ClCompile Include="..\..\race_leaf_batch_007.c" />
+    <ClCompile Include="..\..\race_leaf_800AF3B0.c" />
+    <ClCompile Include="..\..\race_global_800B8020.c" />
+    <ClCompile Include="..\..\race_global_8009E8A4.c" />
+    <ClCompile Include="..\..\race_global_8009D004.c" />
+    <ClCompile Include="..\..\race_global_8008C45C.c" />
+    <ClCompile Include="..\..\race_trace_runtime.c" />
+    <ClCompile Include="..\..\race_audio_frontier.c" />
     <ClCompile Include="..\..\race_pause.c" />
+    <ClCompile Include="..\..\race_pause_frontier.c" />
     <ClCompile Include="..\..\menu_navigation.c" />
     <ClCompile Include="..\..\audio.c" />
     <ClCompile Include="..\..\menu_input.c" /><ClCompile Include="..\..\submenu.c" /><ClCompile Include="..\..\menu_flags.c" /><ClCompile Include="..\..\menu_reset.c" />
@@ -94,12 +124,11 @@
     <ClCompile Include="..\..\screen_env.c" />
     <ClCompile Include="..\..\video_phase.c" /><ClCompile Include="..\..\video_tick.c" /><ClCompile Include="..\..\video_preview.c" />
     <ClCompile Include="..\..\spu.c" />
-    <ClCompile Include="..\..\audio\spu_core.c" />
     <ClCompile Include="..\..\menu.c" /><ClCompile Include="..\..\dummy.c" />
   </ItemGroup>
-  <ItemGroup><ClInclude Include="..\..\fixed_math.h" /><ClInclude Include="..\..\types.h" />
+  <ItemGroup><ClInclude Include="..\..\fixed_math.h" /><ClInclude Include="..\..\types.h" /><ClInclude Include="..\..\race_leaf.h" /><ClInclude Include="..\..\race_leaf_frontier.h" /><ClInclude Include="..\..\race_leaf_batch_000.h" /><ClInclude Include="..\..\race_leaf_batch_001.h" /><ClInclude Include="..\..\race_leaf_batch_002.h" /><ClInclude Include="..\..\race_leaf_batch_003.h" /><ClInclude Include="..\..\race_leaf_batch_004.h" /><ClInclude Include="..\..\race_leaf_80080D1C.h" /><ClInclude Include="..\..\race_leaf_batch_005.h" /><ClInclude Include="..\..\race_leaf_batch_006.h" /><ClInclude Include="..\..\race_leaf_batch_007.h" /><ClInclude Include="..\..\race_leaf_800AF3B0.h" /><ClInclude Include="..\..\race_global_800B8020.h" /><ClInclude Include="..\..\race_global_8009E8A4.h" /><ClInclude Include="..\..\race_global_8009D004.h" /><ClInclude Include="..\..\race_global_8008C45C.h" /><ClInclude Include="..\..\race_trace_runtime.h" /><ClInclude Include="..\..\race_audio_frontier.h" /><ClInclude Include="..\..\race_pause_frontier.h" />
     <ClInclude Include="..\..\psx_memory.h" /><ClInclude Include="..\..\packet.h" /><ClInclude Include="..\..\flare.h" />
-    <ClInclude Include="platform.h" /><ClInclude Include="..\..\psx.h" /><ClInclude Include="..\..\raster.h" />
+    <ClInclude Include="..\..\platform_smoke.h" /><ClInclude Include="..\..\..\..\xport\src\psx.h" /><ClInclude Include="..\..\..\..\xport\src\psx_gpu.h" /><ClInclude Include="..\..\..\..\xport\src\psx_spu.h" />
     <ClInclude Include="..\..\gpu.h" />
     <ClInclude Include="..\..\menu_navigation.h" />
     <ClInclude Include="..\..\audio.h" />
@@ -146,11 +175,9 @@
     <ClInclude Include="..\..\screen.h" />
     <ClInclude Include="..\..\screen_env.h" />
     <ClInclude Include="..\..\video_phase.h" /><ClInclude Include="..\..\video_tick.h" /><ClInclude Include="..\..\video_preview.h" />
-    <ClInclude Include="..\..\spu.h" /><ClInclude Include="audio_waveout.h" />
-    <ClInclude Include="..\..\audio\spu_core.h" />
-    <ClInclude Include="..\..\audio\spu_gaussian.h" />
-    <ClInclude Include="..\..\audio\sample.h" />
+    <ClInclude Include="..\..\spu.h" />
     <ClInclude Include="..\..\menu.h" /><ClInclude Include="..\..\dummy.h" />
+    <ClInclude Include="..\..\..\..\xport\src\xport.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>

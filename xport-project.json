@@ -1,0 +1,131 @@
+{
+  "schema": 1,
+  "name": "Road Rash: Jailbreak",
+  "short_name": "RRJ",
+  "toolset": "../xport/tools",
+  "paths": {
+    "status": "status",
+    "project_tools": "tools",
+    "analysis_database": "status/analysis.sqlite",
+    "native_executable": "bin/RRJ.exe",
+    "native_working_directory": "bin",
+    "native_solution": "src/platform/win/RRJ.sln",
+    "native_build": "_build",
+    "bios_image": "tools/duckstation/data/user/bios/scph5502.bin",
+    "callgraph": "status/callgraph.json",
+    "similarity_directory": "status/function-similarity",
+    "disc_image": "iso/Road Rash - Jailbreak (USA).cue",
+    "ida_exports": "orig/images",
+    "ida_configs": "tools/ida",
+    "sdk_classification": "status/ghidra/classification.json",
+    "original_executable": "bin/SLUS_010.53"
+  },
+  "duckstation": {
+    "host": "127.0.0.1",
+    "gdb_port": 2403,
+    "reserved_gdb_ports": {
+      "audit": 2401,
+      "trace": 2402,
+      "user": 2403
+    },
+    "trace_profile": "tools/duckstation/xport-trace-profile.ini",
+    "default_role": "user",
+    "data_directory": "tools/duckstation/data/user",
+    "data_directories": {
+      "audit": "tools/duckstation/data/audit",
+      "trace": "tools/duckstation/data/trace",
+      "user": "tools/duckstation/data/user"
+    }
+  },
+  "analysis": {
+    "default_image": "SLUS_010.53",
+    "images": [
+      "SLUS_010.53",
+      "RASHCDF.BIN",
+      "RASHCDG.BIN",
+      "RASHCDI.BIN"
+    ]
+  },
+  "capabilities": {
+    "redbook_audio": {
+      "enabled": false,
+      "reason": "Reviewed Road Rash CUE contains one MODE2/2352 data track and no Red Book AUDIO tracks; music data remains inside the game data track"
+    }
+  },
+  "trace_layout": {
+    "actor_stride": 192,
+    "actor_fields": [
+      [0, 4, "sample_clock", "<I"],
+      [4, 4, "buttons", "<I"],
+      [12, 4, "controller_type", "<I"],
+      [16, 4, "analog", "<I"],
+      [188, 4, "invalid", "<I"]
+    ],
+    "gpu": {
+      "ignore_ft4_padding": false,
+      "ignore_raw_sprite_rgb": false
+    },
+    "world_fields": []
+  },
+  "native_trace": {
+    "wip_log_argument": "--wip-log",
+    "environment_prefix": "RRJ_",
+    "phase_arguments": [
+      "--debug",
+      "--trace-replay"
+    ],
+    "gameplay_arguments": []
+  },
+  "stage_pipeline": {
+    "entry_tick": 0,
+    "native_abi": "RoadRash race-loop checkpoint ABI 1",
+    "compatible_adapters": [
+      "rrj-race-loop-v1"
+    ],
+    "adapter": "tools/rrj_stage_adapter.py",
+    "anchor_attempt_limit": 2,
+    "anchor_seconds_limit": 60,
+    "prune_successful_runs": true,
+    "diagnostic_cross_build_checkpoint": true
+  },
+  "code_refresh": {
+    "report": "status/code-refresh-latest.json",
+    "log": "status/code-refresh-latest.log",
+    "build": {
+      "solution": "src/platform/win/RRJ.sln",
+      "configuration": "Debug",
+      "platform": "x86",
+      "process_name": "RRJ.exe"
+    },
+    "tests": [
+      {
+        "name": "native-version",
+        "argv": [
+          "bin/RRJ.exe",
+          "--version"
+        ]
+      },
+      {
+        "name": "trace-replay",
+        "argv": [
+          "{python}",
+          "-B",
+          "tools/test_trace_replay.py"
+        ]
+      },
+      {
+        "name": "toolset-runtime",
+        "argv": [
+          "{python}",
+          "-B",
+          "tools/test_toolset_runtime.py"
+        ]
+      }
+    ],
+    "artifacts": []
+  },
+  "user_trace": {
+    "slot_pattern": "tools/duckstation/data/user/savestates/SLUS-01053_{slot}.sav",
+    "default_seconds": 600
+  }
+}

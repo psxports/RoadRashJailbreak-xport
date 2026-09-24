@@ -1,60 +1,85 @@
-#include "wip.h"
-/* RRJ's typed PsyQ voice/key boundary -> reused AgentArmstrong SPU core. */
 #include "spu.h"
-#include "audio/spu_core.h"
-#include <windows.h>
-#include <stdio.h>
-static SRWLOCK spu_lock = SRWLOCK_INIT;
+#include "psx_spu.h"
+#include "wip.h"
+
 #include <stdlib.h>
-/* Exact dry profile from State1; see status/menu/state1-spu-profile.json.
- * Master reverb disabled and both output gains zero. Wet profiles are WIP. */
-static uint32_t reverb_mask;
-uint32_t rrj_spu_reverb(RRJMemory *m,uint32_t mode,uint32_t mask)
+#include <string.h>
+
+static uint32 reverb_mask;
+
+uint32 rrj_spu_reverb(RRJMemory *memory, uint32 mode, uint32 mask)
 {
-    uint32_t result;
-    AcquireSRWLockExclusive(&spu_lock);
-    (void)m;mask&=0xffffff;
-    if(mode==0)reverb_mask&=~mask;
-    else if(mode==1)reverb_mask|=mask;
-    else abort();
-    result=reverb_mask;ReleaseSRWLockExclusive(&spu_lock);return result;
+    mask &= SPU_ALLCH;
+    xport_audio_lock();
+    if (mode == 0)
+        reverb_mask &= ~mask;
+    else if (mode == 1)
+        reverb_mask |= mask;
+    else
+        abort();
+    mask = reverb_mask;
+    xport_audio_unlock();
+    return mask;
 }
+
 void rrj_spu_initialize(const void *ram)
 {
-    AcquireSRWLockExclusive(&spu_lock);
-    reverb_mask=0;spu_core_init();
-    if(!spu_core_upload(0,ram,SPU_ram_size)) abort();
-    spu_core_set_master_volume(0x3fff,0x3fff);
-    ReleaseSRWLockExclusive(&spu_lock);
+    SpuCommonAttr common;
+
+    SpuInit();
+    reverb_mask = 0;
+    if (!spu_upload(0, ram, SPU_RAM_SIZE))
+        abort();
+    memset(&common, 0, sizeof(common));
+    common.mask = SPU_COMMON_MVOLL | SPU_COMMON_MVOLR;
+    common.mvol.left = 0x3fff;
+    common.mvol.right = 0x3fff;
+    SpuSetCommonAttr(&common);
 }
-uint32_t rrj_spu_setup(RRJMemory *m,uint32_t voice,const RRJVoiceSetup *a)
+
+uint32 rrj_spu_setup(RRJMemory *memory, uint32 voice, const RRJVoiceSetup *setup)
 {
-    SPU_voice_registers regs;
-    AcquireSRWLockExclusive(&spu_lock);
-    (void)m;
-    if(voice>=SPU_voice_count || (a->mask!=0x60093 && a->mask!=0x40000)) abort();
-    if(!spu_core_get_voice_registers((sint32)voice,&regs)) abort();
-    if(a->mask==0x60093){
-        if(a->address>=SPU_ram_size)abort();
-        regs.volume_left=(sint16)a->left;regs.volume_right=(sint16)a->right;regs.pitch=a->pitch;
-        regs.start_address=(uint16)(a->address>>3);regs.adsr1=a->adsr1;
+    SpuVoiceAttr attr;
+
+    if (voice >= SPU_VOICE_COUNT || (setup->mask != 0x60093 && setup->mask != 0x40000))
+        abort();
+    memset(&attr, 0, sizeof(attr));
+    attr.voice = SPU_KEYCH(voice);
+    attr.mask = SPU_VOICE_ADSR_ADSR2;
+    attr.adsr2 = setup->adsr2;
+    if (setup->mask == 0x60093)
+    {
+        if (setup->address >= SPU_RAM_SIZE)
+            abort();
+        attr.mask |= SPU_VOICE_VOLL | SPU_VOICE_VOLR | SPU_VOICE_PITCH | SPU_VOICE_WDSA | SPU_VOICE_ADSR_ADSR1;
+        attr.volume.left = (sint16)setup->left;
+        attr.volume.right = (sint16)setup->right;
+        attr.pitch = setup->pitch;
+        attr.addr = setup->address;
+        attr.adsr1 = setup->adsr1;
     }
-    regs.adsr2=a->adsr2;
-    spu_core_set_voice_registers((sint32)voice,&regs);
-    ReleaseSRWLockExclusive(&spu_lock);
-    return 0; /* SpuNSetVoiceAttr SDK result is not consumed by flush. */
+    SpuSetVoiceAttr(&attr);
+    return 0;
 }
-void rrj_spu_command(RRJMemory *m,uint32_t fn,uint32_t mode,uint32_t mask)
+
+void rrj_spu_command(RRJMemory *memory, uint32 function, uint32 mode, uint32 mask)
 {
-    (void)m;
-    if(fn==0x80050D08){
-        AcquireSRWLockExclusive(&spu_lock);
-        if(mode==0) spu_core_key_off(mask);
-        else if(mode==1) spu_core_key_on(mask);
-        else abort();
-        ReleaseSRWLockExclusive(&spu_lock);return;
+    if (function == 0x80050D08)
+    {
+        if (mode != 0 && mode != 1)
+            abort();
+        SpuSetKey(mode == 0 ? SPU_OFF : SPU_ON, mask & SPU_ALLCH);
+        return;
     }
-    if(fn==0x80050678){(void)rrj_spu_reverb(m,mode,mask);return;}
-    RRJ_WIP3(m,fn,"spu_command",mode,mask,0);
+    if (function == 0x80050678)
+    {
+        (void)rrj_spu_reverb(memory, mode, mask);
+        return;
+    }
+    RRJ_WIP3(memory, function, "spu_command", mode, mask, 0);
 }
-void rrj_spu_render(int16_t *stereo,uint32_t frames){AcquireSRWLockExclusive(&spu_lock);spu_core_render(stereo,frames);ReleaseSRWLockExclusive(&spu_lock);}
+
+void rrj_spu_set_cd_volume(sint16 left, sint16 right)
+{
+    SsSetSerialVol(SS_SERIAL_A, left, right);
+}
