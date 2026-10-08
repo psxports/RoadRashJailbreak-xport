@@ -4,7 +4,7 @@
 
 static uint32_t byte(RRJMemory *m, uint32_t a)
 {
-    return *(uint8_t *)rrj_at(m, a, 1);
+    return r_u8(a);
 }
 
 static uint32_t half(RRJMemory *m, uint32_t a)
@@ -69,10 +69,55 @@ uint32_t sub_F_8006F764(RRJMemory *m, uint32_t menu, uint32_t entry, RRJMenuReso
     if (byte(m, record))
     {
         link = rrj_read32(m, 0x8009CFC8) + 4 * sbits(byte(m, 0x8009C5E1)) + 8;
-        *(uint8_t *)rrj_at(m, record + 3, 1) = 0;
+        w_u8(record + 3, 0);
         font = rrj_read32(m, 0x8009C5B8);
         sub_8002CD78(m, font, rrj_read32(m, data + 4), hbits(half(m, data + 20)), hbits(half(m, data + 22)), link, color);
     }
     link = rrj_read32(m, 0x8009CFC8) + 4 * sbits(byte(m, 0x8009C5E1)) + 16;
     return sub_F_800700F0(m, menu, data + 24, link, resource);
+}
+
+uint32_t sub_F_8006EF30(RRJMemory *m, uint32_t menu, uint32_t entry, RRJMenuResource resource, RRJImageUpload upload)
+{
+    uint32_t result, slot, table, selected, link, mode, cached, first, second;
+    FUNCTION_MARKER(0x8006EF30, "RASHCDF.BIN");
+    if ((half(m, entry + 10u) & 0x20u) && !(half(m, menu) & 2u))
+        return 1u;
+    result = sub_F_8006F764(m, menu, entry, resource);
+    if (!result)
+        return result;
+    slot = sbits(byte(m, 0x8009C5E1u));
+    table = rrj_read32(m, 0x8009CFC8u);
+    selected = hbits(half(m, menu + 4u));
+    link = table + slot * 4u + 12u;
+    if (rrj_read32(m, menu + 16u) + selected * 120u != entry)
+        return result;
+    if (rrj_s32(sbits(byte(m, 0x8009C5E7u))) < 2)
+        return result;
+    mode = byte(m, 0x8009C5E3u);
+    if (mode == 0x40u)
+    {
+        first = sub_F_800705DC(m, entry + 52u, link, 1u, upload);
+        second = sub_F_800705DC(m, entry + 76u, link, 0u, upload);
+        return first & second;
+    }
+    if (mode == 0x80u)
+    {
+        result = sub_F_800705DC(m, entry + 52u, link, 0u, upload);
+        if (!result)
+            return result;
+        return sub_F_800705DC(m, entry + 76u, link, 1u, upload);
+    }
+    cached = rrj_read32(m, 0x8009C658u);
+    if (cached != entry)
+    {
+        first = sub_F_800705DC(m, entry + 52u, link, 3u, upload);
+        second = sub_F_800705DC(m, entry + 76u, link, 3u, upload);
+    }
+    else
+    {
+        first = sub_F_800705DC(m, cached + 52u, link, 0u, upload);
+        second = sub_F_800705DC(m, cached + 76u, link, 0u, upload);
+    }
+    return first & second;
 }

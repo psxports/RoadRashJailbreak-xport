@@ -10,7 +10,7 @@ static uint32_t find_record(RRJMemory *m, uint32_t field, uint32_t value)
     table = rrj_read32(m, object + 4);
     if (!table)
         return 0;
-    index = *(uint8_t *)rrj_at(m, object + 3, 1);
+    index = r_u8(object + 3);
     if (index >= 128)
         index |= 0xffffff00;
     table += 12 * index;

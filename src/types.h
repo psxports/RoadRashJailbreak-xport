@@ -1,6 +1,6 @@
 #ifndef RRJ_TYPES_H
 #define RRJ_TYPES_H
-#include "xport.h"
+#include "xport_trace.h"
 
 #ifdef _MSC_VER
     #define RRJ_FORCEINLINE __forceinline
@@ -14,31 +14,8 @@ static RRJ_FORCEINLINE sint32 rrj_s32(uint32 bits)
     return bits <= INT32_MAX ? (sint32)bits : -1 - (sint32)~bits;
 }
 
-static RRJ_FORCEINLINE uint16 rrj_u16(const void *p)
-{
-    const uint8 *b = (const uint8 *)p;
-    return (uint16)((uint32)b[0] | ((uint32)b[1] << 8));
-}
-
-static RRJ_FORCEINLINE uint32 rrj_u32(const void *p)
-{
-    const uint8 *b = (const uint8 *)p;
-    return b[0] | ((uint32)b[1] << 8) | ((uint32)b[2] << 16) | ((uint32)b[3] << 24);
-}
-
-static RRJ_FORCEINLINE void rrj_put16(void *p, uint32 v)
-{
-    uint8 *b = (uint8 *)p;
-    b[0] = (uint8)v;
-    b[1] = (uint8)(v >> 8);
-}
-
-static RRJ_FORCEINLINE void rrj_put32(void *p, uint32 v)
-{
-    uint8 *b = (uint8 *)p;
-    b[0] = (uint8)v;
-    b[1] = (uint8)(v >> 8);
-    b[2] = (uint8)(v >> 16);
-    b[3] = (uint8)(v >> 24);
-}
+#define rrj_u16(pointer) xport_load_le16(pointer)
+#define rrj_u32(pointer) xport_load_le32(pointer)
+#define rrj_put16(pointer, value) xport_store_le16(pointer, value)
+#define rrj_put32(pointer, value) xport_store_le32(pointer, value)
 #endif

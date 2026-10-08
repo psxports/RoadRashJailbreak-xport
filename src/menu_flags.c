@@ -6,8 +6,8 @@ uint32_t sub_8002D250(RRJMemory *m)
     uint32_t i;
     for (i = 0; i < 65; ++i)
     {
-        uint8_t *p = rrj_at(m, 0x800D81C8 + (i >> 3), 1);
-        *p = (uint8_t)(*p & ~(1u << (i & 7)));
+        uint32_t address = 0x800D81C8 + (i >> 3);
+        w_u8(address, r_u8(address) & ~(1u << (i & 7)));
     }
     return 0;
 }

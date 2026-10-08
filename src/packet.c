@@ -41,7 +41,7 @@ static void advance_queue(RRJMemory *memory, uint32_t context, uint32_t last, ui
     if (RD(0x8005B46C) - RD(TIMES + index * 4) >= 61)
         WR(ACTIVE + index * 64, 0);
     WR(CURRENT, next);
-    if (rrj_s32(next) >= *(uint8_t *)rrj_at(memory, context + 0xF4, 1))
+    if (rrj_s32(next) >= r_u8(context + 0xF4))
         WR(CURRENT, 0);
     index = RD(CURRENT);
     while (RD(ACTIVE + index * 64) == 0)
@@ -50,7 +50,7 @@ static void advance_queue(RRJMemory *memory, uint32_t context, uint32_t last, ui
             break;
         ++index;
         WR(CURRENT, index);
-        if (rrj_s32(index) >= *(uint8_t *)rrj_at(memory, context + 0xF4, 1))
+        if (rrj_s32(index) >= r_u8(context + 0xF4))
             WR(CURRENT, 0);
         index = RD(CURRENT);
     }

@@ -7,6 +7,7 @@
 #include "info_panel.h"
 #include "text_id.h"
 #include "resource_select.h"
+#include "gpu.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -14,6 +15,12 @@ void rrj_render_menu_entry(RRJMemory *m, uint32_t target, uint32_t menu, uint32_
 {
     switch (target)
     {
+        case 0x80070580:
+            (void)sub_F_80070580(m, menu, entry, rrj_gpu_upload);
+            break;
+        case 0x8006EF30:
+            (void)sub_F_8006EF30(m, menu, entry, resource, rrj_gpu_upload);
+            break;
         case 0x8006E894:
             (void)sub_F_8006E894(m, menu, entry, resource);
             break;

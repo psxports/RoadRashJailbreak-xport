@@ -5,12 +5,12 @@
 
 static uint32_t b(RRJMemory *m, uint32_t a)
 {
-    return *(uint8_t *)rrj_at(m, a, 1);
+    return r_u8(a);
 }
 
 static void byte(RRJMemory *m, uint32_t a, uint32_t v)
 {
-    *(uint8_t *)rrj_at(m, a, 1) = (uint8_t)v;
+    w_u8(a, (uint8_t)v);
 }
 
 uint32_t sub_8001C4A8(RRJMemory *m, uint32_t pad, uint32_t mode)

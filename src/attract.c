@@ -4,7 +4,7 @@
 
 static int32_t byte(RRJMemory *m, uint32_t a)
 {
-    uint32_t b = *(uint8_t *)rrj_at(m, a, 1);
+    uint32_t b = r_u8(a);
     return b < 128 ? (int32_t)b : (int32_t)b - 256;
 }
 

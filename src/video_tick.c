@@ -19,7 +19,7 @@ static void half(RRJMemory *m, uint32_t a, uint32_t v)
 
 static void byte(RRJMemory *m, uint32_t a, uint32_t v)
 {
-    *(uint8_t *)rrj_at(m, a, 1) = (uint8_t)v;
+    w_u8(a, (uint8_t)v);
 }
 
 static uint32_t call(RRJMemory *m, RRJVideoPhaseCall cb, uint32_t fn, uint32_t a, uint32_t b, uint32_t c, uint32_t d)

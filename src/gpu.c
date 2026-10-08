@@ -41,5 +41,5 @@ void rrj_gpu_environment(uint32 word, int origin_x, int origin_y)
 {
     uint32 packet[2] = {0x01ffffffu, word};
 
-    gpu_packet(packet);
+    DrawPrim(packet);
 }

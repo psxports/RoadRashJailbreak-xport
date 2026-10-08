@@ -7,7 +7,7 @@
 
 static uint32_t b(RRJMemory *m, uint32_t a)
 {
-    return *(uint8_t *)rrj_at(m, a, 1);
+    return r_u8(a);
 }
 
 static uint32_t h(RRJMemory *m, uint32_t a)
@@ -51,7 +51,7 @@ uint32_t sub_F_80063C7C(RRJMemory *m, uint32_t selector, RRJModeLabel mode_label
             if (!value)
                 value = h(m, rrj_read32(m, 0x8009C654) + 20) + 1;
             (void)result(m, 0x8009C4A8, value);
-            *(uint8_t *)rrj_at(m, 0x8009C4AA, 1) = 3;
+            w_u8(0x8009C4AA, 3);
             rrj_write32(m, 0x8009C4AC, 0xA08C8C);
             return 0x8009C4A8;
         case 32:

@@ -1,6 +1,8 @@
 #include "race_trace_runtime.h"
 #include "psx.h"
 #include "psx_gpu.h"
+#include "xport_trace.h"
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -45,7 +47,7 @@ static uint8_t trace_bios[524288];
 static int trace_load_bios(RRJMemory *m)
 {
     const char *path = getenv("RRJ_BIOS_IMAGE");
-    FILE *stream = fopen(path && *path ? path : "../tools/duckstation/data/user/bios/scph5502.bin", "rb");
+    FILE *stream = xport_fopen(path && *path ? path : "../tools/duckstation/data/user/bios/scph5502.bin", "rb");
     int loaded;
 
     if (!stream)
@@ -54,56 +56,21 @@ static int trace_load_bios(RRJMemory *m)
     if (fclose(stream))
         loaded = 0;
     if (loaded)
+    {
         m->bios = trace_bios;
+        rrj_memory_bind(m);
+    }
     return loaded;
-}
-
-static int trace_u32(const char *name, uint32_t *output)
-{
-    const char *text = getenv(name);
-    char *end;
-    unsigned long value;
-
-    if (!text || !*text)
-        return 0;
-    value = strtoul(text, &end, 10);
-    if (*end || value > 1000000)
-        return 0;
-    *output = (uint32_t)value;
-    return 1;
-}
-
-static int trace_open_suffix(FILE **stream, const char *base, const char *suffix, const char *mode)
-{
-    char path[1024];
-    int length = snprintf(path, sizeof(path), "%s%s", base, suffix);
-
-    if (length < 0 || (size_t)length >= sizeof(path))
-        return 0;
-    *stream = fopen(path, mode);
-    return *stream != NULL;
 }
 
 static int trace_load_context(uint32_t *input_ordinal)
 {
     const char *checkpoint = getenv("RRJ_PHASE_CHECKPOINT_LOAD");
-    char path[1040];
     uint32_t context[12];
-    FILE *stream;
-    int length;
 
     if (!checkpoint)
         return 0;
-    length = snprintf(path, sizeof(path), "%s.ctx", checkpoint);
-    if (length < 0 || (size_t)length >= sizeof(path))
-        return 0;
-    stream = fopen(path, "rb");
-    if (!stream)
-        return 0;
-    length = fread(context, sizeof(context), 1, stream) == 1 && fgetc(stream) == EOF;
-    if (fclose(stream))
-        length = 0;
-    if (!length || context[0] != 0x32504346 || context[1] != 0x80012370 || context[2] != trace.phase_base)
+    if (!xport_trace_read_context(checkpoint, 0x32504346u, 0x80012370u, trace.phase_base, context))
         return 0;
     *input_ordinal = context[3];
     return 1;
@@ -111,31 +78,9 @@ static int trace_load_context(uint32_t *input_ordinal)
 
 static int trace_progress(uint32_t pc, uint32_t tick)
 {
-    char temporary[1060];
     uint32_t value[3] = {trace.phase_base + trace.phase_count, tick, pc};
-    FILE *stream;
-    int length;
-    int ok;
 
-    if (!trace.progress_path[0])
-        return 1;
-    length = snprintf(temporary, sizeof(temporary), "%s.%u.tmp", trace.progress_path, trace.phase_count);
-    if (length < 0 || (size_t)length >= sizeof(temporary))
-        return 0;
-    stream = fopen(temporary, "wb");
-    if (!stream)
-        return 0;
-    ok = fwrite(value, sizeof(value), 1, stream) == 1;
-    if (fclose(stream))
-        ok = 0;
-    if (ok)
-    {
-        remove(trace.progress_path);
-        ok = rename(temporary, trace.progress_path) == 0;
-    }
-    if (!ok)
-        remove(temporary);
-    return ok;
+    return xport_trace_write_progress(trace.progress_path, trace.phase_count, value, 3u);
 }
 
 static int trace_phase_gpu(uint32_t pc, uint32_t tick)
@@ -148,20 +93,21 @@ static int trace_phase_gpu(uint32_t pc, uint32_t tick)
 static int trace_cd_transfer(RRJMemory *m)
 {
     const char *path = getenv("RRJ_DISC_IMAGE");
+    uint8_t buffer[2048];
     uint32_t sector = rrj_read32(m, 0x800D6720u);
     uint32_t destination = rrj_read32(m, 0x800D6714u);
     uint32_t count = rrj_read32(m, 0x800D6718u);
     uint32_t index;
 
     if (!trace.disc)
-        trace.disc = fopen(path && *path ? path : "../iso/Road Rash - Jailbreak (USA).bin", "rb");
+        trace.disc = xport_fopen(path && *path ? path : "../iso/Road Rash - Jailbreak (USA).bin", "rb");
     if (!trace.disc || sector < 150u || count > 1024u)
         return 0;
     for (index = 0; index < count; ++index)
     {
-        __int64 offset = (__int64)(sector - 150u + index) * 2352 + 24;
+        int64_t offset = ((int64_t)sector - 150 + index) * 2352 + 24;
 
-        if (_fseeki64(trace.disc, offset, SEEK_SET) || fread(rrj_at(m, destination + 2048u * index, 2048), 2048, 1, trace.disc) != 1)
+        if (offset > LONG_MAX || fseek(trace.disc, (long)offset, SEEK_SET) || fread(buffer, 2048, 1, trace.disc) != 1 || xport_guest_copy(xport_guest_ref(destination + 2048u * index), xport_host_ref(buffer), sizeof(buffer)))
             return 0;
     }
     return 1;
@@ -200,11 +146,11 @@ int rrj_trace_runtime_init(RRJMemory *m, uint32_t phase_base)
 
     memset(&trace, 0, sizeof(trace));
     trace.phase_base = phase_base;
-    if (!phase_path || !calls_path || !output || !trace_u32("RRJ_MENU_PHASE_COUNT", &trace.phase_limit) || !trace.phase_limit || !trace_u32("RRJ_TRACE_INPUT_CALLS_END", &trace.input_end) || !trace_load_context(&trace.input_ordinal) || !trace_load_bios(m))
+    if (!phase_path || !calls_path || !output || !xport_trace_env_u32("RRJ_MENU_PHASE_COUNT", 1000000u, &trace.phase_limit) || !trace.phase_limit || !xport_trace_env_u32("RRJ_TRACE_INPUT_CALLS_END", 1000000u, &trace.input_end) || !trace_load_context(&trace.input_ordinal) || !trace_load_bios(m))
         return 0;
-    trace.phases = fopen(phase_path, "wb");
-    trace.input_calls = fopen(calls_path, "rb");
-    if (!trace.phases || !trace.input_calls || fread(&magic, sizeof(magic), 1, trace.input_calls) != 1 || magic != 0x31494646 || fseek(trace.input_calls, 4 + 44 * (long)trace.input_ordinal, SEEK_SET) || fwrite(header, sizeof(header), 1, trace.phases) != 1 || !trace_open_suffix(&trace.actors, output, ".actors", "wb") || !trace_open_suffix(&trace.world, output, ".world", "wb") || !trace_open_suffix(&trace.inputs, output, ".inputs", "wb"))
+    trace.phases = xport_fopen(phase_path, "wb");
+    trace.input_calls = xport_fopen(calls_path, "rb");
+    if (!trace.phases || !trace.input_calls || fread(&magic, sizeof(magic), 1, trace.input_calls) != 1 || magic != 0x31494646 || fseek(trace.input_calls, 4 + 44 * (long)trace.input_ordinal, SEEK_SET) || fwrite(header, sizeof(header), 1, trace.phases) != 1 || !xport_trace_open_suffix(&trace.actors, output, ".actors", "wb") || !xport_trace_open_suffix(&trace.world, output, ".world", "wb") || !xport_trace_open_suffix(&trace.inputs, output, ".inputs", "wb"))
         return 0;
     if (progress)
     {
@@ -214,7 +160,7 @@ int rrj_trace_runtime_init(RRJMemory *m, uint32_t phase_base)
     }
     {
         uint32_t display = rrj_read32(m, 0x8005B470);
-        uint32_t slots = *(uint8_t *)rrj_at(m, display + 244, 1);
+        uint32_t slots = r_u8(display + 244);
         uint32_t slot;
 
         if (slots > 16)
@@ -356,7 +302,7 @@ int rrj_trace_input_packet(RRJMemory *m, uint32_t controller, uint32_t raw)
         trace.failed = 1;
         return 0;
     }
-    memcpy(rrj_at(m, raw, sizeof(packet)), packet, sizeof(packet));
+    xport_guest_copy(xport_guest_ref(raw), xport_host_ref(packet), sizeof(packet));
     ++trace.input_ordinal;
     return 1;
 }

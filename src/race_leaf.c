@@ -48,15 +48,21 @@ static uint32_t leaf_read_le32(RRJMemory *m, uint32_t address);
 
 uint32_t sub_80018260(RRJMemory *m)
 {
-    int32_t index = rrj_s32(rrj_read32(m, 0x8005B3E8)) - 1;
-    int32_t product;
+    uint32_t index = rrj_read32(m, 0x8005B3E8) - 1;
+    uint32_t shifted, product;
     FUNCTION_MARKER(0x80018260, "SLUS_010.53");
-    if (index < 0)
+    rrj_write32(m, 0x8005B3E8, index);
+    if (rrj_s32(index) < 0)
+    {
         index = 2;
-    rrj_write32(m, 0x8005B3E8, (uint32_t)index);
-    product = (int32_t)((uint32_t)((uint64_t)(uint32_t)(index * 4) * rrj_read32(m, 0x80052640)));
-    rrj_write32(m, 0x800D6C08, (uint32_t)(product >> 4));
-    return rrj_read32(m, 0x800D6C08);
+        rrj_write32(m, 0x8005B3E8, index);
+    }
+    index = rrj_read32(m, 0x8005B3E8);
+    shifted = (uint32_t)(rrj_s32(index << 3) >> 1);
+    product = shifted * rrj_read32(m, 0x80052640);
+    product = (uint32_t)(rrj_s32(product) >> 4);
+    rrj_write32(m, 0x800D6C08, product);
+    return product;
 }
 
 uint32_t sub_8001DD08(RRJMemory *m, uint32_t index, int32_t delay, uint32_t value)
@@ -67,7 +73,7 @@ uint32_t sub_8001DD08(RRJMemory *m, uint32_t index, int32_t delay, uint32_t valu
     if (result && value)
     {
         result = 0xFFFFFFFF;
-        *(uint8_t *)rrj_at(m, record + 13, 1) = (uint8_t)value;
+        w_u8(record + 13, (uint8_t)value);
         if (delay == -1)
             rrj_write32(m, record + 20, 0);
         else
@@ -78,7 +84,7 @@ uint32_t sub_8001DD08(RRJMemory *m, uint32_t index, int32_t delay, uint32_t valu
     }
     else
     {
-        *(uint8_t *)rrj_at(m, record + 13, 1) = 0;
+        w_u8(record + 13, 0);
         rrj_write32(m, record + 20, 0);
     }
     return result;
@@ -98,7 +104,7 @@ uint32_t sub_8001DC94(RRJMemory *m, uint32_t index, int32_t delay)
     FUNCTION_MARKER(0x8001DC94, "SLUS_010.53");
     if (result && delay >= 0)
     {
-        *(uint8_t *)rrj_at(m, record + 12, 1) = 1;
+        w_u8(record + 12, 1);
         if (delay == -1)
             rrj_write32(m, record + 16, 0);
         else
@@ -109,7 +115,7 @@ uint32_t sub_8001DC94(RRJMemory *m, uint32_t index, int32_t delay)
     }
     else
     {
-        *(uint8_t *)rrj_at(m, record + 12, 1) = 0;
+        w_u8(record + 12, 0);
         rrj_write32(m, record + 16, 0);
     }
     return result;
@@ -128,15 +134,15 @@ uint32_t sub_8001F934(RRJMemory *m, int32_t group, uint32_t sample, uint32_t fie
     record = sub_8001E86C(m, base, sample);
     if (!record)
         return 0;
-    return *(uint16_t *)rrj_at(m, record + 12 * field + 10, 2);
+    return r_u16(record + 12 * field + 10);
 }
 
 int32_t sub_8001CA58(RRJMemory *m, uint32_t input, uint32_t table)
 {
     int32_t signed_value = (int32_t)input - 127;
     int32_t magnitude = signed_value < 0 ? 1 - signed_value : signed_value;
-    uint32_t threshold = *(uint16_t *)rrj_at(m, 0x800D3990, 2);
-    uint32_t step = *(uint16_t *)rrj_at(m, 0x800D3992, 2);
+    uint32_t threshold = r_u16(0x800D3990);
+    uint32_t step = r_u16(0x800D3992);
     uint32_t limit = table + 8;
     uint32_t total;
     int32_t value;
@@ -152,13 +158,13 @@ int32_t sub_8001CA58(RRJMemory *m, uint32_t input, uint32_t table)
     if (table < limit)
     {
         uint32_t offset = (uint32_t)magnitude - (total - step);
-        value = *(uint16_t *)rrj_at(m, table, 2) + (int32_t)(offset * (*(uint16_t *)rrj_at(m, table + 2, 2) - *(uint16_t *)rrj_at(m, table, 2))) / (int32_t)step;
+        value = r_u16(table) + (int32_t)(offset * (r_u16(table + 2) - r_u16(table))) / (int32_t)step;
     }
     else if (magnitude < 128)
     {
         uint32_t adjusted = step - (total - 128);
         uint32_t offset = (uint32_t)magnitude + step - total;
-        value = *(uint16_t *)rrj_at(m, table, 2) + (int32_t)(offset * (*(uint16_t *)rrj_at(m, table + 2, 2) - *(uint16_t *)rrj_at(m, table, 2))) / (int32_t)adjusted;
+        value = r_u16(table) + (int32_t)(offset * (r_u16(table + 2) - r_u16(table))) / (int32_t)adjusted;
     }
     else
     {
@@ -224,7 +230,7 @@ int32_t sub_80019E40(RRJMemory *m, uint32_t index, int32_t x, int32_t z, int32_t
         int32_t sx = other_x - rrj_s32(rrj_read32(m, record + 12));
         int32_t sz = other_z - rrj_s32(rrj_read32(m, record + 16));
         uint32_t delta = ((uint16_t)sub_80020018(m, (uint32_t)sx, (uint32_t)-sz) - (uint16_t)angle) & 0xFFF;
-        int32_t sine = *(int16_t *)rrj_at(m, 0x8005624C + ((delta * 4) | 2), 2);
+        int32_t sine = r_s16(0x8005624C + ((delta * 4) | 2));
         int32_t divisor = (int32_t)((uint32_t)((uint64_t)(uint32_t)(leaf_metric(sx, sz) >> 8) * (uint32_t)(sine >> 4))) + 0x02000000;
         if (divisor > 0)
             result = (int32_t)sub_80010028(0x02000000, (uint32_t)divisor);
@@ -356,7 +362,7 @@ uint32_t sub_80017814(RRJMemory *m, uint32_t slot, uint32_t listener, RRJRaceLea
             uint32_t child = base + 44 * count;
             for (index = 0; rrj_s32(index) < rrj_s32(rrj_read32(m, listener_table + 40)); ++index, child += 44)
             {
-                if (*(uint16_t *)rrj_at(m, record, 2) == *(uint16_t *)rrj_at(m, child, 2) && rrj_s32(rrj_read32(m, child + 8)) >= 3)
+                if (r_u16(record) == r_u16(child) && rrj_s32(rrj_read32(m, child + 8)) >= 3)
                     sub_80017814(m, count + index, listener, call);
             }
         }
@@ -371,7 +377,7 @@ uint32_t sub_80017814(RRJMemory *m, uint32_t slot, uint32_t listener, RRJRaceLea
             }
         }
     }
-    *(uint16_t *)rrj_at(m, record, 2) = 224;
+    w_u16(record, 224);
     rrj_write32(m, record + 8, 0);
     rrj_write32(m, record + 4, 0);
     rrj_write32(m, record + 36, rrj_read32(m, rrj_read32(m, 0x8005B2F8) + 12));
@@ -407,8 +413,8 @@ static void leaf_direction_op(RRJMemory *m, uint32_t diagonal_address, uint32_t 
     uint32_t i;
     for (i = 0; i < 3; ++i)
     {
-        diagonal[i] = *(int16_t *)rrj_at(m, diagonal_address + 2 * i, 2);
-        direction[i] = *(int16_t *)rrj_at(m, direction_address + 2 * i, 2);
+        diagonal[i] = r_s16(diagonal_address + 2 * i);
+        direction[i] = r_s16(direction_address + 2 * i);
     }
     cross[0] = (int64_t)direction[2] * diagonal[1] - (int64_t)direction[1] * diagonal[2];
     cross[1] = (int64_t)direction[0] * diagonal[2] - (int64_t)direction[2] * diagonal[0];
@@ -433,9 +439,9 @@ static uint32_t leaf_80012AEC_values(RRJMemory *m, uint32_t object, uint32_t ind
     uint32_t i;
     if (!source)
         return 0xFFFFFFFFu;
-    shift = (*(uint16_t *)rrj_at(m, rrj_read32(m, record) + 14, 2) >> 12) & 31;
+    shift = (r_u16(rrj_read32(m, record) + 14) >> 12) & 31;
     for (i = 0; i < 3; ++i)
-        values[i] = (uint32_t)(rrj_s32((uint32_t)(int32_t)*(int16_t *)rrj_at(m, source + 24 + 2 * i, 2)) >> shift) << 10;
+        values[i] = (uint32_t)(rrj_s32((uint32_t)(int32_t)r_s16(source + 24 + 2 * i)) >> shift) << 10;
     return 0;
 }
 
@@ -460,7 +466,7 @@ uint32_t sub_80012FC8(RRJMemory *m, uint32_t object, uint32_t index)
     uint32_t result;
     FUNCTION_MARKER(0x80012FC8, "SLUS_010.53");
     (void)leaf_80012AEC_values(m, object, index, values);
-    type = *(uint16_t *)rrj_at(m, object + 172, 2) >> 5;
+    type = r_u16(object + 172) >> 5;
     if ((uint32_t)(type - 1) < 2)
     {
         rrj_write32(m, object + 312, values[0] << 1);
@@ -485,7 +491,7 @@ uint32_t sub_80012FC8(RRJMemory *m, uint32_t object, uint32_t index)
         }
         rrj_write32(m, object + 312, (uint32_t)value);
         result = (uint32_t)(value - 4096);
-        if (*(uint16_t *)rrj_at(m, object + 172, 2) < rrj_read32(m, rrj_read32(m, 0x8005B2F8) + 48))
+        if (r_u16(object + 172) < rrj_read32(m, rrj_read32(m, 0x8005B2F8) + 48))
             rrj_write32(m, object + 312, result);
     }
     return result;
@@ -503,7 +509,7 @@ uint32_t sub_800716C0(RRJMemory *m, uint32_t matrix, uint32_t output)
     for (i = 0; i < 3; ++i)
     {
         axes[i] = rrj_read32(m, 0x8005B61C + 4 * i);
-        diagonal[i] = *(int16_t *)rrj_at(m, matrix + 8 * i, 2);
+        diagonal[i] = r_s16(matrix + 8 * i);
     }
     trace = diagonal[0] + diagonal[1] + diagonal[2];
     if (rrj_s32((uint32_t)trace << 4) > 0)
@@ -511,10 +517,10 @@ uint32_t sub_800716C0(RRJMemory *m, uint32_t matrix, uint32_t output)
         root = sub_8004CF74(m, ((uint32_t)trace << 4) + 0x10000u);
         rrj_put16(rrj_at(m, output + 6, 2), (uint16_t)(root >> 1));
         reciprocal = leaf_quaternion_reciprocal(root);
-        rrj_put16(rrj_at(m, output, 2), (uint16_t)leaf_quaternion_component(*(int16_t *)rrj_at(m, matrix + 10, 2) - *(int16_t *)rrj_at(m, matrix + 14, 2), reciprocal));
-        rrj_put16(rrj_at(m, output + 2, 2), (uint16_t)leaf_quaternion_component(*(int16_t *)rrj_at(m, matrix + 12, 2) - *(int16_t *)rrj_at(m, matrix + 4, 2), reciprocal));
-        rrj_put16(rrj_at(m, output + 4, 2), (uint16_t)leaf_quaternion_component(*(int16_t *)rrj_at(m, matrix + 2, 2) - *(int16_t *)rrj_at(m, matrix + 6, 2), reciprocal));
-        return (uint32_t)(int32_t)*(int16_t *)rrj_at(m, output + 4, 2);
+        rrj_put16(rrj_at(m, output, 2), (uint16_t)leaf_quaternion_component(r_s16(matrix + 10) - r_s16(matrix + 14), reciprocal));
+        rrj_put16(rrj_at(m, output + 2, 2), (uint16_t)leaf_quaternion_component(r_s16(matrix + 12) - r_s16(matrix + 4), reciprocal));
+        rrj_put16(rrj_at(m, output + 4, 2), (uint16_t)leaf_quaternion_component(r_s16(matrix + 2) - r_s16(matrix + 6), reciprocal));
+        return (uint32_t)(int32_t)r_s16(output + 4);
     }
     {
         uint32_t largest = diagonal[0] < diagonal[1] ? 1 : 0;
@@ -527,10 +533,10 @@ uint32_t sub_800716C0(RRJMemory *m, uint32_t matrix, uint32_t output)
         root = sub_8004CF74(m, ((uint32_t)(diagonal[largest] - diagonal[second] - diagonal[third]) << 4) + 0x10000u);
         rrj_put16(rrj_at(m, output + 2 * largest, 2), (uint16_t)(root >> 1));
         reciprocal = leaf_quaternion_reciprocal(root);
-        rrj_put16(rrj_at(m, output + 6, 2), (uint16_t)leaf_quaternion_component(*(int16_t *)rrj_at(m, matrix + 2 * (3 * second + third), 2) - *(int16_t *)rrj_at(m, matrix + 2 * (3 * third + second), 2), reciprocal));
-        rrj_put16(rrj_at(m, output + 2 * second, 2), (uint16_t)leaf_quaternion_component(*(int16_t *)rrj_at(m, matrix + 2 * (3 * largest + second), 2) + *(int16_t *)rrj_at(m, matrix + 2 * (3 * second + largest), 2), reciprocal));
-        rrj_put16(rrj_at(m, output + 2 * third, 2), (uint16_t)leaf_quaternion_component(*(int16_t *)rrj_at(m, matrix + 2 * (3 * largest + third), 2) + *(int16_t *)rrj_at(m, matrix + 2 * (3 * third + largest), 2), reciprocal));
-        return (uint32_t)(int32_t)*(int16_t *)rrj_at(m, output + 2 * third, 2);
+        rrj_put16(rrj_at(m, output + 6, 2), (uint16_t)leaf_quaternion_component(r_s16(matrix + 2 * (3 * second + third)) - r_s16(matrix + 2 * (3 * third + second)), reciprocal));
+        rrj_put16(rrj_at(m, output + 2 * second, 2), (uint16_t)leaf_quaternion_component(r_s16(matrix + 2 * (3 * largest + second)) + r_s16(matrix + 2 * (3 * second + largest)), reciprocal));
+        rrj_put16(rrj_at(m, output + 2 * third, 2), (uint16_t)leaf_quaternion_component(r_s16(matrix + 2 * (3 * largest + third)) + r_s16(matrix + 2 * (3 * third + largest)), reciprocal));
+        return (uint32_t)(int32_t)r_s16(output + 2 * third);
     }
 }
 
@@ -575,7 +581,7 @@ uint32_t sub_8001A760(RRJMemory *m, uint32_t actor_index, uint32_t mode, RRJRace
         {
             if (leaf_abs32(rrj_s32(rrj_read32(m, other + 324)) - rrj_s32(rrj_read32(m, actor + 324))) > 0xF000)
                 continue;
-            if (*(uint16_t *)rrj_at(m, actor + 172, 2) >= players && rrj_read32(m, listener_table + 44) && rrj_read32(m, actor + 1088))
+            if (r_u16(actor + 172) >= players && rrj_read32(m, listener_table + 44) && rrj_read32(m, actor + 1088))
                 continue;
         }
         first = rrj_read32(m, listener_table + 36);
@@ -583,9 +589,9 @@ uint32_t sub_8001A760(RRJMemory *m, uint32_t actor_index, uint32_t mode, RRJRace
         record = record_base + 44 * first;
         for (slot = first; slot < limit; ++slot, record += 44)
         {
-            if (*(uint16_t *)rrj_at(m, record, 2) == actor_index && rrj_s32(rrj_read32(m, record + 8)) < 3)
+            if (r_u16(record) == actor_index && rrj_s32(rrj_read32(m, record + 8)) < 3)
             {
-                if (!mode && *(uint16_t *)rrj_at(m, actor + 172, 2) >= players && rrj_read32(m, actor + 1088))
+                if (!mode && r_u16(actor + 172) >= players && rrj_read32(m, actor + 1088))
                     return rrj_read32(m, actor + 1088);
                 sub_80017814(m, slot, listener, call);
                 break;
@@ -601,21 +607,21 @@ uint32_t sub_8001A760(RRJMemory *m, uint32_t actor_index, uint32_t mode, RRJRace
         }
         else
         {
-            code = *(uint8_t *)rrj_at(m, rrj_read32(m, actor + 1084) + 1, 1);
+            code = r_u8(rrj_read32(m, actor + 1084) + 1);
             if (mode)
             {
                 candidates[0] = 3;
                 candidates[1] = 11;
             }
-            else if (*(uint16_t *)rrj_at(m, actor + 172, 2) < players)
+            else if (r_u16(actor + 172) < players)
             {
-                if ((code & 15) == 2 && *(uint8_t *)rrj_at(m, state + 4, 1) != 33)
+                if ((code & 15) == 2 && r_u8(state + 4) != 33)
                     candidates[0] = 7;
                 else
                     candidates[0] = (actor_index << 4) | 6;
                 random_choice = 1;
             }
-            else if ((code & 15) == 2 || *(uint8_t *)rrj_at(m, state + 4, 1) == 33)
+            else if ((code & 15) == 2 || r_u8(state + 4) == 33)
             {
                 candidates[0] = 7;
                 candidates[1] = 15;
@@ -657,16 +663,16 @@ uint32_t sub_8001A760(RRJMemory *m, uint32_t actor_index, uint32_t mode, RRJRace
             }
             if (!found)
                 return 6;
-            if (candidate == 6 || ((code & 15) == 2 && *(uint16_t *)rrj_at(m, actor + 172, 2) < players))
+            if (candidate == 6 || ((code & 15) == 2 && r_u16(actor + 172) < players))
                 rrj_write32(m, 0x8005B440, rrj_read32(m, 0x8005B440) == 0);
             if (rrj_read32(m, actor + 1088))
             {
-                if ((candidate - 68 < 2) || (candidate == 7 && *(uint16_t *)rrj_at(m, actor + 172, 2) >= players))
+                if ((candidate - 68 < 2) || (candidate == 7 && r_u16(actor + 172) >= players))
                 {
                     int32_t now = (int32_t)((rrj_read32(m, state + 12) >> 8) & 0xFFFF);
-                    if (leaf_abs32(now - *(int16_t *)rrj_at(m, actor + 870, 2)) < 21)
+                    if (leaf_abs32(now - r_s16(actor + 870)) < 21)
                         return 1;
-                    *(uint16_t *)rrj_at(m, actor + 870, 2) = (uint16_t)now;
+                    w_u16(actor + 870, (uint16_t)now);
                 }
             }
             bank = rrj_read32(m, 0x800D6AA0 + 32 * row);
@@ -687,14 +693,14 @@ uint32_t sub_8001A760(RRJMemory *m, uint32_t actor_index, uint32_t mode, RRJRace
             found = 0;
         if (!found)
         {
-            if (mode || *(uint16_t *)rrj_at(m, actor + 172, 2) < players)
+            if (mode || r_u16(actor + 172) < players)
                 direct = 1;
             else
                 continue;
         }
         if (!mode)
         {
-            if (*(uint16_t *)rrj_at(m, actor + 172, 2) < players || !rrj_read32(m, actor + 1088))
+            if (r_u16(actor + 172) < players || !rrj_read32(m, actor + 1088))
             {
                 uint32_t source = rrj_read32(m, actor + 1088) ? actor : rrj_read32(m, actor + 856);
                 uint32_t nearest = leaf_call(m, call, 0x8008B428, source + 172, 1, 0, 0) & 0xFFFF;
@@ -704,15 +710,15 @@ uint32_t sub_8001A760(RRJMemory *m, uint32_t actor_index, uint32_t mode, RRJRace
                     if (leaf_abs32(16 * (rrj_s32(rrj_read32(m, other + 324)) - rrj_s32(rrj_read32(m, source + 324)))) <= 0x13FFFF && (rrj_read32(m, other + 560) & 0x08000000))
                     {
                         uint32_t vehicle = rrj_read32(m, other + 1084);
-                        uint32_t table_index = *(uint8_t *)rrj_at(m, 0x800D38B0 + *(uint16_t *)rrj_at(m, source + 172, 2), 1);
-                        int32_t gear = *(int8_t *)rrj_at(m, other + 946, 1);
-                        *(uint8_t *)rrj_at(m, vehicle + table_index + 16, 1) = 15;
-                        if ((uint32_t)(*(uint16_t *)rrj_at(m, other + 956 + 8 * (uint32_t)(gear - 1), 2) - 4) < 13 && leaf_call(m, call, 0x800BC1EC, other, source, 0, 0))
+                        uint32_t table_index = r_u8(0x800D38B0 + r_u16(source + 172));
+                        int32_t gear = r_s8(other + 946);
+                        w_u8(vehicle + table_index + 16, 15);
+                        if ((uint32_t)(r_u16(other + 956 + 8 * (uint32_t)(gear - 1)) - 4) < 13 && leaf_call(m, call, 0x800BC1EC, other, source, 0, 0))
                         {
                             uint32_t event = 0x1F8003A0;
                             leaf_call(m, call, 0x800B92C0, vehicle, 0, 0, 0);
-                            *(uint16_t *)rrj_at(m, event, 2) = 16;
-                            *(uint16_t *)rrj_at(m, event + 2, 2) = *(uint16_t *)rrj_at(m, actor + 172, 2);
+                            w_u16(event, 16);
+                            w_u16(event + 2, r_u16(actor + 172));
                             sub_800BCA68(m, event, 2, other);
                         }
                     }
@@ -733,7 +739,7 @@ uint32_t sub_8001A760(RRJMemory *m, uint32_t actor_index, uint32_t mode, RRJRace
                 }
                 {
                     uint32_t flags = rrj_read32(m, actor + 852) + 572;
-                    *(uint8_t *)rrj_at(m, flags, 1) |= delta < 0 ? 8 : 4;
+                    xport_update_u8(flags, XPORT_MEMORY_UPDATE_OR, delta < 0 ? 8 : 4);
                 }
             }
         }
@@ -748,16 +754,16 @@ uint32_t sub_8001A760(RRJMemory *m, uint32_t actor_index, uint32_t mode, RRJRace
         }
         else
         {
-            *(uint16_t *)rrj_at(m, record, 2) = (uint16_t)actor_index;
+            w_u16(record, (uint16_t)actor_index);
             rrj_write32(m, record + 12, rrj_read32(m, actor + 184));
             rrj_write32(m, record + 16, rrj_read32(m, actor + 192));
-            rrj_write32(m, record + 20, (uint32_t)leaf_mul_asr(*(int16_t *)rrj_at(m, actor + 450, 2), rrj_s32(rrj_read32(m, actor + 480)) >> 4, 8));
-            rrj_write32(m, record + 24, (uint32_t)leaf_mul_asr(*(int16_t *)rrj_at(m, actor + 454, 2), rrj_s32(rrj_read32(m, actor + 480)) >> 4, 8));
+            rrj_write32(m, record + 20, (uint32_t)leaf_mul_asr(r_s16(actor + 450), rrj_s32(rrj_read32(m, actor + 480)) >> 4, 8));
+            rrj_write32(m, record + 24, (uint32_t)leaf_mul_asr(r_s16(actor + 454), rrj_s32(rrj_read32(m, actor + 480)) >> 4, 8));
             rrj_write32(m, record + 28, sub_8001F934(m, rrj_s32(bank), sample, 0));
             rrj_write32(m, record + 8, 2);
             sub_8001769C(m, slot, listener, bank, sample);
             rrj_write32(m, record + 36, rrj_read32(m, state + 12) + 500);
-            if (*(uint16_t *)rrj_at(m, actor + 172, 2) >= players && !mode)
+            if (r_u16(actor + 172) >= players && !mode)
                 rrj_write32(m, listener_table + 44, 1);
             rrj_write32(m, 0x800D6AA0 + 32 * row + 8, 3);
             rrj_write32(m, record + 40, row);
@@ -772,94 +778,26 @@ uint32_t sub_8001A760(RRJMemory *m, uint32_t actor_index, uint32_t mode, RRJRace
     return 0;
 }
 
-uint32_t sub_8008B428(RRJMemory *m, uint32_t source, uint32_t mask)
-{
-    uint32_t best_id = 224;
-    uint32_t best_distance = 0x7FFF0000;
-    uint32_t players = rrj_read32(m, rrj_read32(m, 0x8005B2F8) + 48);
-    uint32_t rows = players == 1 ? 24 : 48;
-    uint32_t row;
-    uint16_t source_id = *(uint16_t *)rrj_at(m, source, 2);
-    int32_t source_x = rrj_s32(rrj_read32(m, source + 12));
-    int32_t source_z = rrj_s32(rrj_read32(m, source + 20));
-    FUNCTION_MARKER(0x8008B428, "RASHCDG.BIN");
-    for (row = 0; row < rows; ++row)
-    {
-        uint32_t column;
-        for (column = 0; column < 24; ++column)
-        {
-            uint32_t link = *(uint8_t *)rrj_at(m, 0x800CD0B0 + 24 * row + column, 1);
-            uint32_t guard = 0;
-            while (link != 128 && guard++ < 256)
-            {
-                uint32_t encoded = *(uint8_t *)rrj_at(m, 0x800CCFA8 + 2 * link + 1, 1);
-                uint32_t kind = encoded >> 5;
-                uint32_t candidate = 0;
-                uint32_t candidate_id = source_id;
-                int32_t x = source_x;
-                int32_t z = source_z;
-                if (mask & (1u << kind))
-                {
-                    if (!kind)
-                    {
-                        candidate = rrj_read32(m, 0x8005B3A0) + 1096 * encoded;
-                        candidate_id = *(uint16_t *)rrj_at(m, candidate + 172, 2);
-                        x = rrj_s32(rrj_read32(m, candidate + 184));
-                        z = rrj_s32(rrj_read32(m, candidate + 192));
-                    }
-                    else if (kind == 1)
-                    {
-                        candidate = rrj_read32(m, 0x8005B3A4) + 628 * (encoded & 31);
-                        candidate_id = *(uint16_t *)rrj_at(m, candidate + 172, 2);
-                        if (rrj_read32(m, candidate + 604) == 4)
-                        {
-                            x = rrj_s32(rrj_read32(m, candidate + 184));
-                            z = rrj_s32(rrj_read32(m, candidate + 192));
-                        }
-                        else
-                        {
-                            candidate_id = source_id;
-                        }
-                    }
-                    else
-                    {
-                        uint32_t group = 0x800CE4D0 + 16 * kind;
-                        candidate = rrj_read32(m, group) + rrj_read32(m, group + 4) * (encoded & 31) + rrj_read32(m, 0x800CCA68 + 4 * (kind - 2));
-                        candidate_id = *(uint16_t *)rrj_at(m, candidate, 2);
-                        x = rrj_s32(rrj_read32(m, candidate + 12));
-                        z = rrj_s32(rrj_read32(m, candidate + 20));
-                    }
-                    if (candidate_id != source_id)
-                    {
-                        uint32_t dx = leaf_abs32(x - source_x);
-                        uint32_t dz = leaf_abs32(z - source_z);
-                        uint32_t distance = dx + dz - (dx < dz ? dx : dz) / 2;
-                        if (distance < best_distance)
-                        {
-                            best_distance = distance;
-                            best_id = candidate_id;
-                        }
-                    }
-                }
-                link = *(uint8_t *)rrj_at(m, 0x800CCFA8 + 2 * link, 1);
-            }
-        }
-    }
-    return best_id;
-}
-
 uint32_t sub_800C2178(RRJMemory *m, uint32_t object, uint32_t index)
 {
     uint32_t pair = 0x800CCB78 + 4 * index;
+    uint32_t mapping = r_u16(pair);
     uint32_t table = rrj_read32(m, object + 184);
-    uint32_t first = rrj_read32(m, table + 4 * *(uint16_t *)rrj_at(m, pair, 2));
-    int32_t duration = rrj_s32(rrj_read32(m, object + 8 * first + 20));
+    uint32_t first = rrj_read32(m, table + 4 * mapping);
+    uint32_t duration = rrj_read32(m, object + 8 * first + 20);
+    uint32_t state, clock, threshold, second;
     FUNCTION_MARKER(0x800C2178, "RASHCDG.BIN");
-    if (duration <= 0 || rrj_s32(rrj_read32(m, rrj_read32(m, 0x8005B2F8) + 32)) < rrj_s32(rrj_read32(m, object)) - duration)
+    if (rrj_s32(duration) <= 0)
         return 0;
-    if (*(uint16_t *)rrj_at(m, pair + 2, 2) == 15)
+    state = rrj_read32(m, 0x8005B2F8);
+    clock = rrj_read32(m, object);
+    threshold = rrj_read32(m, state + 32);
+    if (rrj_s32(threshold) < rrj_s32(clock - duration))
+        return 0;
+    second = r_u16(pair + 2);
+    if (second == 15)
         return 1;
-    first = rrj_read32(m, table + 4 * *(uint16_t *)rrj_at(m, pair + 2, 2));
+    first = rrj_read32(m, table + 4 * second);
     return rrj_s32(rrj_read32(m, object + 8 * first + 20)) > 0;
 }
 
@@ -869,7 +807,7 @@ uint32_t sub_8008CDF4(RRJMemory *m, uint32_t index)
     switch (index)
     {
         case 0:
-            return *(int8_t *)rrj_at(m, 0x8005B2B9, 1) < *(int8_t *)rrj_at(m, 0x8005B2B8, 1);
+            return r_s8(0x8005B2B9) < r_s8(0x8005B2B8);
         case 2:
             return rrj_read32(m, 0x800D4B80) && rrj_s32(rrj_read32(m, 0x800D4B74)) < 4 && rrj_s32(rrj_read32(m, 0x800D4B70)) < rrj_s32(rrj_read32(m, 0x800D8744)) && rrj_s32(rrj_read32(m, 0x800D4C7C)) > 0;
         case 3:
@@ -893,7 +831,7 @@ uint32_t sub_8009D9E4(RRJMemory *m)
     FUNCTION_MARKER(0x8009D9E4, "RASHCDG.BIN");
     while (remaining >= 0)
     {
-        if (object && *(uint16_t *)rrj_at(m, object + 172, 2) && !rrj_read32(m, object + 180))
+        if (object && r_u16(object + 172) && !rrj_read32(m, object + 180))
             return 1;
         --remaining;
         object += stride;
@@ -930,10 +868,10 @@ uint32_t sub_80097308(RRJMemory *m, uint32_t object)
     uint32_t kind;
     uint32_t result;
     FUNCTION_MARKER(0x80097308, "RASHCDG.BIN");
-    *(uint8_t *)rrj_at(m, control + 39, 1) = 0xFE;
+    w_u8(control + 39, 0xFE);
     rrj_write32(m, state + 552, rrj_read32(m, state + 552) & 0xFFEFF067u);
     rrj_write32(m, object + 720, 0x20000);
-    kind = *(uint16_t *)rrj_at(m, state + 544, 2);
+    kind = r_u16(state + 544);
     if (kind < 72 || kind >= 74)
     {
         rrj_write32(m, object + 480, 0);
@@ -978,7 +916,7 @@ int32_t sub_8009DA4C(RRJMemory *m, uint32_t source, uint32_t stopped_out)
     FUNCTION_MARKER(0x8009DA4C, "RASHCDG.BIN");
     while (remaining >= 0)
     {
-        if (object && *(uint16_t *)rrj_at(m, object + 172, 2) && !rrj_read32(m, object + 180))
+        if (object && r_u16(object + 172) && !rrj_read32(m, object + 180))
         {
             uint32_t distance = leaf_abs32(rrj_s32((rrj_read32(m, source + 324) - rrj_read32(m, object + 324)) << 4));
             if (distance < nearest)
@@ -1009,8 +947,8 @@ uint32_t sub_8009E444(RRJMemory *m, uint32_t point, uint32_t object)
         if (kind == 3 || kind == 4)
             object = state;
     }
-    x = (int32_t)*(int16_t *)rrj_at(m, point + 186, 2) - (rrj_s32(rrj_read32(m, object + 184)) >> 16);
-    z = (int32_t)*(int16_t *)rrj_at(m, point + 194, 2) - (rrj_s32(rrj_read32(m, object + 192)) >> 16);
+    x = (int32_t)r_s16(point + 186) - (rrj_s32(rrj_read32(m, object + 184)) >> 16);
+    z = (int32_t)r_s16(point + 194) - (rrj_s32(rrj_read32(m, object + 192)) >> 16);
     x = rrj_s32(leaf_abs32(x));
     z = rrj_s32(leaf_abs32(z));
     high = x >= z ? x : z;
@@ -1027,26 +965,26 @@ int32_t sub_8009E768(RRJMemory *m, uint32_t object)
     int32_t count;
     int32_t selector;
     FUNCTION_MARKER(0x8009E768, "RASHCDG.BIN");
-    if (*(uint16_t *)rrj_at(m, object + 362, 2))
+    if (r_u16(object + 362))
     {
         uint32_t direction_out = 0x1F8003F4;
-        record = sub_8003E1E8(m, rrj_read32(m, object + 328), (uint32_t)(int32_t)*(int16_t *)rrj_at(m, rrj_read32(m, object + 356) + 10, 2), direction_out);
+        record = sub_8003E1E8(m, rrj_read32(m, object + 328), (uint32_t)(int32_t)r_s16(rrj_read32(m, object + 356) + 10), direction_out);
         if (record)
         {
             scale = rrj_s32(rrj_read32(m, record + 4));
             if (rrj_s32(rrj_read32(m, direction_out)) > 0)
             {
-                count = *(int16_t *)rrj_at(m, record + 140, 2);
-                if (*(int16_t *)rrj_at(m, record + 142, 2) > 0)
+                count = r_s16(record + 140);
+                if (r_s16(record + 142) > 0)
                     base = rrj_s32(rrj_read32(m, record + 208));
             }
             else
             {
-                count = *(int16_t *)rrj_at(m, record + 12, 2);
-                if (*(int16_t *)rrj_at(m, record + 14, 2) > 0)
+                count = r_s16(record + 12);
+                if (r_s16(record + 14) > 0)
                     base = rrj_s32(rrj_read32(m, record + 80));
             }
-            selector = *(int8_t *)rrj_at(m, object + 508, 1);
+            selector = r_s8(object + 508);
             return rrj_s32(leaf_abs32(base) + leaf_abs32(sub_8009CF1C(m, scale, count, selector)));
         }
     }
@@ -1058,18 +996,18 @@ int32_t sub_8009E768(RRJMemory *m, uint32_t object)
             scale = rrj_s32(rrj_read32(m, object + 424));
             if (rrj_s32(rrj_read32(m, object + 364)) > 0)
             {
-                count = *(int16_t *)rrj_at(m, object + 420, 2);
-                if (*(int16_t *)rrj_at(m, record + 142, 2) > 0)
+                count = r_s16(object + 420);
+                if (r_s16(record + 142) > 0)
                     base = rrj_s32(rrj_read32(m, record + 208));
             }
             else
             {
-                count = *(int16_t *)rrj_at(m, object + 408, 2);
+                count = r_s16(object + 408);
                 scale = rrj_s32(0u - (uint32_t)scale);
-                if (*(int16_t *)rrj_at(m, record + 14, 2) > 0)
+                if (r_s16(record + 14) > 0)
                     base = rrj_s32(rrj_read32(m, record + 80));
             }
-            selector = *(int8_t *)rrj_at(m, object + 508, 1);
+            selector = r_s8(object + 508);
             return rrj_s32(leaf_abs32(base) + leaf_abs32(sub_8009CF1C(m, scale, count, selector)));
         }
     }
@@ -1078,7 +1016,7 @@ int32_t sub_8009E768(RRJMemory *m, uint32_t object)
 
 uint32_t sub_800A3F14(RRJMemory *m, uint32_t config, uint32_t object)
 {
-    uint32_t flags = *(uint16_t *)rrj_at(m, config + 12, 2);
+    uint32_t flags = r_u16(config + 12);
     uint32_t result = flags & 2;
     uint32_t i;
     FUNCTION_MARKER(0x800A3F14, "RASHCDG.BIN");
@@ -1119,7 +1057,7 @@ uint32_t sub_800A07D0(RRJMemory *m, uint32_t config, uint32_t object, uint32_t k
     uint32_t incomplete = 1;
     FUNCTION_MARKER(0x800A07D0, "RASHCDG.BIN");
     rrj_write32(m, position, rrj_read32(m, config + 8));
-    rrj_write32(m, position + 4, (uint32_t)(int32_t)*(int16_t *)rrj_at(m, config + 60, 2));
+    rrj_write32(m, position + 4, (uint32_t)(int32_t)r_s16(config + 60));
     rrj_write32(m, position + 8, rrj_read32(m, config + 36));
     segment = sub_80039DFC(m, 0, position);
     if (segment && sub_8003A700(m, segment, position, buffer))
@@ -1127,7 +1065,7 @@ uint32_t sub_800A07D0(RRJMemory *m, uint32_t config, uint32_t object, uint32_t k
         uint32_t track = object + 328;
         uint32_t piece;
         uint32_t value;
-        if (*(uint16_t *)rrj_at(m, position + 2, 2) == 1)
+        if (r_u16(position + 2) == 1)
             (void)sub_8003C758(m, buffer, config + 20);
         (void)sub_8001E0B4(m, track, buffer, 32);
         rrj_write32(m, object + 184, rrj_read32(m, config + 20));
@@ -1135,14 +1073,14 @@ uint32_t sub_800A07D0(RRJMemory *m, uint32_t config, uint32_t object, uint32_t k
         rrj_write32(m, object + 192, rrj_read32(m, config + 28));
         piece = rrj_read32(m, object + 340);
         sub_80036800(m, object + 184, piece, object + 344, object + 348);
-        (void)sub_8002FAD4(m, object, 6, *(uint16_t *)rrj_at(m, config + 2, 2), 0, call);
-        (void)sub_8001298C(m, object, *(uint16_t *)rrj_at(m, config + 2, 2));
+        (void)sub_8002FAD4(m, object, 6, r_u16(config + 2), 0, call);
+        (void)sub_8001298C(m, object, r_u16(config + 2));
         (void)sub_800A3F14(m, config, object);
         (void)sub_8003662C(m, object + 444, track, object + 360);
         rrj_write32(m, object + 364, rrj_read32(m, position + 4));
         sub_8003AF9C(m, object + 172, 0, other);
         rrj_write32(m, object + 324, sub_8003B61C(m, object + 172));
-        rrj_write32(m, object + 180, *(uint16_t *)rrj_at(m, config + 2, 2));
+        rrj_write32(m, object + 180, r_u16(config + 2));
         rrj_put16(rrj_at(m, object + 322, 2), rrj_u16(rrj_at(m, config + 62, 2)));
         value = sub_80039F68(m, object + 172);
         rrj_put16(rrj_at(m, object + 320, 2), value);
@@ -1156,10 +1094,10 @@ uint32_t sub_800A07D0(RRJMemory *m, uint32_t config, uint32_t object, uint32_t k
             offset = rrj_s32(sub_800B6AAC(m, object + 184, piece + 8, piece + 20));
             (void)sub_8002EAD8(m, object + 184, piece + 8, 0u - (uint32_t)offset, object + 184);
             (void)sub_8008BA18(m, object);
-            angle = sub_80020018(m, (uint32_t)(int32_t)*(int16_t *)rrj_at(m, object + 444, 2) << 4, (uint32_t)(int32_t)*(int16_t *)rrj_at(m, object + 448, 2) << 4);
+            angle = sub_80020018(m, (uint32_t)(int32_t)r_s16(object + 444) << 4, (uint32_t)(int32_t)r_s16(object + 448) << 4);
             rrj_write32(m, object + 292, angle);
-            rrj_write32(m, object + 296, (uint32_t)(int32_t)*(int16_t *)rrj_at(m, 0x8005624C + 4 * (angle & 0xFFF) + 2, 2) << 4);
-            rrj_write32(m, object + 300, (uint32_t)(int32_t)*(int16_t *)rrj_at(m, 0x8005624C + 4 * (angle & 0xFFF), 2) << 4);
+            rrj_write32(m, object + 296, (uint32_t)(int32_t)r_s16(0x8005624C + 4 * (angle & 0xFFF) + 2) << 4);
+            rrj_write32(m, object + 300, (uint32_t)(int32_t)r_s16(0x8005624C + 4 * (angle & 0xFFF)) << 4);
             rrj_write32(m, object + 176, 0xFFFFFFFFu);
         }
     }
@@ -1181,7 +1119,7 @@ uint32_t sub_800A2630(RRJMemory *m, uint32_t config, uint32_t other, RRJRaceLeaf
         uint32_t candidate = base + 596 * next;
         uint32_t secondary = rrj_read32(m, 0x800D1660);
         uint32_t secondary_next = secondary + 1;
-        while (rrj_s32(next) < rrj_s32(maximum + 1) && *(uint16_t *)rrj_at(m, candidate + 172, 2))
+        while (rrj_s32(next) < rrj_s32(maximum + 1) && r_u16(candidate + 172))
         {
             ++next;
             candidate += 596;
@@ -1239,7 +1177,7 @@ uint32_t sub_8003C758(RRJMemory *m, uint32_t segment, uint32_t position)
     if (!segment)
         return 0;
     current = rrj_read32(m, segment + 12);
-    count = (int32_t)*(int16_t *)rrj_at(m, rrj_read32(m, segment + 8) + 8, 2) + *(int16_t *)rrj_at(m, rrj_read32(m, segment + 8) + 10, 2);
+    count = (int32_t)r_s16(rrj_read32(m, segment + 8) + 8) + r_s16(rrj_read32(m, segment + 8) + 10);
     end = rrj_read32(m, rrj_read32(m, segment) + 52) + 52 * (uint32_t)count - 52;
     if (current == end)
         return current;
@@ -1248,11 +1186,11 @@ uint32_t sub_8003C758(RRJMemory *m, uint32_t segment, uint32_t position)
         return current;
     for (;;)
     {
-        int32_t limit = *(int16_t *)rrj_at(m, end, 2);
-        if (*(int16_t *)rrj_at(m, current, 2) >= limit)
+        int32_t limit = r_s16(end);
+        if (r_s16(current) >= limit)
             return current;
         current = next;
-        if (*(int16_t *)rrj_at(m, next, 2) < limit)
+        if (r_s16(next) < limit)
             next += 52;
         if (rrj_s32(sub_800B6AAC(m, position, next + 14, next + 20)) <= 0)
             return current;
@@ -1268,20 +1206,20 @@ uint32_t sub_800302C4(RRJMemory *m, uint32_t object, uint32_t id)
     if (id)
     {
         for (index = 0; index < 34; ++index)
-            if (*(uint8_t *)rrj_at(m, table + 12 * (uint32_t)index, 1) == (uint8_t)id)
+            if (r_u8(table + 12 * (uint32_t)index) == (uint8_t)id)
                 break;
         if (index >= 34)
             index = -1;
     }
     else
-        index = *(int8_t *)rrj_at(m, rrj_read32(m, object + 96) + 7, 1);
-    *(int16_t *)rrj_at(m, object + 74, 2) = (int16_t)index;
+        index = r_s8(rrj_read32(m, object + 96) + 7);
+    w_u16(object + 74, (int16_t)index);
     if (index != -1)
     {
         uint32_t flags = rrj_read32(m, object + 36);
         if ((flags & 0x3F400) == 0x3F400)
         {
-            uint32_t value = *(uint16_t *)rrj_at(m, table + 12 * (uint32_t)index + 10, 2);
+            uint32_t value = r_u16(table + 12 * (uint32_t)index + 10);
             int32_t low = rrj_s32((value & 63) - 40u) >> 3;
             uint32_t field = (uint32_t)(3 * (511 - (int32_t)(value >> 6)) + low) & 63;
             rrj_write32(m, object + 36, (flags & 0xFFFC0FFFu) | (field << 12));
@@ -1311,16 +1249,16 @@ uint32_t sub_8002FDEC(RRJMemory *m, uint32_t object, uint32_t id, uint32_t alloc
     rrj_write32(m, object + 96, descriptor);
     if (!descriptor)
         return 0xFFFFFFFFu;
-    index = (int32_t)*(uint8_t *)rrj_at(m, descriptor + 4, 1) - 1;
-    *(uint8_t *)rrj_at(m, object + 8, 1) = (uint8_t)index;
-    *(uint8_t *)rrj_at(m, object + 10, 1) = (uint8_t)index;
-    *(uint8_t *)rrj_at(m, object + 11, 1) = (uint8_t)index;
+    index = (int32_t)r_u8(descriptor + 4) - 1;
+    w_u8(object + 8, (uint8_t)index);
+    w_u8(object + 10, (uint8_t)index);
+    w_u8(object + 11, (uint8_t)index);
     models = rrj_read32(m, descriptor + 8);
     model = rrj_read32(m, models + 12 * (uint32_t)index);
-    *(uint8_t *)rrj_at(m, object + 9, 1) |= 3;
+    xport_update_u8(object + 9, XPORT_MEMORY_UPDATE_OR, 3);
     rrj_write32(m, object, model);
-    first_count = *(uint16_t *)rrj_at(m, model + 24, 2);
-    record_count = *(uint16_t *)rrj_at(m, rrj_read32(m, models) + 24, 2);
+    first_count = r_u16(model + 24);
+    record_count = r_u16(rrj_read32(m, models) + 24);
     if (allocate)
         rrj_write32(m, object + 4, sub_8001447C(m, 24 * record_count, 0, call));
     records = rrj_read32(m, object + 4);
@@ -1331,13 +1269,13 @@ uint32_t sub_8002FDEC(RRJMemory *m, uint32_t object, uint32_t id, uint32_t alloc
         for (i = 0; i < first_count; ++i)
             rrj_write32(m, records + 24 * i, rrj_read32(m, source + 4 * i));
     }
-    *(uint8_t *)rrj_at(m, object + 9, 1) &= 0xFB;
+    xport_update_u8(object + 9, XPORT_MEMORY_UPDATE_AND, 0xFB);
     rrj_write32(m, object + 56, 0);
     rrj_write32(m, object + 60, 0);
     rrj_write32(m, object + 64, 0);
     rrj_write32(m, object + 68, 0);
-    *(uint8_t *)rrj_at(m, object + 72, 1) = 0;
-    *(uint8_t *)rrj_at(m, object + 73, 1) = 0xFF;
+    w_u8(object + 72, 0);
+    w_u8(object + 73, 0xFF);
     rrj_write32(m, object + 52, 0);
     rrj_write32(m, object + 20, 0);
     rrj_write32(m, object + 16, 0);
@@ -1366,7 +1304,7 @@ uint32_t sub_8002FDEC(RRJMemory *m, uint32_t object, uint32_t id, uint32_t alloc
     rrj_write32(m, object + 76, 0x10000);
     rrj_write32(m, object + 36, 0x3F000);
     rrj_write32(m, object + 40, rrj_read32(m, model + 16));
-    kind = (*(uint16_t *)rrj_at(m, model + 14, 2) & 0x78) >> 3;
+    kind = (r_u16(model + 14) & 0x78) >> 3;
     switch (kind)
     {
         case 1:
@@ -1415,7 +1353,7 @@ uint32_t sub_8002FDEC(RRJMemory *m, uint32_t object, uint32_t id, uint32_t alloc
             rrj_write32(m, object + 100, 0);
             break;
     }
-    *(int16_t *)rrj_at(m, object + 74, 2) = -1;
+    w_u16(object + 74, (uint32_t)-1);
     if (bind)
         (void)sub_800302C4(m, object, 0);
     return 0;
@@ -1435,7 +1373,7 @@ uint32_t sub_8002FAD4(RRJMemory *m, uint32_t object, uint32_t kind, uint32_t sel
         {
             uint32_t alternate = (selector - 9) < 9;
             uint32_t map_index = rrj_read32(m, 0x8005AEC8 + 4 * alternate);
-            mapped = *(int16_t *)rrj_at(m, rrj_read32(m, descriptor + 12) + 2 * map_index, 2);
+            mapped = r_s16(rrj_read32(m, descriptor + 12) + 2 * map_index);
             break;
         }
         case 2:
@@ -1443,49 +1381,49 @@ uint32_t sub_8002FAD4(RRJMemory *m, uint32_t object, uint32_t kind, uint32_t sel
             uint32_t adjusted = selector;
             if ((selector - 3) < 3 || (selector - 12) < 3)
                 adjusted -= 3;
-            mapped = *(int16_t *)rrj_at(m, rrj_read32(m, descriptor + 12) + 2 * adjusted, 2);
+            mapped = r_s16(rrj_read32(m, descriptor + 12) + 2 * adjusted);
             break;
         }
         case 3:
         {
             uint32_t table = 0x800CE560 + 8 * kind;
-            int32_t count = *(int16_t *)rrj_at(m, table, 2);
+            int32_t count = r_s16(table);
             if (!count)
                 break;
             if (selector == 0xFFFF)
             {
                 uint32_t state = rrj_read32(m, 0x8005B2F8);
-                uint32_t mode = *(uint8_t *)rrj_at(m, state + 4, 1);
+                uint32_t mode = r_u8(state + 4);
                 uint32_t divisor = mode == 44 ? (uint32_t)(count - 2 - (int32_t)(mode & 1)) : (uint32_t)(count - (int32_t)(mode & 1));
                 selector = sub_8001FC58(m) % divisor;
             }
             if (selector >= (uint32_t)count)
                 break;
             entry = rrj_read32(m, table + 4) + 4 * selector;
-            selected = (uint32_t)((int32_t)*(int16_t *)rrj_at(m, entry, 2) - rrj_s32(rrj_read32(m, descriptor + 8)));
-            mapped = *(int16_t *)rrj_at(m, rrj_read32(m, descriptor + 12) + 2 * selected, 2);
+            selected = (uint32_t)((int32_t)r_s16(entry) - rrj_s32(rrj_read32(m, descriptor + 8)));
+            mapped = r_s16(rrj_read32(m, descriptor + 12) + 2 * selected);
             break;
         }
         case 4:
         {
             uint32_t table = 0x800CE560 + 8 * kind;
-            uint32_t count = (uint32_t)(int32_t)*(int16_t *)rrj_at(m, table, 2);
+            uint32_t count = (uint32_t)(int32_t)r_s16(table);
             uint32_t index;
             uint32_t map_index;
             if (!count)
                 break;
             index = sub_8001FC58(m) % count;
-            if (index >= (uint32_t)(int32_t)*(int16_t *)rrj_at(m, table, 2))
+            if (index >= (uint32_t)(int32_t)r_s16(table))
                 break;
             entry = rrj_read32(m, table + 4) + 4 * index;
-            selected = (uint32_t)((int32_t)*(int16_t *)rrj_at(m, entry, 2) - rrj_s32(rrj_read32(m, descriptor + 8)));
+            selected = (uint32_t)((int32_t)r_s16(entry) - rrj_s32(rrj_read32(m, descriptor + 8)));
             map_index = selected < 30;
-            mapped = *(int16_t *)rrj_at(m, rrj_read32(m, descriptor + 12) + 2 * rrj_read32(m, 0x8005AED0 + 4 * map_index), 2);
+            mapped = r_s16(rrj_read32(m, descriptor + 12) + 2 * rrj_read32(m, 0x8005AED0 + 4 * map_index));
             break;
         }
         case 5:
         case 6:
-            mapped = *(int16_t *)rrj_at(m, rrj_read32(m, descriptor + 12), 2);
+            mapped = r_s16(rrj_read32(m, descriptor + 12));
             break;
         default:
             break;
@@ -1498,13 +1436,13 @@ uint32_t sub_8002FAD4(RRJMemory *m, uint32_t object, uint32_t kind, uint32_t sel
     switch (kind)
     {
         case 1:
-            result = sub_800302C4(m, object, *(uint8_t *)rrj_at(m, 0x80054114 + selected, 1));
+            result = sub_800302C4(m, object, r_u8(0x80054114 + selected));
             break;
         case 2:
-            result = sub_800302C4(m, object, *(uint8_t *)rrj_at(m, 0x8005412C + selected, 1));
+            result = sub_800302C4(m, object, r_u8(0x8005412C + selected));
             break;
         case 4:
-            result = sub_800302C4(m, object, (uint32_t)(int32_t)*(int16_t *)rrj_at(m, entry + 2, 2));
+            result = sub_800302C4(m, object, (uint32_t)(int32_t)r_s16(entry + 2));
             break;
         case 5:
         case 6:
@@ -1520,21 +1458,21 @@ uint32_t sub_8002FAD4(RRJMemory *m, uint32_t object, uint32_t kind, uint32_t sel
 uint32_t sub_80092AD4(RRJMemory *m, uint32_t object)
 {
     uint32_t secondary = rrj_read32(m, object + 852);
-    uint32_t type = *(uint16_t *)rrj_at(m, secondary + 544, 2);
-    uint32_t result = *(uint16_t *)rrj_at(m, 0x800541D6 + 8 * type, 2);
+    uint32_t type = r_u16(secondary + 544);
+    uint32_t result = r_u16(0x800541D6 + 8 * type);
     FUNCTION_MARKER(0x80092AD4, "RASHCDG.BIN");
     if (!result && type)
     {
         uint32_t state;
         uint32_t linked;
         uint32_t i;
-        *(uint8_t *)rrj_at(m, object + 72, 1) = 0;
+        w_u8(object + 72, 0);
         sub_800BC8DC(m, object);
         rrj_write32(m, secondary + 552, rrj_read32(m, secondary + 552) & 0xFFFE7FBFu);
         (void)sub_8002090C(m, object);
         rrj_write32(m, object + 568, rrj_read32(m, object + 568) | 0x08000000u);
         state = rrj_read32(m, 0x8005B2F8);
-        if (*(uint16_t *)rrj_at(m, object + 172, 2) >= rrj_read32(m, state + 48))
+        if (r_u16(object + 172) >= rrj_read32(m, state + 48))
         {
             uint32_t dx = leaf_abs32(rrj_s32(rrj_read32(m, object + 184) - rrj_read32(m, 0x800CD950)));
             uint32_t dz = leaf_abs32(rrj_s32(rrj_read32(m, object + 192) - rrj_read32(m, 0x800CD958)));
@@ -1600,7 +1538,7 @@ void sub_80093CAC(RRJMemory *m, uint32_t object, uint32_t vector, uint32_t scale
             return;
         sub_8002EE50(m, rrj_read32(m, magnitude), scale, object + 892);
     }
-    if (*(int16_t *)rrj_at(m, object + 944, 2) > 0)
+    if (r_s16(object + 944) > 0)
         return;
     speed = magnitude ? (int32_t)leaf_abs32(rrj_s32(rrj_read32(m, magnitude))) : rrj_s32(sub_8002E548(m, object + 892));
     if (speed < 131)
@@ -1617,7 +1555,7 @@ void sub_80093CAC(RRJMemory *m, uint32_t object, uint32_t vector, uint32_t scale
     }
     if (ratio > 0x7FFF00)
         ratio = 0x7FFF00;
-    *(int16_t *)rrj_at(m, object + 944, 2) = (int16_t)(ratio >> 8);
+    w_u16(object + 944, (int16_t)(ratio >> 8));
     if (!(int16_t)(ratio >> 8))
         rrj_write32(m, object + 908, 0);
 }
@@ -1629,7 +1567,7 @@ static void leaf_80093CAC_scalar(RRJMemory *m, uint32_t object, uint32_t scale, 
     if (!scale)
         return;
     sub_8002EE50(m, (uint32_t)magnitude, scale, object + 892);
-    if (*(int16_t *)rrj_at(m, object + 944, 2) > 0)
+    if (r_s16(object + 944) > 0)
         return;
     speed = (int32_t)leaf_abs32(magnitude);
     if (speed < 131)
@@ -1646,7 +1584,7 @@ static void leaf_80093CAC_scalar(RRJMemory *m, uint32_t object, uint32_t scale, 
     }
     if (ratio > 0x7FFF00)
         ratio = 0x7FFF00;
-    *(int16_t *)rrj_at(m, object + 944, 2) = (int16_t)(ratio >> 8);
+    w_u16(object + 944, (int16_t)(ratio >> 8));
     if (!(int16_t)(ratio >> 8))
         rrj_write32(m, object + 908, 0);
 }
@@ -1671,19 +1609,19 @@ uint32_t sub_800C0E98(RRJMemory *m, uint32_t object, uint32_t other, int32_t del
         uint32_t value = rrj_read32(m, rrj_read32(m, object + 556) + 224);
         uint32_t flags = rrj_read32(m, object + 564);
         players = rrj_read32(m, rrj_read32(m, 0x8005B2F8) + 48);
-        if (*(uint16_t *)rrj_at(m, other + 172, 2) < players)
+        if (r_u16(other + 172) < players)
             flags |= 0x200;
         rrj_write32(m, object + 924, value);
         rrj_write32(m, object + 564, flags);
-        return *(uint16_t *)rrj_at(m, other + 172, 2) < players;
+        return r_u16(other + 172) < players;
     }
     magnitude = (int32_t)leaf_abs32(delta);
-    if (magnitude < rrj_s32(rrj_read32(m, 0x80052F70)) && *(uint16_t *)rrj_at(m, other + 172, 2) < *(uint16_t *)rrj_at(m, object + 172, 2) && (rrj_read32(m, other + 560) & 0x08000000))
+    if (magnitude < rrj_s32(rrj_read32(m, 0x80052F70)) && r_u16(other + 172) < r_u16(object + 172) && (rrj_read32(m, other + 560) & 0x08000000))
     {
-        uint32_t record = other + 956 + 8 * (uint32_t)*(int8_t *)rrj_at(m, other + 946, 1);
-        if (*(uint16_t *)rrj_at(m, record - 6, 2) == *(uint16_t *)rrj_at(m, object + 172, 2))
+        uint32_t record = other + 956 + 8 * (uint32_t)r_s8(other + 946);
+        if (r_u16(record - 6) == r_u16(object + 172))
         {
-            uint32_t type = *(uint16_t *)rrj_at(m, record - 8, 2);
+            uint32_t type = r_u16(record - 8);
             if (type >= 14 && type < 17)
                 return type < 17;
         }
@@ -1703,9 +1641,9 @@ uint32_t sub_800B92C0(RRJMemory *m, uint32_t object)
     uint32_t index = 0;
     FUNCTION_MARKER(0x800B92C0, "RASHCDG.BIN");
     do
-        sum += *(uint8_t *)rrj_at(m, 0x8005ADC4 + index++, 1);
+        sum += r_u8(0x8005ADC4 + index++);
     while (sum < threshold);
-    *(uint8_t *)rrj_at(m, object + 60, 1) = *(uint8_t *)rrj_at(m, object + 51 + index, 1);
+    w_u8(object + 60, r_u8(object + 51 + index));
     return sub_800B9340(m, object);
 }
 
@@ -1724,80 +1662,80 @@ uint32_t sub_800BA7FC(RRJMemory *m, uint32_t object)
     uint32_t enabled;
     uint32_t result;
     FUNCTION_MARKER(0x800BA7FC, "RASHCDG.BIN");
-    if (rrj_s32(rrj_read32(m, state + 16)) < 900 || (*(uint8_t *)rrj_at(m, descriptor, 1) & 1))
+    if (rrj_s32(rrj_read32(m, state + 16)) < 900 || (r_u8(descriptor) & 1))
     {
-        int32_t value = (int32_t)*(uint16_t *)rrj_at(m, object + 172, 2) - 1;
+        int32_t value = (int32_t)r_u16(object + 172) - 1;
         selector = value < 0 ? 0 : (uint32_t)value;
     }
-    enabled = (options & 1) || (((*(uint8_t *)rrj_at(m, descriptor + 1, 1) & 15) == 2) && (options & 4));
-    if (!enabled && *(uint8_t *)rrj_at(m, state + 57, 1) >= 4)
-        enabled = (((uint8_t)(*(uint16_t *)rrj_at(m, object + 172, 2) >> 1) - 1) & 1) != 0;
+    enabled = (options & 1) || (((r_u8(descriptor + 1) & 15) == 2) && (options & 4));
+    if (!enabled && r_u8(state + 57) >= 4)
+        enabled = (((uint8_t)(r_u16(object + 172) >> 1) - 1) & 1) != 0;
     if (!enabled)
         enabled = selector & 1;
     if (enabled)
     {
         int32_t magnitude;
-        if (!(*(uint8_t *)rrj_at(m, state + 4, 1) & 1) || (!(options & 1) && ((*(uint8_t *)rrj_at(m, descriptor + 1, 1) & 15) != 2 || !(options & 4))))
+        if (!(r_u8(state + 4) & 1) || (!(options & 1) && ((r_u8(descriptor + 1) & 15) != 2 || !(options & 4))))
         {
             uint32_t piece = rrj_read32(m, object + 340);
-            int32_t first = *(int16_t *)rrj_at(m, piece + 2, 2) * *(int16_t *)rrj_at(m, object + 872, 2);
-            int32_t second = *(int16_t *)rrj_at(m, piece + 6, 2) * *(int16_t *)rrj_at(m, object + 876, 2);
+            int32_t first = r_s16(piece + 2) * r_s16(object + 872);
+            int32_t second = r_s16(piece + 6) * r_s16(object + 876);
             int32_t direction = rrj_s32(rrj_read32(m, object + 364)) < 0 ? 0x20000 : -0x20000;
             int32_t dot = (rrj_s32((uint32_t)first << 4) >> 16) + (rrj_s32((uint32_t)second << 4) >> 16);
             magnitude = dot < 0 ? -direction : direction;
         }
         else
         {
-            int32_t offset = *(int16_t *)rrj_at(m, object + 878, 2) * 32;
-            magnitude = *(uint16_t *)rrj_at(m, object + 392, 2) == 4 ? rrj_s32(rrj_read32(m, object + 344) - (uint32_t)offset) : offset;
+            int32_t offset = r_s16(object + 878) * 32;
+            magnitude = r_u16(object + 392) == 4 ? rrj_s32(rrj_read32(m, object + 344) - (uint32_t)offset) : offset;
         }
         leaf_80093CAC_scalar(m, object, object + 872, magnitude, 1);
-        *(int16_t *)rrj_at(m, object + 944, 2) = 1;
+        w_u16(object + 944, 1);
         rrj_write32(m, object + 908, 0x10000);
-        result = *(uint8_t *)rrj_at(m, descriptor, 1) | 4;
+        result = r_u8(descriptor) | 4;
     }
     else
     {
-        *(int16_t *)rrj_at(m, object + 944, 2) = 0;
-        result = *(uint8_t *)rrj_at(m, descriptor, 1) & 0xFB;
+        w_u16(object + 944, 0);
+        result = r_u8(descriptor) & 0xFB;
     }
-    *(uint8_t *)rrj_at(m, descriptor, 1) = (uint8_t)result;
+    w_u8(descriptor, (uint8_t)result);
     return result;
 }
 
 uint32_t sub_800B9340(RRJMemory *m, uint32_t object)
 {
-    uint32_t flags = *(uint8_t *)rrj_at(m, object + 60, 1);
+    uint32_t flags = r_u8(object + 60);
     uint32_t result = flags & 0x20 ? 9 : 0;
     FUNCTION_MARKER(0x800B9340, "RASHCDG.BIN");
     if (flags & 0x80)
     {
-        uint32_t mask = *(uint16_t *)rrj_at(m, object + 44, 2);
+        uint32_t mask = r_u16(object + 44);
         if (mask & 0x1FF)
         {
-            uint32_t table = 0x80052EEC + 36 * (*(uint8_t *)rrj_at(m, object + 1, 1) & 15);
+            uint32_t table = 0x80052EEC + 36 * (r_u8(object + 1) & 15);
             uint32_t index = 0;
             uint32_t value;
             do
             {
-                value = *(uint8_t *)rrj_at(m, table + index++, 1);
-                *(uint8_t *)rrj_at(m, object + 46, 1) = (uint8_t)value;
+                value = r_u8(table + index++);
+                w_u8(object + 46, (uint8_t)value);
             } while (!((mask >> (value & 31)) & 1));
             result = value < 8 ? (rrj_read32(m, object + 48) >> (4 * value)) & 15 : 0;
-            *(uint8_t *)rrj_at(m, object + 47, 1) = (uint8_t)result;
+            w_u8(object + 47, (uint8_t)result);
         }
         else
         {
-            *(uint8_t *)rrj_at(m, object + 46, 1) = 9;
-            *(uint8_t *)rrj_at(m, object + 47, 1) = 0;
-            *(uint8_t *)rrj_at(m, object + 60, 1) = 0x20;
+            w_u8(object + 46, 9);
+            w_u8(object + 47, 0);
+            w_u8(object + 60, 0x20);
             result = 0x20;
         }
     }
     else if (flags & 0x20)
     {
-        *(uint8_t *)rrj_at(m, object + 46, 1) = 9;
-        *(uint8_t *)rrj_at(m, object + 47, 1) = 0;
+        w_u8(object + 46, 9);
+        w_u8(object + 47, 0);
     }
     return result;
 }
@@ -1823,7 +1761,7 @@ uint32_t sub_800BB280(RRJMemory *m, uint32_t object, uint16_t other_id)
     if (rrj_s32(rrj_read32(m, 0x80052F64)) < delta)
     {
         uint32_t value = rrj_read32(m, object + 924);
-        if (*(uint16_t *)rrj_at(m, object + 320, 2) & 2)
+        if (r_u16(object + 320) & 2)
             value = rrj_read32(m, rrj_read32(m, object + 556) + 224);
         rrj_write32(m, object + 924, value);
         result = rrj_read32(m, object + 564) & 0x80000;
@@ -1837,11 +1775,11 @@ uint32_t sub_800BB280(RRJMemory *m, uint32_t object, uint16_t other_id)
         return result;
     }
     {
-        uint32_t record = object + 940 + 8u * (uint32_t)(int32_t)*(int8_t *)rrj_at(m, object + 946, 1);
-        if (*(uint16_t *)rrj_at(m, record, 2) == 7 && *(uint16_t *)rrj_at(m, record + 2, 2) == other_id)
+        uint32_t record = object + 940 + 8u * (uint32_t)(int32_t)r_s8(object + 946);
+        if (r_u16(record) == 7 && r_u16(record + 2) == other_id)
         {
-            uint32_t source = other + 956 + 8u * (uint32_t)((int32_t)*(int8_t *)rrj_at(m, other + 946, 1) - 1);
-            uint16_t type = *(uint16_t *)rrj_at(m, source, 2);
+            uint32_t source = other + 956 + 8u * (uint32_t)((int32_t)r_s8(other + 946) - 1);
+            uint16_t type = r_u16(source);
             rrj_put16(rrj_at(m, record, 2), type);
             if ((uint16_t)(type - 4) < 2)
             {
@@ -1864,9 +1802,9 @@ uint32_t sub_800BB280(RRJMemory *m, uint32_t object, uint16_t other_id)
 
 static int32_t leaf_rider_clearance(RRJMemory *m, uint32_t rider)
 {
-    if (!rrj_read32(m, rider + 372) || *(uint16_t *)rrj_at(m, rider + 362, 2))
+    if (!rrj_read32(m, rider + 372) || r_u16(rider + 362))
         return 0x39999;
-    return (int32_t)((uint32_t)((uint64_t)rrj_read32(m, rider + 424) * (uint32_t)(*(int16_t *)rrj_at(m, rider + 420, 2) + ((rrj_s32(rrj_read32(m, rider + 344)) >> 31) & (*(int16_t *)rrj_at(m, rider + 408, 2) - *(int16_t *)rrj_at(m, rider + 420, 2))))));
+    return (int32_t)((uint32_t)((uint64_t)rrj_read32(m, rider + 424) * (uint32_t)(r_s16(rider + 420) + ((rrj_s32(rrj_read32(m, rider + 344)) >> 31) & (r_s16(rider + 408) - r_s16(rider + 420))))));
 }
 
 uint32_t sub_800BB448(RRJMemory *m, uint32_t first, uint32_t second, int32_t delta)
@@ -1876,14 +1814,14 @@ uint32_t sub_800BB448(RRJMemory *m, uint32_t first, uint32_t second, int32_t del
     uint32_t players;
     uint32_t speed_limit;
     FUNCTION_MARKER(0x800BB448, "RASHCDG.BIN");
-    if (!*(int16_t *)rrj_at(m, second + 320, 2) || rrj_read32(m, rrj_read32(m, second + 852) + 604) != 1)
+    if (!r_s16(second + 320) || rrj_read32(m, rrj_read32(m, second + 852) + 604) != 1)
         return 0;
     clearance = (int32_t)leaf_abs32(rrj_s32(rrj_read32(m, second + 344))) - leaf_rider_clearance(m, second);
     if (delta < 6 * rrj_s32(rrj_read32(m, first + 308)) || rrj_s32(rrj_read32(m, 0x80052F5C)) < delta || rrj_s32(rrj_read32(m, 0x80052F50)) < clearance)
         return 0;
     state = rrj_read32(m, 0x8005B2F8);
     players = rrj_read32(m, state + 48);
-    if (*(uint16_t *)rrj_at(m, first + 172, 2) >= players && (*(uint8_t *)rrj_at(m, rrj_read32(m, first + 1084) + 1, 1) & 15) == 2)
+    if (r_u16(first + 172) >= players && (r_u8(rrj_read32(m, first + 1084) + 1) & 15) == 2)
         return 1;
     speed_limit = (uint32_t)((int32_t)((uint32_t)((uint64_t)rrj_read32(m, 0x80053194 + 4 * rrj_read32(m, state + 60)) * rrj_read32(m, rrj_read32(m, first + 556) + 224))) / 128);
     return rrj_s32(rrj_read32(m, second + 480)) >= rrj_s32(speed_limit);
@@ -1894,7 +1832,7 @@ uint32_t sub_800BB8FC(RRJMemory *m, uint32_t first, uint32_t second, int32_t del
     int32_t clearance;
     uint32_t players;
     FUNCTION_MARKER(0x800BB8FC, "RASHCDG.BIN");
-    if (!*(int16_t *)rrj_at(m, second + 320, 2) || rrj_read32(m, rrj_read32(m, second + 852) + 604) != 1)
+    if (!r_s16(second + 320) || rrj_read32(m, rrj_read32(m, second + 852) + 604) != 1)
         return 0;
     clearance = (int32_t)leaf_abs32(rrj_s32(rrj_read32(m, second + 344))) - leaf_rider_clearance(m, second);
     if (delta < rrj_s32(rrj_read32(m, 0x80052F54)) || rrj_s32(rrj_read32(m, 0x80052F5C)) < delta || rrj_s32(rrj_read32(m, 0x80052F50)) < clearance)
@@ -1902,14 +1840,14 @@ uint32_t sub_800BB8FC(RRJMemory *m, uint32_t first, uint32_t second, int32_t del
     if (rrj_s32(rrj_read32(m, rrj_read32(m, first + 556) + 224)) >= rrj_s32(rrj_read32(m, second + 480)))
         return 1;
     players = rrj_read32(m, rrj_read32(m, 0x8005B2F8) + 48);
-    return *(uint16_t *)rrj_at(m, second + 172, 2) < players;
+    return r_u16(second + 172) < players;
 }
 
 uint32_t sub_800BBBB8(RRJMemory *m, uint32_t first, uint32_t second, int32_t delta)
 {
     int32_t difference;
     FUNCTION_MARKER(0x800BBBB8, "RASHCDG.BIN");
-    if (!*(int16_t *)rrj_at(m, second + 320, 2) || rrj_read32(m, rrj_read32(m, second + 852) + 604) != 1)
+    if (!r_s16(second + 320) || rrj_read32(m, rrj_read32(m, second + 852) + 604) != 1)
         return 0;
     difference = rrj_s32(rrj_read32(m, first + 480)) - rrj_s32(rrj_read32(m, second + 480));
     if (delta < -rrj_s32(rrj_read32(m, 0x80052F60)) || 2 * difference < delta)
@@ -1922,7 +1860,7 @@ uint32_t sub_800BBD44(RRJMemory *m, uint32_t first, uint32_t second, int32_t del
     uint32_t linked;
     uint32_t distance;
     FUNCTION_MARKER(0x800BBD44, "RASHCDG.BIN");
-    if (!*(int16_t *)rrj_at(m, second + 320, 2) || rrj_read32(m, rrj_read32(m, second + 852) + 604) != 1)
+    if (!r_s16(second + 320) || rrj_read32(m, rrj_read32(m, second + 852) + 604) != 1)
         return 0;
     if (leaf_abs32(delta) >= (uint32_t)rrj_s32(rrj_read32(m, 0x80052F68)))
         return 0;
@@ -2012,13 +1950,13 @@ uint32_t sub_800BBEBC(RRJMemory *m, uint32_t object, uint16_t other_id)
 uint32_t sub_800BC618(RRJMemory *m, uint32_t actor, uint16_t other_id, int32_t delta)
 {
     uint32_t state = rrj_read32(m, 0x8005B2F8);
-    uint32_t actor_id = *(uint16_t *)rrj_at(m, actor + 172, 2);
+    uint32_t actor_id = r_u16(actor + 172);
     uint32_t other = 0;
     uint32_t players = rrj_read32(m, state + 48);
     FUNCTION_MARKER(0x800BC618, "RASHCDG.BIN");
-    if (actor_id < players && *(uint16_t *)rrj_at(m, 0x800CCAC0 + 2 * actor_id, 2))
+    if (actor_id < players && r_u16(0x800CCAC0 + 2 * actor_id))
     {
-        uint32_t mask = *(uint16_t *)rrj_at(m, 0x800CCAC0 + 2 * actor_id, 2) & (0xFFFFu - (1u << ((other_id - 1) & 31)));
+        uint32_t mask = r_u16(0x800CCAC0 + 2 * actor_id) & (0xFFFFu - (1u << ((other_id - 1) & 31)));
         if (mask && !(mask & (mask - 1)))
         {
             uint32_t bit = 0;
@@ -2029,9 +1967,9 @@ uint32_t sub_800BC618(RRJMemory *m, uint32_t actor, uint16_t other_id, int32_t d
     }
     else
     {
-        uint32_t record = actor + 956 + 8 * (uint32_t)*(int8_t *)rrj_at(m, actor + 946, 1);
-        uint32_t type = *(uint16_t *)rrj_at(m, record - 8, 2);
-        uint32_t id = *(uint16_t *)rrj_at(m, record - 6, 2);
+        uint32_t record = actor + 956 + 8 * (uint32_t)r_s8(actor + 946);
+        uint32_t type = r_u16(record - 8);
+        uint32_t id = r_u16(record - 6);
         if ((type == 6 || type == 7 || (type >= 14 && type < 18)) && id != other_id)
             other = rrj_read32(m, 0x8005B3A0) + 1096 * id;
     }
@@ -2064,8 +2002,8 @@ uint32_t sub_800BBA18(RRJMemory *m, uint32_t object, uint16_t other_id)
         {
             uint32_t state = rrj_read32(m, object + 1084);
             uint32_t other_state = rrj_read32(m, other + 1084);
-            *(uint8_t *)rrj_at(m, state + 68, 1) |= 0x10;
-            *(uint8_t *)rrj_at(m, other_state + 68, 1) |= 8;
+            xport_update_u8(state + 68, XPORT_MEMORY_UPDATE_OR, 0x10);
+            xport_update_u8(other_state + 68, XPORT_MEMORY_UPDATE_OR, 8);
         }
         sub_800BC8DC(m, object);
         return 0;
@@ -2075,11 +2013,11 @@ uint32_t sub_800BBA18(RRJMemory *m, uint32_t object, uint16_t other_id)
         int32_t object_x = rrj_s32(rrj_read32(m, object + 344));
         int32_t lateral = rrj_s32(rrj_read32(m, other + 364) ^ rrj_read32(m, object + 364)) < 0 ? rrj_s32((uint32_t)other_x + (uint32_t)object_x) : rrj_s32((uint32_t)other_x - (uint32_t)object_x);
         int32_t response = lateral < 0 ? rrj_s32(rrj_read32(m, 0x80052F58)) : rrj_s32(0u - rrj_read32(m, 0x80052F58));
-        response = rrj_s32((uint32_t)response << sub_800BC618(m, other, *(uint16_t *)rrj_at(m, object + 172, 2), response));
+        response = rrj_s32((uint32_t)response << sub_800BC618(m, other, r_u16(object + 172), response));
         sub_800BC4FC(m, object, other, response);
     }
     result = rrj_read32(m, object + 924);
-    if (*(uint16_t *)rrj_at(m, object + 320, 2) & 2)
+    if (r_u16(object + 320) & 2)
     {
         int32_t total = rrj_s32(rrj_read32(m, rrj_read32(m, object + 556) + 224) + rrj_read32(m, object + 480));
         result = (uint32_t)(total / 2);
@@ -2120,7 +2058,7 @@ uint32_t sub_800BBC20(RRJMemory *m, uint32_t object, uint16_t other_id)
         sub_800BC4FC(m, object, other, response);
     }
     result = rrj_read32(m, object + 924);
-    if (*(uint16_t *)rrj_at(m, object + 320, 2) & 2)
+    if (r_u16(object + 320) & 2)
         result = rrj_read32(m, rrj_read32(m, object + 556) + 224);
     rrj_write32(m, object + 924, result);
     rrj_write32(m, object + 916, 0);
@@ -2136,7 +2074,7 @@ uint32_t sub_800BC120(RRJMemory *m, uint32_t object, uint32_t other, int32_t del
     uint32_t index;
     int32_t magnitude;
     FUNCTION_MARKER(0x800BC120, "RASHCDG.BIN");
-    if (!*(int16_t *)rrj_at(m, other + 320, 2))
+    if (!r_s16(other + 320))
         return 0;
     if (rrj_read32(m, rrj_read32(m, other + 852) + 604) < 3 && rrj_s32(rrj_read32(m, other + 480)) > 585944)
         return 0;
@@ -2146,7 +2084,7 @@ uint32_t sub_800BC120(RRJMemory *m, uint32_t object, uint32_t other, int32_t del
     if (rrj_s32(rrj_read32(m, object + 480)) > 585944)
         return 1;
     state = rrj_read32(m, 0x8005B2F8);
-    index = rrj_read32(m, state + 60) + ((0u - (*(uint8_t *)rrj_at(m, state + 4, 1) & 1u)) & 3u);
+    index = rrj_read32(m, state + 60) + ((0u - (r_u8(state + 4) & 1u)) & 3u);
     return rrj_s32(rrj_read32(m, 0x800530A8 + 4 * index)) >= magnitude;
 }
 
@@ -2164,8 +2102,8 @@ uint32_t sub_800BD388(RRJMemory *m, uint32_t object)
     {
         uint32_t piece = rrj_read32(m, object + 340);
         sub_8002EAD8(m, piece + 20, piece + 14, rrj_read32(m, object + 348), object + 880);
-        *(int16_t *)rrj_at(m, object + 878, 2) = 0;
-        *(uint8_t *)rrj_at(m, object + 928, 1) |= 0x40;
+        w_u16(object + 878, 0);
+        xport_update_u8(object + 928, XPORT_MEMORY_UPDATE_OR, 0x40);
         return 1;
     }
     if (!(flags & 0x10))
@@ -2183,10 +2121,10 @@ uint32_t sub_800BD388(RRJMemory *m, uint32_t object)
         response = threshold + 0x10000;
         if (speed < 0)
             response = rrj_s32(0u - (uint32_t)response);
-        response = rrj_s32((uint32_t)response - ((uint32_t)(int32_t)*(int16_t *)rrj_at(m, object + 878, 2) << 5));
+        response = rrj_s32((uint32_t)response - ((uint32_t)(int32_t)r_s16(object + 878) << 5));
         sub_8002EAD8(m, object + 880, object + 872, (uint32_t)response, object + 880);
-        *(int16_t *)rrj_at(m, object + 944, 2) = 0;
-        *(int16_t *)rrj_at(m, object + 878, 2) = (int16_t)(*(int16_t *)rrj_at(m, object + 878, 2) + (response >> 5));
+        w_u16(object + 944, 0);
+        w_u16(object + 878, (int16_t)(r_s16(object + 878) + (response >> 5)));
         rrj_write32(m, object + 924, (8 * rrj_read32(m, rrj_read32(m, 0x8005B2F8) + 60) + 24) << 16);
     }
     return 1;
@@ -2195,18 +2133,18 @@ uint32_t sub_800BD388(RRJMemory *m, uint32_t object)
 uint32_t sub_800BC1EC(RRJMemory *m, uint32_t object, uint32_t other, int32_t delta)
 {
     uint32_t state = rrj_read32(m, 0x8005B2F8);
-    uint32_t other_id = *(uint16_t *)rrj_at(m, other + 172, 2);
+    uint32_t other_id = r_u16(other + 172);
     uint32_t players = rrj_read32(m, state + 48);
     uint32_t other_class;
     int32_t separation;
     int32_t limit;
     FUNCTION_MARKER(0x800BC1EC, "RASHCDG.BIN");
-    if (!*(int16_t *)rrj_at(m, other + 320, 2))
+    if (!r_s16(other + 320))
         return 0;
     other_class = rrj_read32(m, rrj_read32(m, other + 852) + 604);
     if (other_class >= 2 || (other_id >= players && other_class != 1))
         return 0;
-    if (*(uint8_t *)rrj_at(m, state + 57, 1) == 3 && other_id < players)
+    if (r_u8(state + 57) == 3 && other_id < players)
         return 1;
     limit = rrj_s32(rrj_read32(m, 0x80052F84));
     if (other_id < players)
@@ -2230,13 +2168,13 @@ uint32_t sub_800BC1EC(RRJMemory *m, uint32_t object, uint32_t other, int32_t del
         return 0;
     if (rrj_read32(m, object + 560) & 0x08000000)
     {
-        uint32_t type = *(uint8_t *)rrj_at(m, rrj_read32(m, object + 1084) + 1, 1) & 15;
-        int32_t product = (int32_t)((uint32_t)*(uint8_t *)rrj_at(m, 0x80052EE4 + 36 * type + 18, 1) * rrj_read32(m, rrj_read32(m, object + 556) + 224));
+        uint32_t type = r_u8(rrj_read32(m, object + 1084) + 1) & 15;
+        int32_t product = (int32_t)((uint32_t)r_u8(0x80052EE4 + 36 * type + 18) * rrj_read32(m, rrj_read32(m, object + 556) + 224));
         int32_t speed_limit = product < 0 ? (product + 127) >> 7 : product >> 7;
         if (rrj_s32(rrj_read32(m, other + 480)) < speed_limit)
             return 0;
     }
-    if (!(rrj_read32(m, object + 560) & 0x08000000) || *(uint16_t *)rrj_at(m, other + 362, 2) == 1)
+    if (!(rrj_read32(m, object + 560) & 0x08000000) || r_u16(other + 362) == 1)
         return 1;
     return rrj_s32(rrj_read32(m, 0x80052F50)) >= rrj_s32(leaf_abs32(rrj_s32(rrj_read32(m, other + 344))) - (uint32_t)leaf_rider_clearance(m, other));
 }
@@ -2244,7 +2182,7 @@ uint32_t sub_800BC1EC(RRJMemory *m, uint32_t object, uint32_t other, int32_t del
 uint32_t sub_800BF424(RRJMemory *m, uint32_t object, uint32_t value)
 {
     uint32_t state = rrj_read32(m, 0x8005B2F8);
-    uint32_t actor_id = *(uint16_t *)rrj_at(m, object + 172, 2);
+    uint32_t actor_id = r_u16(object + 172);
     uint32_t index;
     uint32_t record;
     FUNCTION_MARKER(0x800BF424, "RASHCDG.BIN");
@@ -2255,7 +2193,7 @@ uint32_t sub_800BF424(RRJMemory *m, uint32_t object, uint32_t value)
         uint32_t existing = rrj_read32(m, object + 1088);
         if (existing)
             return existing;
-        index = *(uint16_t *)rrj_at(m, rrj_read32(m, object + 856) + 172, 2) + 2;
+        index = r_u16(rrj_read32(m, object + 856) + 172) + 2;
     }
     record = 0x800CD548 + 12 * index;
     rrj_write32(m, record, object);
@@ -2266,13 +2204,13 @@ uint32_t sub_800BF424(RRJMemory *m, uint32_t object, uint32_t value)
 
 uint32_t sub_800BF604(RRJMemory *m, uint32_t object, uint32_t expected, uint32_t index, uint32_t direction)
 {
-    uint32_t result = *(uint8_t *)rrj_at(m, 0x80053210 + index, 1);
+    uint32_t result = r_u8(0x80053210 + index);
     FUNCTION_MARKER(0x800BF604, "RASHCDG.BIN");
     if (expected == result)
     {
         uint32_t record = 0x800531E8 + 2 * index;
-        uint32_t magnitude = (uint32_t)*(uint8_t *)rrj_at(m, record + 1, 1) << 10;
-        rrj_write32(m, object + 720, (uint32_t)*(uint8_t *)rrj_at(m, record, 1) << 8);
+        uint32_t magnitude = (uint32_t)r_u8(record + 1) << 10;
+        rrj_write32(m, object + 720, (uint32_t)r_u8(record) << 8);
         rrj_write32(m, object + 564, rrj_read32(m, object + 564) | 0x01000000u);
         result = magnitude + ((0u - direction) & (0u - 2 * magnitude));
         rrj_write32(m, object + 656, result);
@@ -2282,19 +2220,19 @@ uint32_t sub_800BF604(RRJMemory *m, uint32_t object, uint32_t expected, uint32_t
 
 uint32_t sub_800BF860(RRJMemory *m, uint32_t object, uint32_t state, uint32_t alternate, uint32_t value_out)
 {
-    uint32_t first = *(uint8_t *)rrj_at(m, object + 569, 1);
-    uint32_t second = *(uint8_t *)rrj_at(m, object + *(uint8_t *)rrj_at(m, object + 570, 1) + 574, 1);
+    uint32_t first = r_u8(object + 569);
+    uint32_t second = r_u8(object + r_u8(object + 570) + 574);
     uint32_t table = rrj_read32(m, rrj_read32(m, 0x8005AD4C) + 12 * first + 8) + 12 * second;
     uint32_t result;
     FUNCTION_MARKER(0x800BF860, "RASHCDG.BIN");
     if (alternate)
     {
-        rrj_write32(m, value_out, *(uint16_t *)rrj_at(m, table + 8, 2));
-        result = *(uint16_t *)rrj_at(m, table + 4, 2);
+        rrj_write32(m, value_out, r_u16(table + 8));
+        result = r_u16(table + 4);
     }
     else
-        result = *(uint16_t *)rrj_at(m, table + 6, 2);
-    if (*(uint8_t *)rrj_at(m, state + 572, 1) & 0x20)
+        result = r_u16(table + 6);
+    if (r_u8(state + 572) & 0x20)
     {
         switch (result)
         {
@@ -2328,9 +2266,9 @@ uint32_t sub_800BFD74(RRJMemory *m, uint32_t object, int32_t value)
     uint32_t clamped = level < 0 ? 0 : level > 255 ? 255u : (uint32_t)level;
     FUNCTION_MARKER(0x800BFD74, "RASHCDG.BIN");
     if (rrj_read32(m, object + 1088))
-        index = *(uint16_t *)rrj_at(m, object + 172, 2);
-    else if (!(*(uint8_t *)rrj_at(m, rrj_read32(m, object + 852) + 572, 1) & 0x40))
-        index = (int32_t)*(uint16_t *)rrj_at(m, rrj_read32(m, object + 856) + 172, 2) + 1 + (rrj_read32(m, rrj_read32(m, 0x8005B2F8) + 48) >= 2);
+        index = r_u16(object + 172);
+    else if (!(r_u8(rrj_read32(m, object + 852) + 572) & 0x40))
+        index = (int32_t)r_u16(rrj_read32(m, object + 856) + 172) + 1 + (rrj_read32(m, rrj_read32(m, 0x8005B2F8) + 48) >= 2);
     else
         index = -1;
     if (index >= 0)
@@ -2350,7 +2288,7 @@ void sub_800BC4FC(RRJMemory *m, uint32_t object, uint32_t other, int32_t delta)
     int32_t second_product;
     uint32_t magnitude = 0x1F8003FC;
     FUNCTION_MARKER(0x800BC4FC, "RASHCDG.BIN");
-    if ((*(uint16_t *)rrj_at(m, other + 172, 2) >> 5) == 0)
+    if ((r_u16(other + 172) >> 5) == 0)
     {
         linked = rrj_read32(m, other + 856);
         direction = rrj_s32(rrj_read32(m, other + 364));
@@ -2361,9 +2299,9 @@ void sub_800BC4FC(RRJMemory *m, uint32_t object, uint32_t other, int32_t delta)
         }
     }
     vector = rrj_read32(m, other + 340);
-    first_product = (int32_t)((uint32_t)(int32_t)*(int16_t *)rrj_at(m, vector + 2, 2) * (uint32_t)(int32_t)*(int16_t *)rrj_at(m, object + 872, 2));
-    second_product = (int32_t)((uint32_t)(int32_t)*(int16_t *)rrj_at(m, vector + 6, 2) * (uint32_t)(int32_t)*(int16_t *)rrj_at(m, object + 876, 2));
-    delta = rrj_s32((uint32_t)delta + rrj_read32(m, other + 344) - ((uint32_t)(int32_t)*(int16_t *)rrj_at(m, object + 878, 2) << 5));
+    first_product = (int32_t)((uint32_t)(int32_t)r_s16(vector + 2) * (uint32_t)(int32_t)r_s16(object + 872));
+    second_product = (int32_t)((uint32_t)(int32_t)r_s16(vector + 6) * (uint32_t)(int32_t)r_s16(object + 876));
+    delta = rrj_s32((uint32_t)delta + rrj_read32(m, other + 344) - ((uint32_t)(int32_t)r_s16(object + 878) << 5));
     first_product = (int32_t)((uint32_t)first_product << 4) >> 16;
     second_product = (int32_t)((uint32_t)second_product << 4) >> 16;
     if (rrj_s32((uint32_t)first_product + (uint32_t)second_product) < 0)
@@ -2381,8 +2319,8 @@ uint32_t sub_800C0BE8(RRJMemory *m, uint32_t object, uint32_t other, int32_t del
         if (rrj_read32(m, object + 1088) && sub_800BB8FC(m, object, other, rrj_s32(0u - (uint32_t)delta)))
         {
             uint32_t event = 0x1F8003F8;
-            *(uint16_t *)rrj_at(m, event, 2) = 6;
-            *(uint16_t *)rrj_at(m, event + 2, 2) = *(uint16_t *)rrj_at(m, other + 172, 2);
+            w_u16(event, 6);
+            w_u16(event + 2, r_u16(other + 172));
             sub_800BCA68(m, event, 2, object);
             return 0;
         }
@@ -2390,13 +2328,13 @@ uint32_t sub_800C0BE8(RRJMemory *m, uint32_t object, uint32_t other, int32_t del
     else
     {
         uint32_t relation = flags & 2 ? rrj_read32(m, rrj_read32(m, other + 856) + 1084) : rrj_read32(m, other + 1084);
-        uint32_t occupied = *(uint8_t *)rrj_at(m, relation + 15, 1);
-        uint32_t packed = *(uint8_t *)rrj_at(m, rrj_read32(m, object + 1084) + 61, 1);
+        uint32_t occupied = r_u8(relation + 15);
+        uint32_t packed = r_u8(rrj_read32(m, object + 1084) + 61);
         if ((packed & 15) < (packed >> 4) && occupied)
             return 1;
     }
     target = rrj_read32(m, object + 852);
-    if (*(uint8_t *)rrj_at(m, target + 572, 1) & 0x40)
+    if (r_u8(target + 572) & 0x40)
         sub_800C4550(m, 77, target, 1);
     sub_800BC8DC(m, object);
     return 0;
@@ -2421,12 +2359,12 @@ uint32_t sub_800C0CE8(RRJMemory *m, uint32_t object, uint32_t other, int32_t del
         {
             kind = leaf_abs32(lateral) < rrj_read32(m, 0x80052F74) ? 9 : 11;
         }
-        if (kind == 11 && *(uint16_t *)rrj_at(m, other + 172, 2) < rrj_read32(m, rrj_read32(m, 0x8005B2F8) + 48))
-            sub_8001A760(m, *(uint16_t *)rrj_at(m, object + 172, 2), 0, call);
+        if (kind == 11 && r_u16(other + 172) < rrj_read32(m, rrj_read32(m, 0x8005B2F8) + 48))
+            sub_8001A760(m, r_u16(object + 172), 0, call);
         response = rrj_s32(rrj_read32(m, 0x80052F50 + kind * 4));
         if (lateral > 0)
             response = rrj_s32(0u - (uint32_t)response);
-        if (sub_800BC618(m, other, *(uint16_t *)rrj_at(m, object + 172, 2), response))
+        if (sub_800BC618(m, other, r_u16(object + 172), response))
             response = rrj_s32(0u - (uint32_t)response);
         sub_800BC4FC(m, object, other, response);
     }
@@ -2440,9 +2378,9 @@ uint32_t sub_800C0CE8(RRJMemory *m, uint32_t object, uint32_t other, int32_t del
 uint32_t sub_800C09B0(RRJMemory *m, uint32_t object)
 {
     uint32_t body = rrj_read32(m, object + 852);
-    uint32_t group = rrj_read32(m, 0x8005AD4C) + 12 * *(uint8_t *)rrj_at(m, body + 569, 1);
-    uint32_t index = *(uint8_t *)rrj_at(m, body + 570, 1);
-    uint32_t animation = *(uint8_t *)rrj_at(m, body + 574 + index, 1);
+    uint32_t group = rrj_read32(m, 0x8005AD4C) + 12 * r_u8(body + 569);
+    uint32_t index = r_u8(body + 570);
+    uint32_t animation = r_u8(body + 574 + index);
     uint32_t action = 0;
     uint32_t flags;
     uint32_t type;
@@ -2455,31 +2393,31 @@ uint32_t sub_800C09B0(RRJMemory *m, uint32_t object)
     else if (sub_8005BE58(m, rrj_read32(m, body + 540)))
     {
         ++index;
-        animation = *(uint8_t *)rrj_at(m, body + 574 + index, 1);
-        *(uint8_t *)rrj_at(m, body + 570, 1) = (uint8_t)index;
+        animation = r_u8(body + 574 + index);
+        w_u8(body + 570, (uint8_t)index);
         action = animation == 63 ? 4 : 2;
     }
-    else if (!*(uint8_t *)rrj_at(m, body + 546, 1))
+    else if (!r_u8(body + 546))
     {
         uint32_t table = rrj_read32(m, group + 8);
-        uint32_t limit = *(uint8_t *)rrj_at(m, table + 12 * animation + 11, 1);
+        uint32_t limit = r_u8(table + 12 * animation + 11);
         action = rrj_s32(rrj_read32(m, rrj_read32(m, body + 540) + 16)) <= (int32_t)limit;
-        *(uint8_t *)rrj_at(m, body + 546, 1) = (uint8_t)action;
+        w_u8(body + 546, (uint8_t)action);
     }
     flags = rrj_read32(m, body + 552) & 0x08000000u ? 0x110 : 0x10;
     if (action & 2)
     {
-        type = *(uint16_t *)rrj_at(m, rrj_read32(m, group + 8) + 12 * animation, 2);
+        type = r_u16(rrj_read32(m, group + 8) + 12 * animation);
         rrj_trace_dispatch_target(0x800C4550u);
         (void)sub_800C4550(m, type, body, flags);
         rrj_trace_dispatch_target(0x800C09B0u);
     }
     else if (action & 4)
     {
-        type = *(uint16_t *)rrj_at(m, rrj_read32(m, group + 8) + 12 * animation + 2, 2);
+        type = r_u16(rrj_read32(m, group + 8) + 12 * animation + 2);
         if (type == 224)
         {
-            type = *(uint16_t *)rrj_at(m, group, 2);
+            type = r_u16(group);
             flags |= 2;
         }
         rrj_trace_dispatch_target(0x800C4550u);
@@ -2488,7 +2426,7 @@ uint32_t sub_800C09B0(RRJMemory *m, uint32_t object)
     }
     else if (action & 8)
     {
-        type = *(uint16_t *)rrj_at(m, group, 2);
+        type = r_u16(group);
         rrj_trace_dispatch_target(0x800C4550u);
         (void)sub_800C4550(m, type, body, flags);
         rrj_trace_dispatch_target(0x800C09B0u);
@@ -2499,12 +2437,12 @@ uint32_t sub_800C09B0(RRJMemory *m, uint32_t object)
 uint32_t sub_800C159C(RRJMemory *m, uint32_t first, uint32_t second, int32_t direction, int32_t delta, uint32_t flags_out)
 {
     uint32_t body = rrj_read32(m, first + 852);
-    uint32_t group = rrj_read32(m, 0x8005AD4C) + 12 * *(uint8_t *)rrj_at(m, body + 569, 1);
-    uint32_t animation = *(uint8_t *)rrj_at(m, body + 574 + *(uint8_t *)rrj_at(m, body + 570, 1), 1);
+    uint32_t group = rrj_read32(m, 0x8005AD4C) + 12 * r_u8(body + 569);
+    uint32_t animation = r_u8(body + 574 + r_u8(body + 570));
     uint32_t table = rrj_read32(m, group + 8);
     uint32_t distance = leaf_abs32(rrj_s32(rrj_read32(m, second + 188) - rrj_read32(m, first + 188)));
     uint32_t flags = rrj_read32(m, flags_out);
-    uint32_t active = (*(uint16_t *)rrj_at(m, table + 12 * animation + 8, 2) && rrj_s32(distance) < rrj_s32(rrj_read32(m, first + 312))) || ((flags >> 8) & 1);
+    uint32_t active = (r_u16(table + 12 * animation + 8) && rrj_s32(distance) < rrj_s32(rrj_read32(m, first + 312))) || ((flags >> 8) & 1);
     FUNCTION_MARKER(0x800C159C, "RASHCDG.BIN");
     if (active && leaf_abs32(delta) <= 65534)
     {
@@ -2515,9 +2453,9 @@ uint32_t sub_800C159C(RRJMemory *m, uint32_t first, uint32_t second, int32_t dir
         if (rrj_s32(distance) < second_limit / 2)
         {
             uint32_t curve_index = ((uint32_t)phase * 163u >> 12) & 0x3FFCu;
-            int32_t curve = *(int16_t *)rrj_at(m, 0x8005624C + curve_index, 2) * 16;
+            int32_t curve = r_s16(0x8005624C + curve_index) * 16;
             int32_t scaled = rrj_s32((uint32_t)sub_8001FC90(curve, rrj_s32(rrj_read32(m, second + 188) - rrj_read32(m, first + 188)) + 3 * second_limit / 4));
-            uint32_t threshold = (uint32_t)scaled + ((uint32_t)*(uint8_t *)rrj_at(m, table + 12 * animation + 10, 1) << 12);
+            uint32_t threshold = (uint32_t)scaled + ((uint32_t)r_u8(table + 12 * animation + 10) << 12);
             threshold += rrj_read32(m, rrj_read32(m, first + 1084) + 8) + rrj_read32(m, first + 304) + rrj_read32(m, second + 304);
             if (rrj_s32(leaf_abs32(direction)) < rrj_s32(threshold))
                 flags |= 1;
@@ -2530,12 +2468,12 @@ uint32_t sub_800C159C(RRJMemory *m, uint32_t first, uint32_t second, int32_t dir
 
 uint32_t sub_800C2030(RRJMemory *m, uint32_t object)
 {
-    uint32_t index = (uint32_t)*(uint8_t *)rrj_at(m, object + 570, 1) + 1;
+    uint32_t index = (uint32_t)r_u8(object + 570) + 1;
     FUNCTION_MARKER(0x800C2030, "RASHCDG.BIN");
-    *(uint8_t *)rrj_at(m, object + 572, 1) |= 2;
+    xport_update_u8(object + 572, XPORT_MEMORY_UPDATE_OR, 2);
     while (index < 6)
     {
-        *(uint8_t *)rrj_at(m, object + index + 574, 1) = 63;
+        w_u8(object + index + 574, 63);
         ++index;
     }
     return object + index;
@@ -2543,23 +2481,23 @@ uint32_t sub_800C2030(RRJMemory *m, uint32_t object)
 
 uint32_t sub_800C2E9C(RRJMemory *m, uint32_t object, uint8_t event)
 {
-    uint32_t state_index = *(uint8_t *)rrj_at(m, object + 570, 1);
-    uint32_t state = *(uint8_t *)rrj_at(m, object + state_index + 574, 1);
+    uint32_t state_index = r_u8(object + 570);
+    uint32_t state = r_u8(object + state_index + 574);
     uint32_t context;
     int32_t frame;
     int32_t boundary;
     FUNCTION_MARKER(0x800C2E9C, "RASHCDG.BIN");
-    if (*(uint8_t *)rrj_at(m, object + 569, 1) || (int8_t)state != 1)
+    if (r_u8(object + 569) || (int8_t)state != 1)
         return 0;
     context = rrj_read32(m, object + 540);
     frame = rrj_s32(rrj_read32(m, context + 16) << 2);
     {
         uint32_t index = rrj_read32(m, context + 12);
-        uint32_t selector = *(uint8_t *)rrj_at(m, rrj_read32(m, context + 4) + 12 * index, 1);
+        uint32_t selector = r_u8(rrj_read32(m, context + 4) + 12 * index);
         uint32_t table = rrj_read32(m, rrj_read32(m, context + 40) + 4);
-        boundary = (int16_t)(*(uint16_t *)rrj_at(m, rrj_read32(m, table + 4 * selector) + 16, 2) - 1);
+        boundary = (int16_t)(r_u16(rrj_read32(m, table + 4 * selector) + 16) - 1);
     }
-    if (boundary < frame && frame < 3 * boundary && (!(*(uint8_t *)rrj_at(m, object + 572, 1) & 0x20) || !event || event == 2 || event == 6 || event == 7))
+    if (boundary < frame && frame < 3 * boundary && (!(r_u8(object + 572) & 0x20) || !event || event == 2 || event == 6 || event == 7))
         return 1;
     return 0;
 }
@@ -2584,7 +2522,7 @@ void sub_800C92F8(RRJMemory *m)
     }
     if (side >= 0 && (flags & 0x08000000u))
     {
-        int32_t boundary = rrj_s32((uint32_t)(*(uint16_t *)rrj_at(m, 0x8005317A, 2) - 25u) << 16);
+        int32_t boundary = rrj_s32((uint32_t)(r_u16(0x8005317A) - 25u) << 16);
         if (rrj_s32(rrj_read32(m, object + 368)) < boundary)
         {
             int32_t dot = rrj_s32(sub_8002E698(m, rrj_read32(m, object + 340) + 14, object + 528));
@@ -2598,7 +2536,7 @@ uint32_t sub_800C2348(RRJMemory *m, uint32_t input, uint32_t entity, RRJRaceLeaf
 {
     uint32_t state = rrj_read32(m, entity + 1084);
     uint32_t changed = 0;
-    uint32_t value = *(uint8_t *)rrj_at(m, state + 46, 1);
+    uint32_t value;
     uint32_t code = 0;
     uint32_t play = 0;
     FUNCTION_MARKER(0x800C2348, "RASHCDG.BIN");
@@ -2610,6 +2548,7 @@ uint32_t sub_800C2348(RRJMemory *m, uint32_t input, uint32_t entity, RRJRaceLeaf
         code = 71;
     else if (sub_800C2178(m, input, 7))
     {
+        value = r_u8(state + 46);
         if (value == 9)
             code = 38;
         else if (value == 5 || value == 1)
@@ -2619,6 +2558,7 @@ uint32_t sub_800C2348(RRJMemory *m, uint32_t input, uint32_t entity, RRJRaceLeaf
     }
     else if (sub_800C2178(m, input, 5))
     {
+        value = r_u8(state + 46);
         if ((uint32_t)(value - 2) < 2 || value == 0 || value == 8)
             code = 148;
         else if ((uint8_t)(value - 6) < 2)
@@ -2626,6 +2566,7 @@ uint32_t sub_800C2348(RRJMemory *m, uint32_t input, uint32_t entity, RRJRaceLeaf
     }
     else if (sub_800C2178(m, input, 6))
     {
+        value = r_u8(state + 46);
         if (value == 4 || value == 6 || value == 7)
             code = 148;
         else if (value == 8)
@@ -2633,6 +2574,7 @@ uint32_t sub_800C2348(RRJMemory *m, uint32_t input, uint32_t entity, RRJRaceLeaf
     }
     else if (sub_800C2178(m, input, 1))
     {
+        value = r_u8(state + 46);
         if (value == 9)
             code = 32;
         else if ((uint8_t)(value - 6) >= 3)
@@ -2642,6 +2584,7 @@ uint32_t sub_800C2348(RRJMemory *m, uint32_t input, uint32_t entity, RRJRaceLeaf
     }
     else if (sub_800C2178(m, input, 2))
     {
+        value = r_u8(state + 46);
         if (value == 9)
             code = 36;
         else if ((uint8_t)(value - 6) < 3)
@@ -2651,7 +2594,7 @@ uint32_t sub_800C2348(RRJMemory *m, uint32_t input, uint32_t entity, RRJRaceLeaf
     }
     if (code)
     {
-        *(uint8_t *)rrj_at(m, state + 60, 1) = (uint8_t)code;
+        w_u8(state + 60, (uint8_t)code);
         changed = 1;
     }
     else if (play)
@@ -2661,7 +2604,7 @@ uint32_t sub_800C2348(RRJMemory *m, uint32_t input, uint32_t entity, RRJRaceLeaf
     if (changed)
     {
         leaf_call(m, call, 0x800C1DD4, entity, 0, 0, 0);
-        *(uint8_t *)rrj_at(m, rrj_read32(m, entity + 852) + 573, 1) = 0;
+        w_u8(rrj_read32(m, entity + 852) + 573, 0);
     }
     return changed;
 }
@@ -2693,12 +2636,12 @@ uint32_t sub_80011738(RRJMemory *m)
     uint32_t state = 0x800D5D38;
     FUNCTION_MARKER(0x80011738, "SLUS_010.53");
     rrj_write32(m, 0x8005B2F8, state);
-    *(uint8_t *)rrj_at(m, state + 3, 1) = 1;
-    *(uint8_t *)rrj_at(m, state + 4, 1) = 34;
+    w_u8(state + 3, 1);
+    w_u8(state + 4, 34);
     rrj_write32(m, state + 64, 4);
     rrj_write32(m, state + 76, 9);
-    *(uint8_t *)rrj_at(m, state + 5, 1) = 3;
-    *(uint8_t *)rrj_at(m, state + 7, 1) = 3;
+    w_u8(state + 5, 3);
+    w_u8(state + 7, 3);
     rrj_write32(m, state + 12, 0);
     rrj_put16(rrj_at(m, state + 40, 2), 0);
     rrj_put16(rrj_at(m, state + 42, 2), 0);
@@ -2706,13 +2649,13 @@ uint32_t sub_80011738(RRJMemory *m)
     rrj_put16(rrj_at(m, state + 58, 2), 0);
     rrj_write32(m, state + 60, 0);
     rrj_write32(m, state + 68, 0);
-    *(uint8_t *)rrj_at(m, state + 56, 1) = 0;
+    w_u8(state + 56, 0);
     rrj_write32(m, state + 48, 1);
     rrj_write32(m, state + 72, 0);
     rrj_write32(m, state + 88, 0);
     rrj_write32(m, state + 92, 0);
     rrj_write32(m, state + 96, 1);
-    *(uint8_t *)rrj_at(m, state + 6, 1) = 1;
+    w_u8(state + 6, 1);
     rrj_put16(rrj_at(m, state + 8, 2), 120);
     return state;
 }
@@ -2722,8 +2665,9 @@ uint32_t sub_800117BC(RRJMemory *m, RRJRaceLeafCall call)
     uint32_t state;
     uint32_t result;
     FUNCTION_MARKER(0x800117BC, "SLUS_010.53");
-    state = sub_80011738(m);
-    *(uint8_t *)rrj_at(m, state, 1) = 2;
+    sub_80011738(m);
+    state = rrj_read32(m, 0x8005B2F8);
+    w_u8(state, 2);
     sub_8001C004(m, call);
     result = sub_80014528(m, 0x80052318, call);
     if (rrj_s32(result) < 0)
@@ -2732,7 +2676,8 @@ uint32_t sub_800117BC(RRJMemory *m, RRJRaceLeafCall call)
     sub_8001BFA8(m, call);
     sub_8001B494(m, call);
     sub_8001BC54(m, call);
-    if (*(int8_t *)rrj_at(m, state, 1) == 2)
+    state = rrj_read32(m, 0x8005B2F8);
+    if (r_s8(state) == 2)
         sub_80018C1C(m, 0, call);
     sub_800116B8(m, call);
     sub_8001C590(m, call);
@@ -2788,8 +2733,8 @@ uint32_t sub_800119C0(RRJMemory *m, RRJRaceLeafCall call)
         rrj_write32(m, object + 0x21C, animation);
         if (rrj_read32(m, 0x800CE190))
             sub_80012858(m, animation, rrj_read32(m, 0x800CE190));
-        leaf_call(m, call, 0x800C4550, (*(uint16_t *)rrj_at(m, object + 0xAC, 2) & 1) ? 4 : 6, object, 1, 0);
-        if (*(int16_t *)rrj_at(m, entity + 0x140, 2))
+        leaf_call(m, call, 0x800C4550, (r_u16(object + 0xAC) & 1) ? 4 : 6, object, 1, 0);
+        if (r_s16(entity + 0x140))
         {
             leaf_call(m, call, 0x8008B99C, entity, 0, 0, 0);
             leaf_call(m, call, 0x8008BA18, entity, 0, 0, 0);
@@ -2805,7 +2750,7 @@ uint32_t sub_800119C0(RRJMemory *m, RRJRaceLeafCall call)
             rrj_write32(m, secondary + 0x21C, animation);
             if (rrj_read32(m, 0x800CE1A8))
                 sub_80012858(m, animation, rrj_read32(m, 0x800CE1A8));
-            if (*(uint8_t *)rrj_at(m, secondary + 0x23C, 1) & 0x20)
+            if (r_u8(secondary + 0x23C) & 0x20)
                 leaf_call(m, call, 0x800C4550, 77, secondary, 1, 0);
         }
         --remaining;
@@ -2816,7 +2761,7 @@ uint32_t sub_800119C0(RRJMemory *m, RRJRaceLeafCall call)
     leaf_call(m, call, 0x8008D89C, 0, 0, 0, 0);
     leaf_call(m, call, 0x8009C308, 0, 0, 0, 0);
     state = rrj_read32(m, 0x8005B2F8);
-    if (!(*(uint8_t *)rrj_at(m, state + 4, 1) & 1))
+    if (!(r_u8(state + 4) & 1))
         leaf_call(m, call, 0x800901A8, 1, 0, 0, 0);
     if (rrj_read32(m, 0x8005B220))
     {
@@ -2857,7 +2802,7 @@ uint32_t sub_800121E4(RRJMemory *m, RRJRaceLeafCall call)
 uint32_t sub_80012224(RRJMemory *m, RRJRaceLeafCall call)
 {
     uint32_t state;
-    uint32_t load_buffer;
+    int32_t mode;
     FUNCTION_MARKER(0x80012224, "SLUS_010.53");
     leaf_call(m, call, 0x800403CC, 0, 0, 0, 0);
     sub_800140E8(m);
@@ -2865,27 +2810,27 @@ uint32_t sub_80012224(RRJMemory *m, RRJRaceLeafCall call)
     sub_800117BC(m, call);
     sub_8002E080(m, call);
     state = rrj_read32(m, 0x8005B2F8);
-    load_buffer = rrj_read32(m, 0x80010E34);
-    if (*(int8_t *)rrj_at(m, state, 1) == 2)
+    if (r_s8(state) == 2)
     {
-        sub_800118A0(m, 16, load_buffer, call);
+        sub_800118A0(m, 16, rrj_read32(m, 0x80010E34), call);
         leaf_call(m, call, 0x8007FEDC, 0, 0, 0, 0);
     }
-    while (*(int8_t *)rrj_at(m, state, 1))
+    while (r_s8(state = rrj_read32(m, 0x8005B2F8)))
     {
-        if (*(int8_t *)rrj_at(m, state, 1) == 2)
+        if (r_s8(state) == 2)
         {
-            sub_800118A0(m, 16, load_buffer, call);
+            sub_800118A0(m, 16, rrj_read32(m, 0x80010E34), call);
             sub_8001B868(m);
             leaf_call(m, call, 0x8007FF4C, 0, 0, 0, 0);
         }
-        sub_800118A0(m, 2, load_buffer, call);
+        sub_800118A0(m, 2, rrj_read32(m, 0x80010E34), call);
         leaf_call(m, call, 0x80064610, 0, 0, 0, 0);
         do
         {
             leaf_call(m, call, 0x80063B90, 0, 0, 0, 0);
-            sub_800118A0(m, 4, load_buffer, call);
+            sub_800118A0(m, 4, rrj_read32(m, 0x80010E34), call);
             sub_8001F080(m, call);
+            state = rrj_read32(m, 0x8005B2F8);
             if (rrj_read32(m, state + 0x30) == 1)
             {
                 sub_800247A0(m, call);
@@ -2893,57 +2838,54 @@ uint32_t sub_80012224(RRJMemory *m, RRJRaceLeafCall call)
             }
             sub_800119C0(m, call);
             sub_8001B868(m);
-            while (*(int8_t *)rrj_at(m, state, 1) && *(int8_t *)rrj_at(m, state, 1) != 2 && *(int8_t *)rrj_at(m, state, 1) != 5)
+            state = rrj_read32(m, 0x8005B2F8);
+            for (;;)
             {
-                if (rrj_trace_phase_boundary(m, 0x8001CB3C))
-                    return 0;
+                mode = r_s8(state);
+                if (!mode || mode == 2 || r_s8(state) == 5)
+                    break;
                 leaf_call(m, call, 0x8001CB3C, 0, 0, 0, 0);
-                if (*(int8_t *)rrj_at(m, state + 3, 1))
+                state = rrj_read32(m, 0x8005B2F8);
+                if (r_s8(state + 3))
                 {
                     rrj_write32(m, 0x8005B228, 0x00050000);
                     rrj_put16(rrj_at(m, 0x800CD542, 2), 0);
                     rrj_put16(rrj_at(m, 0x800CD540, 2), 0);
                     leaf_call(m, call, 0x8008AB00, 1094, 0, 0, 0);
                     leaf_call(m, call, 0x800881B4, 0x800CD898, 1094, 0, 0);
+                    state = rrj_read32(m, 0x8005B2F8);
                     if (rrj_read32(m, state + 0x30) >= 2)
                         leaf_call(m, call, 0x800881B4, 0x800CDD04, 1094, 0, 0);
                     leaf_call(m, call, 0x8008CFDC, 0x800CDD04, 0, 0, 0);
                     leaf_call(m, call, 0x8005E1D8, 0x800CE170, 0, 0, 0);
-                    *(uint8_t *)rrj_at(m, state + 3, 1) = 0;
+                    state = rrj_read32(m, 0x8005B2F8);
+                    w_u8(state + 3, 0);
                 }
                 else
                 {
-                    if (rrj_trace_phase_boundary(m, 0x8001C428))
-                        return 0;
                     leaf_call(m, call, 0x8001C428, 0, 0, 0, 0);
                 }
-                while (rrj_trace_input_pending_at_tick(m) && !rrj_trace_runtime_failed())
-                    leaf_call(m, call, 0x8001B700, 0, 0, 0, 0);
                 leaf_call(m, call, 0x80011C4C, 0, 0, 0, 0);
-                if (*(int8_t *)rrj_at(m, state + 2, 1))
+                state = rrj_read32(m, 0x8005B2F8);
+                if (r_s8(state + 2))
                 {
-                    *(uint8_t *)rrj_at(m, state, 1) = 3;
-                    *(uint8_t *)rrj_at(m, state + 2, 1) = 0;
+                    w_u8(state, 3);
+                    state = rrj_read32(m, 0x8005B2F8);
+                    w_u8(state + 2, 0);
                     sub_80018C1C(m, 1, call);
                     sub_80020E30(m, 1, call);
+                    state = rrj_read32(m, 0x8005B2F8);
                 }
-                {
-                    uint32_t vblanks = rrj_trace_vblanks_before_aux(m);
-
-                    while (vblanks-- && !rrj_trace_runtime_failed())
-                        leaf_call(m, call, 0x8001B700, 0, 0, 0, 0);
-                }
-                if (rrj_trace_phase_boundary(m, 0x8001241C) || rrj_trace_phase_boundary(m, 0x80012370))
-                    return 0;
             }
             leaf_call(m, call, 0x8001C408, 0, 0, 0, 0);
             sub_80022FC0(m, call);
-            sub_800118A0(m, 2, load_buffer, call);
+            sub_800118A0(m, 2, rrj_read32(m, 0x80010E34), call);
             leaf_call(m, call, 0x80063A20, 0, 0, 0, 0);
-            if (*(int8_t *)rrj_at(m, state, 1) != 5)
+            state = rrj_read32(m, 0x8005B2F8);
+            if (r_s8(state) != 5)
                 break;
             leaf_call(m, call, 0x80063FA0, 0, 0, 0, 0);
-        } while (*(int8_t *)rrj_at(m, state, 1) == 5);
+        } while (r_s8(rrj_read32(m, 0x8005B2F8)) == 5);
     }
     sub_800121E4(m, call);
     return 0;
@@ -2952,20 +2894,21 @@ uint32_t sub_80012224(RRJMemory *m, RRJRaceLeafCall call)
 /* Continuation at the recorded race-loop checkpoint */
 uint32_t sub_80012370(RRJMemory *m, RRJRaceLeafCall call)
 {
-    uint32_t state = rrj_read32(m, 0x8005B2F8);
-    uint32_t load_buffer = rrj_read32(m, 0x80010E34);
+    uint32_t state = 0;
+    int32_t mode;
     int resume_frame = 1;
-    while (*(int8_t *)rrj_at(m, state, 1))
+    int first_inner = 1;
+    while (resume_frame || r_s8(state = rrj_read32(m, 0x8005B2F8)))
     {
         if (!resume_frame)
         {
-            if (*(int8_t *)rrj_at(m, state, 1) == 2)
+            if (r_s8(state) == 2)
             {
-                sub_800118A0(m, 16, load_buffer, call);
+                sub_800118A0(m, 16, rrj_read32(m, 0x80010E34), call);
                 sub_8001B868(m);
                 leaf_call(m, call, 0x8007FF4C, 0, 0, 0, 0);
             }
-            sub_800118A0(m, 2, load_buffer, call);
+            sub_800118A0(m, 2, rrj_read32(m, 0x80010E34), call);
             leaf_call(m, call, 0x80064610, 0, 0, 0, 0);
         }
         do
@@ -2973,8 +2916,9 @@ uint32_t sub_80012370(RRJMemory *m, RRJRaceLeafCall call)
             if (!resume_frame)
             {
                 leaf_call(m, call, 0x80063B90, 0, 0, 0, 0);
-                sub_800118A0(m, 4, load_buffer, call);
+                sub_800118A0(m, 4, rrj_read32(m, 0x80010E34), call);
                 sub_8001F080(m, call);
+                state = rrj_read32(m, 0x8005B2F8);
                 if (rrj_read32(m, state + 0x30) == 1)
                 {
                     sub_800247A0(m, call);
@@ -2984,23 +2928,37 @@ uint32_t sub_80012370(RRJMemory *m, RRJRaceLeafCall call)
                 sub_8001B868(m);
             }
             resume_frame = 0;
-            while (*(int8_t *)rrj_at(m, state, 1) && *(int8_t *)rrj_at(m, state, 1) != 2 && *(int8_t *)rrj_at(m, state, 1) != 5)
+            if (!first_inner)
+                state = rrj_read32(m, 0x8005B2F8);
+            for (;;)
             {
+                if (!first_inner)
+                {
+                    mode = r_s8(state);
+                    if (!mode || mode == 2 || r_s8(state) == 5)
+                        break;
+                }
+                if (!first_inner && rrj_trace_phase_boundary(m, 0x80012370))
+                    return 0;
+                first_inner = 0;
                 if (rrj_trace_phase_boundary(m, 0x8001CB3C))
                     return 0;
                 leaf_call(m, call, 0x8001CB3C, 0, 0, 0, 0);
-                if (*(int8_t *)rrj_at(m, state + 3, 1))
+                state = rrj_read32(m, 0x8005B2F8);
+                if (r_s8(state + 3))
                 {
                     rrj_write32(m, 0x8005B228, 0x00050000);
                     rrj_put16(rrj_at(m, 0x800CD542, 2), 0);
                     rrj_put16(rrj_at(m, 0x800CD540, 2), 0);
                     leaf_call(m, call, 0x8008AB00, 1094, 0, 0, 0);
                     leaf_call(m, call, 0x800881B4, 0x800CD898, 1094, 0, 0);
+                    state = rrj_read32(m, 0x8005B2F8);
                     if (rrj_read32(m, state + 0x30) >= 2)
                         leaf_call(m, call, 0x800881B4, 0x800CDD04, 1094, 0, 0);
                     leaf_call(m, call, 0x8008CFDC, 0x800CDD04, 0, 0, 0);
                     leaf_call(m, call, 0x8005E1D8, 0x800CE170, 0, 0, 0);
-                    *(uint8_t *)rrj_at(m, state + 3, 1) = 0;
+                    state = rrj_read32(m, 0x8005B2F8);
+                    w_u8(state + 3, 0);
                 }
                 else
                 {
@@ -3008,33 +2966,29 @@ uint32_t sub_80012370(RRJMemory *m, RRJRaceLeafCall call)
                         return 0;
                     leaf_call(m, call, 0x8001C428, 0, 0, 0, 0);
                 }
-                while (rrj_trace_input_pending_at_tick(m) && !rrj_trace_runtime_failed())
-                    leaf_call(m, call, 0x8001B700, 0, 0, 0, 0);
                 leaf_call(m, call, 0x80011C4C, 0, 0, 0, 0);
-                if (*(int8_t *)rrj_at(m, state + 2, 1))
+                if (rrj_trace_phase_boundary(m, 0x8001241C))
+                    return 0;
+                state = rrj_read32(m, 0x8005B2F8);
+                if (r_s8(state + 2))
                 {
-                    *(uint8_t *)rrj_at(m, state, 1) = 3;
-                    *(uint8_t *)rrj_at(m, state + 2, 1) = 0;
+                    w_u8(state, 3);
+                    state = rrj_read32(m, 0x8005B2F8);
+                    w_u8(state + 2, 0);
                     sub_80018C1C(m, 1, call);
                     sub_80020E30(m, 1, call);
+                    state = rrj_read32(m, 0x8005B2F8);
                 }
-                {
-                    uint32_t vblanks = rrj_trace_vblanks_before_aux(m);
-
-                    while (vblanks-- && !rrj_trace_runtime_failed())
-                        leaf_call(m, call, 0x8001B700, 0, 0, 0, 0);
-                }
-                if (rrj_trace_phase_boundary(m, 0x8001241C) || rrj_trace_phase_boundary(m, 0x80012370))
-                    return 0;
             }
             leaf_call(m, call, 0x8001C408, 0, 0, 0, 0);
             sub_80022FC0(m, call);
-            sub_800118A0(m, 2, load_buffer, call);
+            sub_800118A0(m, 2, rrj_read32(m, 0x80010E34), call);
             leaf_call(m, call, 0x80063A20, 0, 0, 0, 0);
-            if (*(int8_t *)rrj_at(m, state, 1) != 5)
+            state = rrj_read32(m, 0x8005B2F8);
+            if (r_s8(state) != 5)
                 break;
             leaf_call(m, call, 0x80063FA0, 0, 0, 0, 0);
-        } while (*(int8_t *)rrj_at(m, state, 1) == 5);
+        } while (r_s8(rrj_read32(m, 0x8005B2F8)) == 5);
     }
     sub_800121E4(m, call);
     return 0;
@@ -3050,7 +3004,7 @@ uint32_t sub_80012764(RRJMemory *m, uint32_t index)
     FUNCTION_MARKER(0x80012764, "SLUS_010.53");
     if (flags & 0x08000000)
     {
-        slot = *(uint8_t *)rrj_at(m, rrj_read32(m, object + 0x43C) + 1, 1) & 15;
+        slot = r_u8(rrj_read32(m, object + 0x43C) + 1) & 15;
         result = 1u << slot;
         if (!(enabled & result))
             return result;
@@ -3120,6 +3074,7 @@ uint32_t sub_800142B4(RRJMemory *m, uint32_t size, uint32_t index, RRJRaceLeafCa
             uint32_t remainder = block + requested;
             rrj_write32(m, link, remainder);
             rrj_write32(m, remainder, rrj_read32(m, block));
+            block_size = rrj_read32(m, block + 4);
             rrj_write32(m, remainder + 4, block_size - requested);
             rrj_write32(m, block, requested);
             return block + 4;
@@ -3135,12 +3090,14 @@ uint32_t sub_8001426C(RRJMemory *m, uint32_t arena, uint32_t size, uint32_t inde
 {
     uint32_t slot = 0x800D6500 + index * 16;
     uint32_t end = arena + (size & 0xFFFFFFF8);
-    uint32_t available = end - arena;
+    uint32_t available;
     FUNCTION_MARKER(0x8001426C, "SLUS_010.53");
     rrj_write32(m, slot + 12, arena);
     rrj_write32(m, slot + 8, end);
     rrj_write32(m, slot, arena);
     rrj_write32(m, arena, 0);
+    end = rrj_read32(m, slot + 8);
+    available = end - rrj_read32(m, slot + 12);
     rrj_write32(m, arena + 4, available);
     return available;
 }
@@ -3605,7 +3562,7 @@ uint32_t sub_8001542C(RRJMemory *m, uint32_t context, uint32_t unused, uint32_t 
 {
     uint32_t result;
     FUNCTION_MARKER(0x8001542C, "SLUS_010.53");
-    if (*(uint8_t *)rrj_at(m, path, 1) == '\\' || *(uint8_t *)rrj_at(m, path + 1, 1) == ':')
+    if (r_u8(path) == '\\' || r_u8(path + 1) == ':')
         return leaf_call(m, call, 0x800448E4, context, path, 0, 0);
     leaf_call(m, call, 0x800448E4, context, 0, 0, 0);
     result = leaf_call(m, call, 0x80044864, context, path, 0, 0);
@@ -3618,9 +3575,9 @@ uint32_t sub_80015C08(RRJMemory *m, uint32_t bcd)
     uint32_t second;
     uint32_t third;
     FUNCTION_MARKER(0x80015C08, "SLUS_010.53");
-    first = *(uint8_t *)rrj_at(m, bcd, 1);
-    second = *(uint8_t *)rrj_at(m, bcd + 1, 1);
-    third = *(uint8_t *)rrj_at(m, bcd + 2, 1);
+    first = r_u8(bcd);
+    second = r_u8(bcd + 1);
+    third = r_u8(bcd + 2);
     first = 10 * (first >> 4) + (first & 15);
     second = 10 * (second >> 4) + (second & 15);
     third = 10 * (third >> 4) + (third & 15);
@@ -3635,10 +3592,10 @@ uint32_t sub_80015C88(RRJMemory *m, uint32_t output, uint32_t frames)
     uint8_t second = (uint8_t)(whole_seconds - minutes * 60);
     uint8_t minute = (uint8_t)minutes;
     FUNCTION_MARKER(0x80015C88, "SLUS_010.53");
-    *(uint8_t *)rrj_at(m, output + 2, 1) = (uint8_t)(16 * (frame / 10) + frame % 10);
-    *(uint8_t *)rrj_at(m, output + 1, 1) = (uint8_t)(16 * (second / 10) + second % 10);
-    *(uint8_t *)rrj_at(m, output + 3, 1) = 0;
-    *(uint8_t *)rrj_at(m, output, 1) = (uint8_t)(16 * (minute / 10) + minute % 10);
+    w_u8(output + 2, (uint8_t)(16 * (frame / 10) + frame % 10));
+    w_u8(output + 1, (uint8_t)(16 * (second / 10) + second % 10));
+    w_u8(output + 3, 0);
+    w_u8(output, (uint8_t)(16 * (minute / 10) + minute % 10));
     return 10 * (minute / 10);
 }
 
@@ -3738,10 +3695,10 @@ uint32_t sub_80015DD8(RRJMemory *m, uint32_t capacity, RRJRaceLeafCall call)
     leaf_call(m, call, 0x800457A8, 0, 0, 0, 0);
     first = sub_80015C08(m, output + 4);
     rrj_write32(m, 0x8005B3D8, first);
-    *(uint8_t *)rrj_at(m, bcd, 1) = *(uint8_t *)rrj_at(m, output + 4, 1);
-    *(uint8_t *)rrj_at(m, bcd + 1, 1) = *(uint8_t *)rrj_at(m, output + 5, 1);
-    *(uint8_t *)rrj_at(m, bcd + 2, 1) = 22;
-    *(uint8_t *)rrj_at(m, bcd + 3, 1) = 0;
+    w_u8(bcd, r_u8(output + 4));
+    w_u8(bcd + 1, r_u8(output + 5));
+    w_u8(bcd + 2, 22);
+    w_u8(bcd + 3, 0);
     second = sub_80015C08(m, bcd);
     buffer = sub_8001447C(m, 2048, 0, call);
     if (!buffer)
@@ -3756,7 +3713,7 @@ uint32_t sub_80015DD8(RRJMemory *m, uint32_t capacity, RRJRaceLeafCall call)
 uint32_t sub_8001549C(RRJMemory *m, uint32_t capacity, RRJRaceLeafCall call)
 {
     FUNCTION_MARKER(0x8001549C, "SLUS_010.53");
-    *(uint8_t *)rrj_at(m, 0x8005B3C8, 1) = 0xA0;
+    w_u8(0x8005B3C8, 0xA0);
     sub_80015D94(m, call);
     rrj_write32(m, 0x800D6710, 0);
     rrj_write32(m, 0x800D6718, 0);
@@ -3808,22 +3765,22 @@ uint32_t sub_80015F8C(RRJMemory *m, uint32_t path, RRJRaceLeafCall call)
     uint32_t hash = 0;
     uint32_t shift = 0;
     FUNCTION_MARKER(0x80015F8C, "SLUS_010.53");
-    while (*(uint8_t *)rrj_at(m, cursor, 1))
+    while (r_u8(cursor))
     {
-        if (*(uint8_t *)rrj_at(m, cursor, 1) == '\\')
+        if (r_u8(cursor) == '\\')
             start = cursor;
         ++cursor;
     }
-    if (*(uint8_t *)rrj_at(m, start, 1) == '\\')
+    if (r_u8(start) == '\\')
     {
         do
         {
             ++start;
-        } while (*(uint8_t *)rrj_at(m, start, 1) == '\\');
+        } while (r_u8(start) == '\\');
     }
-    while (*(uint8_t *)rrj_at(m, start, 1))
+    while (r_u8(start))
     {
-        uint32_t value = leaf_call(m, call, 0x80044884, *(uint8_t *)rrj_at(m, start++, 1), 0, 0, 0);
+        uint32_t value = leaf_call(m, call, 0x80044884, r_u8(start++), 0, 0, 0);
         hash = ((hash ^ (value << shift)) + value * value) ^ (value << ((24 - shift) & 31));
         shift = (shift + 1) % 24;
     }
@@ -3839,8 +3796,7 @@ uint32_t sub_800160B0(RRJMemory *m, uint32_t position, uint32_t buffer, RRJRaceL
 
 static uint32_t leaf_read_le32(RRJMemory *m, uint32_t address)
 {
-    uint8_t *p = rrj_at(m, address, 4);
-    return (uint32_t)p[0] | ((uint32_t)p[1] << 8) | ((uint32_t)p[2] << 16) | ((uint32_t)p[3] << 24);
+    return r_u32(address);
 }
 
 static uint32_t leaf_path_hash(RRJMemory *m, const char *path, RRJRaceLeafCall call)
@@ -3874,14 +3830,14 @@ static uint32_t leaf_walk_cd_directory(RRJMemory *m, uint32_t position, uint32_t
     if (!buffer)
         return 0;
     sub_800160B0(m, position, buffer, call);
-    offset = *(uint8_t *)rrj_at(m, buffer, 1);
-    offset += *(uint8_t *)rrj_at(m, buffer + offset, 1);
+    offset = r_u8(buffer);
+    offset += r_u8(buffer + offset);
     for (;;)
     {
         while (offset < 2048)
         {
             uint32_t record = buffer + offset;
-            uint32_t record_size = *(uint8_t *)rrj_at(m, record, 1);
+            uint32_t record_size = r_u8(record);
             uint32_t extent;
             uint32_t file_size;
             uint32_t name_length;
@@ -3889,16 +3845,16 @@ static uint32_t leaf_walk_cd_directory(RRJMemory *m, uint32_t position, uint32_t
             uint32_t index;
             char name[16];
             char full_path[256];
-            if (!record_size || (*(uint8_t *)rrj_at(m, record + 25, 1) & 0x80))
+            if (!record_size || (r_u8(record + 25) & 0x80))
                 break;
             extent = leaf_read_le32(m, record + 2);
             if (extent)
             {
                 file_size = leaf_read_le32(m, record + 10);
-                name_length = *(uint8_t *)rrj_at(m, record + 32, 1);
+                name_length = r_u8(record + 32);
                 for (index = 0; index < name_length; ++index)
                 {
-                    if (*(uint8_t *)rrj_at(m, record + 33 + index, 1) == ';')
+                    if (r_u8(record + 33 + index) == ';')
                     {
                         name_length = index;
                         break;
@@ -3906,7 +3862,7 @@ static uint32_t leaf_walk_cd_directory(RRJMemory *m, uint32_t position, uint32_t
                 }
                 copy_length = name_length < sizeof(name) - 1 ? name_length : sizeof(name) - 1;
                 for (index = 0; index < copy_length; ++index)
-                    name[index] = (char)leaf_call(m, call, 0x80044884, *(uint8_t *)rrj_at(m, record + 33 + index, 1), 0, 0, 0);
+                    name[index] = (char)leaf_call(m, call, 0x80044884, r_u8(record + 33 + index), 0, 0, 0);
                 name[copy_length] = 0;
                 copy_length = 0;
                 while (path[copy_length] && copy_length < sizeof(full_path) - 1)
@@ -3919,7 +3875,7 @@ static uint32_t leaf_walk_cd_directory(RRJMemory *m, uint32_t position, uint32_t
                 for (index = 0; name[index] && copy_length < sizeof(full_path) - 1; ++index)
                     full_path[copy_length++] = name[index];
                 full_path[copy_length] = 0;
-                if (*(uint8_t *)rrj_at(m, record + 25, 1) & 2)
+                if (r_u8(record + 25) & 2)
                 {
                     leaf_walk_cd_directory(m, extent, file_size, depth + 1, full_path, call);
                 }
@@ -3963,7 +3919,7 @@ uint32_t sub_800160E0(RRJMemory *m, uint32_t position, uint32_t length, uint32_t
     char root[256];
     uint32_t index = 0;
     FUNCTION_MARKER(0x800160E0, "SLUS_010.53");
-    while (index < sizeof(root) - 1 && *(uint8_t *)rrj_at(m, path + index, 1))
+    while (index < sizeof(root) - 1 && r_u8(path + index))
     {
         root[index] = *(char *)rrj_at(m, path + index, 1);
         ++index;
@@ -3981,7 +3937,7 @@ uint32_t sub_800163D4(RRJMemory *m, RRJRaceLeafCall call)
     result = sub_8001EC30(m, 1, 0x01002001, 4, 12, 5, 24, 0, 0, call);
     sub_8001E138(m, call);
     if (!result)
-        *(uint8_t *)rrj_at(m, 0x8005B3F4, 1) = 1;
+        w_u8(0x8005B3F4, 1);
     return 1;
 }
 
@@ -4081,7 +4037,7 @@ uint32_t sub_80018C1C(RRJMemory *m, uint32_t enabled, RRJRaceLeafCall call)
         rrj_write32(m, 0x800D6C28, rrj_read32(m, 0x800D6C08));
         rrj_write32(m, 0x800D6C2C, rrj_read32(m, 0x800D6C0C));
         rrj_write32(m, 0x800D6C34, rrj_read32(m, 0x800D6C14));
-        if (rrj_read32(m, 0x800CDAC0) != 2 || !(*(uint8_t *)rrj_at(m, state + 4, 1) & 1))
+        if (rrj_read32(m, 0x800CDAC0) != 2 || !(r_u8(state + 4) & 1))
             rrj_write32(m, 0x800D6C24, rrj_read32(m, 0x800D6C04));
         rrj_write32(m, 0x800D6C00, 0);
         rrj_write32(m, 0x800D6C04, 0);
@@ -4126,7 +4082,7 @@ uint32_t sub_80019D9C(RRJMemory *m)
     rrj_write32(m, 0x8005B3FC, 0xFFFFFFFF);
     for (index = 0; index < sizeof reset_words / sizeof reset_words[0]; ++index)
         rrj_write32(m, reset_words[index], 0);
-    *(uint8_t *)rrj_at(m, 0x8005B3F4, 1) = 0;
+    w_u8(0x8005B3F4, 0);
     rrj_write32(m, 0x8005B3E0, 1);
     for (index = 0; index < 7; ++index)
     {
@@ -4140,7 +4096,7 @@ uint32_t sub_80019D9C(RRJMemory *m)
 uint32_t sub_8001A424(RRJMemory *m, RRJRaceLeafCall call)
 {
     uint32_t state = rrj_read32(m, 0x8005B2F8);
-    uint32_t mode = *(uint8_t *)rrj_at(m, state + 4, 1);
+    uint32_t mode = r_u8(state + 4);
     uint32_t players = rrj_read32(m, state + 48);
     uint32_t types = 0x800D6C40;
     uint32_t index;
@@ -4238,7 +4194,7 @@ uint32_t sub_8001A424(RRJMemory *m, RRJRaceLeafCall call)
 uint32_t sub_8001B494(RRJMemory *m, RRJRaceLeafCall call)
 {
     FUNCTION_MARKER(0x8001B494, "SLUS_010.53");
-    *(uint8_t *)rrj_at(m, 0x8005B450, 1) = 0;
+    w_u8(0x8005B450, 0);
     leaf_call(m, call, 0x8004CEEC, 0, 0, 0, 0);
     leaf_call(m, call, 0x80047934, 0, 0, 0, 0);
     return 0;
@@ -4248,7 +4204,7 @@ uint32_t sub_8001B4C0(RRJMemory *m, RRJRaceLeafCall call)
 {
     FUNCTION_MARKER(0x8001B4C0, "SLUS_010.53");
     leaf_call(m, call, 0x800486C8, 0, 0, 0, 0);
-    if (*(uint8_t *)rrj_at(m, 0x8005B450, 1))
+    if (r_u8(0x8005B450))
         sub_8001B5C8(m, call);
     return leaf_call(m, call, 0x80047A28, 0, 0, 0, 0);
 }
@@ -4259,14 +4215,14 @@ uint32_t sub_8001B564(RRJMemory *m, RRJRaceLeafCall call)
     rrj_write32(m, 0x8005B44C, 0);
     rrj_write32(m, 0x8005B448, 0);
     leaf_call(m, call, 0x800479C4, 0x8001B500, 0, 0, 0);
-    *(uint8_t *)rrj_at(m, 0x8005B450, 1) = 1;
+    w_u8(0x8005B450, 1);
     return 1;
 }
 
 uint32_t sub_8001B594(RRJMemory *m, uint32_t callback)
 {
     FUNCTION_MARKER(0x8001B594, "SLUS_010.53");
-    if (!*(uint8_t *)rrj_at(m, 0x8005B450, 1) || rrj_read32(m, 0x8005B448))
+    if (!r_u8(0x8005B450) || rrj_read32(m, 0x8005B448))
         return 3;
     rrj_write32(m, 0x8005B448, callback);
     return 0;
@@ -4278,7 +4234,7 @@ uint32_t sub_8001B5C8(RRJMemory *m, RRJRaceLeafCall call)
     FUNCTION_MARKER(0x8001B5C8, "SLUS_010.53");
     result = leaf_call(m, call, 0x800479C4, 0, 0, 0, 0);
     rrj_write32(m, 0x8005B448, 0);
-    *(uint8_t *)rrj_at(m, 0x8005B450, 1) = 0;
+    w_u8(0x8005B450, 0);
     return result;
 }
 
@@ -4317,13 +4273,13 @@ uint32_t sub_8001B670(RRJMemory *m, uint32_t value)
 
 uint32_t sub_8001B6C4(RRJMemory *m, uint32_t x, uint32_t y, uint32_t width, uint32_t height, RRJRaceLeafCall call)
 {
-    uint32_t rectangle = 0x1F8003E0;
+    PSX_RECT rectangle;
     FUNCTION_MARKER(0x8001B6C4, "SLUS_010.53");
-    rrj_put16(rrj_at(m, rectangle, 2), x);
-    rrj_put16(rrj_at(m, rectangle + 2, 2), y);
-    rrj_put16(rrj_at(m, rectangle + 4, 2), width);
-    rrj_put16(rrj_at(m, rectangle + 6, 2), height);
-    return leaf_call(m, call, 0x80048944, rectangle, 0, 0, 0);
+    rectangle.x = (sint16)(uint16_t)x;
+    rectangle.y = (sint16)(uint16_t)y;
+    rectangle.w = (sint16)(uint16_t)width;
+    rectangle.h = (sint16)(uint16_t)height;
+    return (uint32_t)ClearImage(&rectangle, 0, 0, 0);
 }
 
 uint32_t sub_8001B868(RRJMemory *m)
@@ -4401,6 +4357,7 @@ uint32_t sub_8001C004(RRJMemory *m, RRJRaceLeafCall call)
     int32_t entries;
     uint32_t size;
     uint32_t allocation;
+    uint32_t packet;
     uint32_t result;
     FUNCTION_MARKER(0x8001C004, "SLUS_010.53");
     rrj_write32(m, 0x8005B470, context);
@@ -4408,27 +4365,38 @@ uint32_t sub_8001C004(RRJMemory *m, RRJRaceLeafCall call)
     rrj_write32(m, 0x8005B46C, 0);
     leaf_call(m, call, 0x80048444, 0, 0, 0, 0);
     sub_8001B6C4(m, 0, 0, 1024, 512, call);
-    *(uint8_t *)rrj_at(m, context + 5, 1) = 0;
-    *(uint8_t *)rrj_at(m, context + 6, 1) = 1;
-    *(uint8_t *)rrj_at(m, context + 7, 1) = 0;
-    *(uint8_t *)rrj_at(m, context + 4, 1) = 1;
+    context = rrj_read32(m, 0x8005B470);
+    w_u8(context + 5, 0);
+    context = rrj_read32(m, 0x8005B470);
+    w_u8(context + 6, 1);
+    context = rrj_read32(m, 0x8005B470);
+    w_u8(context + 7, 0);
+    context = rrj_read32(m, 0x8005B470);
+    w_u8(context + 4, 1);
+    context = rrj_read32(m, 0x8005B470);
     rrj_write32(m, context + 268, rrj_read32(m, context + 240) & 0x00FFFFFF);
     leaf_call(m, call, 0x8001BE08, 0, 0, 384, 240);
     sub_80048414(m, 0);
+    context = rrj_read32(m, 0x8005B470);
     rrj_write32(m, context, 0);
     leaf_call(m, call, 0x80048728, 1, 0, 0, 0);
     sub_8001BDEC(m);
     leaf_call(m, call, 0x800487C0, 0, 0, 0, 0);
     state = rrj_read32(m, 0x8005B2F8);
     players = rrj_read32(m, state + 48);
-    entries = *(int16_t *)rrj_at(m, 0x8005AD84 + (players - 1) * 2, 2);
-    size = (uint32_t)(entries * 60);
+    entries = r_s16(0x8005AD84 + (players - 1) * 2);
+    size = (uint32_t)entries * 60;
     allocation = sub_8001447C(m, size, 0, call);
+    context = rrj_read32(m, 0x8005B470);
+    state = rrj_read32(m, 0x8005B2F8);
     rrj_write32(m, context + 240, allocation);
+    players = rrj_read32(m, state + 48);
+    entries = r_s16(0x8005AD84 + (players - 1) * 2);
     rrj_write32(m, 0x800D75B0, allocation & 0x00FFFFFF);
-    result = (allocation + size - 60) & 0x00FFFFFF;
-    rrj_write32(m, 0x800D75B4, allocation & 0x00FFFFFF);
-    rrj_write32(m, context + 268, allocation & 0x00FFFFFF);
+    result = (allocation + (uint32_t)entries * 60 - 60) & 0x00FFFFFF;
+    packet = rrj_read32(m, context + 240) & 0x00FFFFFF;
+    rrj_write32(m, 0x800D75B4, packet);
+    rrj_write32(m, context + 268, packet);
     rrj_write32(m, 0x8005B4DC, result);
     rrj_write32(m, 0x8005B4D0, result);
     return result;
@@ -4439,10 +4407,10 @@ uint32_t sub_8001C408(RRJMemory *m, RRJRaceLeafPoll poll)
     uint32_t context;
     uint32_t ready;
     FUNCTION_MARKER(0x8001C408, "SLUS_010.53");
+    context = rrj_read32(m, 0x8005B470);
     do
     {
-        context = rrj_read32(m, 0x8005B470);
-        ready = *(uint8_t *)rrj_at(m, context + 4, 1);
+        ready = r_u8(context + 4);
         if (!ready && poll)
             poll(m);
     } while (!ready);
@@ -4460,7 +4428,7 @@ uint32_t sub_8001C4D0(RRJMemory *m)
     address = base + 144;
     for (index = 0; index < 19; ++index)
     {
-        *(uint8_t *)rrj_at(m, address + 25, 1) = 30;
+        w_u8(address + 25, 30);
         address -= 8;
     }
     for (index = 1; index < 4; ++index)
@@ -4482,210 +4450,6 @@ uint32_t sub_8001C590(RRJMemory *m, RRJRaceLeafCall call)
     rrj_write32(m, 0x800D7430, 1);
     leaf_call(m, call, 0x800404C4, 0, 0, 0, 0);
     return sub_8001C4D0(m);
-}
-
-uint32_t sub_8001CB3C_race(RRJMemory *m, RRJRaceLeafCall call)
-{
-    uint32_t state = rrj_read32(m, 0x8005B2F8);
-    uint32_t players;
-    uint32_t player;
-    uint32_t changed = 0;
-    FUNCTION_MARKER(0x8001CB3C, "SLUS_010.53");
-    sub_80043DA4(m);
-    sub_8001E0B4(m, 0x800D7128, 0x800D6DE0, 768);
-    players = rrj_read32(m, state + 52);
-    for (player = 0; rrj_s32(player) < rrj_s32(players); ++player)
-    {
-        uint32_t button;
-        uint32_t record = 0x800D6DF4 + 192 * player;
-        for (button = 0; button < 19; ++button, record += 8)
-        {
-            uint32_t held = rrj_read32(m, record);
-            *(uint8_t *)rrj_at(m, record + 6, 1) = 0;
-            if (rrj_s32(held) < 0)
-                held = 0;
-            rrj_write32(m, record, held);
-        }
-    }
-    if (*(int8_t *)rrj_at(m, state, 1) == 2)
-    {
-        sub_80043DB4(m);
-        return 0;
-    }
-    if (*(int8_t *)rrj_at(m, state, 1) == 1 && rrj_read32(m, 0x8005B478))
-    {
-        *(uint8_t *)rrj_at(m, state, 1) = 3;
-        changed = 1;
-    }
-    else
-    {
-        for (player = 0; rrj_s32(player) < rrj_s32(players); ++player)
-        {
-            uint32_t input = 0x800D7128 + 192 * player;
-            uint32_t map = rrj_read32(m, input + 184);
-            if (*(uint8_t *)rrj_at(m, input + 8 * rrj_read32(m, map + 4) + 26, 1))
-            {
-                if ((rrj_read32(m, state) & 0xFF0000FF) == 1)
-                {
-                    *(uint8_t *)rrj_at(m, state, 1) = 3;
-                    rrj_write32(m, 0x8005AD90, player);
-                    changed = 1;
-                }
-                else if (*(uint8_t *)rrj_at(m, state, 1) == 6)
-                {
-                    rrj_write32(m, 0x8005AF50, 1);
-                }
-            }
-        }
-    }
-    if (*(uint8_t *)rrj_at(m, state + 3, 1))
-    {
-        *(uint8_t *)rrj_at(m, state, 1) = 1;
-        changed = 1;
-    }
-    if (*(uint8_t *)rrj_at(m, state, 1) == 1 && !changed)
-    {
-        rrj_write32(m, state + 24, rrj_read32(m, state + 12) - rrj_read32(m, state + 20));
-    }
-    else if (*(uint8_t *)rrj_at(m, state, 1) == 1 && *(uint8_t *)rrj_at(m, state + 2, 1))
-    {
-        rrj_write32(m, state + 28, 15);
-        rrj_write32(m, state + 24, 15);
-    }
-    else
-    {
-        rrj_write32(m, state + 28, 0);
-        rrj_write32(m, state + 24, 0);
-    }
-    rrj_write32(m, state + 20, rrj_read32(m, state + 12));
-    if (rrj_read32(m, 0x8005B220))
-    {
-        if (rrj_read32(m, 0x800D712C) || rrj_read32(m, 0x800D71EC) || rrj_read32(m, 0x800D72AC) || rrj_read32(m, 0x800D736C))
-            *(uint8_t *)rrj_at(m, state, 1) = 2;
-        return *(uint8_t *)rrj_at(m, state, 1);
-    }
-    sub_80043DB4(m);
-    if (changed)
-        sub_80018C1C(m, *(int8_t *)rrj_at(m, state, 1) == 3, call);
-    if (*(int8_t *)rrj_at(m, state, 1) == 1)
-    {
-        players = rrj_read32(m, state + 52);
-        if ((*(uint8_t *)rrj_at(m, 0x800D70E1, 1) >> 4) != 8 && players >= 3)
-            players = 2;
-        for (player = 0; rrj_s32(player) < rrj_s32(players); ++player)
-        {
-            uint32_t input = 0x800D7128 + 192 * player;
-            uint32_t entity;
-            uint32_t flags_source;
-            uint32_t enabled;
-            uint32_t proxy;
-            if (!player)
-            {
-                entity = rrj_read32(m, 0x8005B38C);
-                flags_source = rrj_read32(m, entity + 560);
-                enabled = ((flags_source >> 27) ^ 1) & 1;
-            }
-            else if (player == 1)
-            {
-                entity = rrj_read32(m, 0x8005B21C);
-                if (!entity)
-                {
-                    entity = rrj_read32(m, rrj_read32(m, 0x8005B38C) + 856);
-                    flags_source = rrj_read32(m, rrj_read32(m, 0x8005B38C) + 560);
-                }
-                else
-                {
-                    flags_source = rrj_read32(m, entity + 560);
-                }
-                enabled = ((flags_source >> 27) ^ 1) & 1;
-            }
-            else if (player == 2)
-            {
-                uint32_t primary = rrj_read32(m, 0x8005B38C);
-                entity = rrj_read32(m, primary + 856);
-                enabled = !(rrj_read32(m, primary + 560) & 0x08000000) && *(uint8_t *)rrj_at(m, state + 10, 1) == 1;
-            }
-            else
-            {
-                uint32_t secondary = rrj_read32(m, 0x8005B21C);
-                entity = rrj_read32(m, secondary + 856);
-                enabled = !(rrj_read32(m, secondary + 560) & 0x08000000) && *(uint8_t *)rrj_at(m, state + 11, 1) == 1;
-            }
-            if (!enabled)
-            {
-                sub_8001DD08(m, player, -1, 0);
-                sub_8001DC94(m, player, -1);
-                rrj_write32(m, 0x800D6DD0 + 4 * player, 0);
-                continue;
-            }
-            if (rrj_read32(m, input + 16))
-            {
-                rrj_write32(m, 0x800CE540 + 8 * player, (uint32_t)sub_8001CA58(m, *(uint8_t *)rrj_at(m, input + 9, 1), 0x800D3984));
-                rrj_write32(m, 0x800CE544 + 8 * player, (uint32_t)sub_8001CA58(m, *(uint8_t *)rrj_at(m, input + 10, 1), 0x800D3978));
-            }
-            proxy = rrj_read32(m, entity + 852);
-            if (*(uint16_t *)rrj_at(m, proxy + 320, 2) && rrj_read32(m, proxy + 604) < 2)
-            {
-                uint32_t set_flags = 0;
-                uint32_t clear_flags = 0;
-                uint32_t pressed;
-                if (rrj_read32(m, input + 16))
-                {
-                    int32_t first = *(int8_t *)rrj_at(m, input + 146, 1);
-                    uint32_t active = first > 0;
-                    if (*(int8_t *)rrj_at(m, input + 154, 1) > 0)
-                        active |= 0x20;
-                    if (*(uint8_t *)rrj_at(m, input + 170, 1) >= 2)
-                        active |= 4;
-                    pressed = 0;
-                    if (first >= 2)
-                    {
-                        pressed = *(int8_t *)rrj_at(m, entity + 848, 1) > 0;
-                        if (pressed)
-                            active |= 0x0C;
-                    }
-                    if (*(uint8_t *)rrj_at(m, input + 154, 1) >= 2 && rrj_s32(rrj_read32(m, input + 164)) > 0)
-                        active |= 0x400;
-                    set_flags = active | 8 * pressed;
-                    if (!pressed)
-                        clear_flags |= 8;
-                }
-                rrj_write32(m, entity + 560, (rrj_read32(m, entity + 560) & ~clear_flags) | set_flags);
-                if (*(uint16_t *)rrj_at(m, entity + 948 + 8 * (uint32_t)*(int8_t *)rrj_at(m, entity + 946, 1), 2) == 16)
-                    leaf_call(m, call, 0x800C258C, input, entity, 0, 0);
-                else
-                    leaf_call(m, call, 0x800C2348, input, entity, 0, 0);
-                return 0;
-            }
-        }
-        return 0;
-    }
-    players = rrj_read32(m, state + 52);
-    if ((*(uint8_t *)rrj_at(m, 0x800D70E1, 1) >> 4) != 8 && players >= 3)
-        players = 2;
-    for (player = 0; rrj_s32(player) < rrj_s32(players); ++player)
-    {
-        uint32_t entity;
-        if (!player)
-            entity = rrj_read32(m, 0x8005B38C);
-        else if (player == 1 && rrj_read32(m, 0x8005B21C))
-            entity = rrj_read32(m, 0x8005B21C);
-        else if (player < 3)
-            entity = rrj_read32(m, rrj_read32(m, 0x8005B38C) + 856);
-        else
-            entity = rrj_read32(m, rrj_read32(m, 0x8005B21C) + 856);
-        sub_8001DD08(m, player, -1, 0);
-        sub_8001DC94(m, player, -1);
-        rrj_write32(m, 0x800D6DD0 + 4 * player, 0);
-        if (!rrj_read32(m, 0x8005B220) && !rrj_read32(m, 0x800D743C + 24 * player))
-        {
-            uint32_t sound = 0;
-            if (*(int16_t *)rrj_at(m, entity + 320, 2) && rrj_read32(m, rrj_read32(m, entity + 852) + 604) < 2)
-                sound = 50;
-            sub_8001DD08(m, player, -1, sound);
-        }
-    }
-    return 0;
 }
 
 uint32_t sub_8001DFE4(RRJMemory *m, RRJRaceLeafCall call)
@@ -4712,7 +4476,7 @@ uint32_t sub_8001E08C(RRJMemory *m, uint32_t destination, uint32_t source, uint3
     FUNCTION_MARKER(0x8001E08C, "SLUS_010.53");
     while (size)
     {
-        *(uint8_t *)rrj_at(m, destination++, 1) = *(uint8_t *)rrj_at(m, source++, 1);
+        w_u8(destination++, r_u8(source++));
         --size;
     }
     return result;
@@ -4780,7 +4544,7 @@ uint32_t sub_8001E48C(RRJMemory *m, uint32_t size, RRJRaceLeafCall call)
     if (result)
     {
         for (index = 0; index < size; ++index)
-            *(uint8_t *)rrj_at(m, result + index, 1) = 0;
+            w_u8(result + index, 0);
     }
     return result;
 }
@@ -4925,7 +4689,7 @@ uint32_t sub_8001E8C4(RRJMemory *m, RRJRaceLeafCall call)
 {
     uint32_t descriptor = 0x1F8003A0;
     FUNCTION_MARKER(0x8001E8C4, "SLUS_010.53");
-    memset(rrj_at(m, descriptor, 40), 0, 40);
+    xport_guest_fill(descriptor, 0, 40);
     rrj_write32(m, descriptor, 0x3FC3);
     rrj_put16(rrj_at(m, descriptor + 4, 2), 0x3FFF);
     rrj_put16(rrj_at(m, descriptor + 6, 2), 0x3FFF);
@@ -5057,7 +4821,7 @@ uint32_t sub_8001F080(RRJMemory *m, RRJRaceLeafCall call)
 {
     uint32_t descriptor = 0x1F800360;
     FUNCTION_MARKER(0x8001F080, "SLUS_010.53");
-    memset(rrj_at(m, descriptor, 32), 0, 32);
+    xport_guest_fill(descriptor, 0, 32);
     rrj_write32(m, descriptor, 0x00FFFFFF);
     rrj_write32(m, descriptor + 4, 147);
     rrj_write32(m, descriptor + 28, 16534);
@@ -5125,8 +4889,8 @@ uint32_t sub_8001F37C(RRJMemory *m, uint32_t alternate, uint32_t event, uint32_t
                 rrj_write32(m, slot + 28, 1);
                 rrj_write32(m, slot + 44, handle);
                 rrj_write32(m, slot + 40, owner);
-                *(uint8_t *)rrj_at(m, slot + 32, 1) = 127;
-                *(uint8_t *)rrj_at(m, slot + 33, 1) = 127;
+                w_u8(slot + 32, 127);
+                w_u8(slot + 33, 127);
                 rrj_put16(rrj_at(m, slot + 34, 2), alternate ? 0xB9FF : 0x98FF);
                 rrj_put16(rrj_at(m, slot + 36, 2), 0x5FCE);
                 rrj_write32(m, voice + 8, metadata);
@@ -5177,7 +4941,7 @@ uint32_t sub_8001F6A4(RRJMemory *m, uint32_t handle, uint32_t event, RRJRaceLeaf
     identity = rrj_read32(m, record + 4) & 0x07FFFFFF;
     if (identity != (handle & 0x07FFFFFF))
         return identity;
-    product = rrj_s32(rrj_read32(m, event + 4) * *(uint8_t *)rrj_at(m, rrj_read32(m, record + 8), 1));
+    product = rrj_s32(rrj_read32(m, event + 4) * r_u8(rrj_read32(m, record + 8)));
     if (rrj_read32(m, 0x800D69F4))
         left = right = product;
     else
@@ -5197,7 +4961,7 @@ uint32_t sub_8001F6A4(RRJMemory *m, uint32_t handle, uint32_t event, RRJRaceLeaf
     rrj_write32(m, packet + 4, 19);
     rrj_put16(rrj_at(m, packet + 8, 2), (uint32_t)left);
     rrj_put16(rrj_at(m, packet + 10, 2), (uint32_t)right);
-    rrj_put16(rrj_at(m, packet + 20, 2), *(uint16_t *)rrj_at(m, event, 2));
+    rrj_put16(rrj_at(m, packet + 20, 2), r_u16(event));
     return leaf_call(m, call, 0x80051C38, channel, packet, 0, 0);
 }
 
@@ -5216,7 +4980,7 @@ uint32_t sub_80019C54(RRJMemory *m, uint32_t handle, uint32_t event, RRJRaceLeaf
     identity = rrj_read32(m, record + 4) & 0x07FFFFFF;
     if (identity != (handle & 0x07FFFFFF))
         return identity;
-    product = rrj_s32(rrj_read32(m, event + 4) * *(uint8_t *)rrj_at(m, rrj_read32(m, record + 8), 1));
+    product = rrj_s32(rrj_read32(m, event + 4) * r_u8(rrj_read32(m, record + 8)));
     if (rrj_read32(m, 0x800D69F4))
         left = right = product;
     else
@@ -5237,7 +5001,7 @@ uint32_t sub_80019C54(RRJMemory *m, uint32_t handle, uint32_t event, RRJRaceLeaf
     rrj_write32(m, packet + 4, 19);
     rrj_put16(rrj_at(m, packet + 8, 2), (uint32_t)left);
     rrj_put16(rrj_at(m, packet + 10, 2), (uint32_t)right);
-    rrj_put16(rrj_at(m, packet + 20, 2), *(uint16_t *)rrj_at(m, event, 2));
+    rrj_put16(rrj_at(m, packet + 20, 2), r_u16(event));
     return leaf_call(m, call, 0x80051C38, channel, packet, 0, 0);
 }
 
@@ -5286,7 +5050,7 @@ uint32_t sub_80020DB8(RRJMemory *m, RRJRaceLeafCall call)
 uint32_t sub_80020DEC(RRJMemory *m, RRJRaceLeafCall call)
 {
     FUNCTION_MARKER(0x80020DEC, "SLUS_010.53");
-    if (!*(uint8_t *)rrj_at(m, 0x800D754A, 1))
+    if (!r_u8(0x800D754A))
         return 0xFFFFFFFF;
     sub_800212FC(m, call);
     return 0;
@@ -5300,11 +5064,11 @@ uint32_t sub_80020E30(RRJMemory *m, uint32_t muted, RRJRaceLeafCall call)
     uint32_t count;
     uint32_t index;
     FUNCTION_MARKER(0x80020E30, "SLUS_010.53");
-    result = *(uint8_t *)rrj_at(m, 0x800D75A1, 1);
+    result = r_u8(0x800D75A1);
     if (result && !muted)
         return result;
-    result = *(uint8_t *)rrj_at(m, base, 1);
-    *(uint8_t *)rrj_at(m, base + 1, 1) = (uint8_t)muted;
+    result = r_u8(base);
+    w_u8(base + 1, (uint8_t)muted);
     if (!result)
         return result;
     if (muted)
@@ -5340,7 +5104,7 @@ uint32_t sub_80020FF4(RRJMemory *m, uint32_t first, uint32_t second)
 uint32_t sub_80020F24(RRJMemory *m, RRJRaceLeafCall call)
 {
     FUNCTION_MARKER(0x80020F24, "SLUS_010.53");
-    if (*(uint8_t *)rrj_at(m, 0x800D7548, 1))
+    if (r_u8(0x800D7548))
         sub_80021450(m, call);
     return 0;
 }
@@ -5376,7 +5140,7 @@ uint32_t sub_800212FC(RRJMemory *m, RRJRaceLeafCall call)
     sub_80021644(m, call);
     if (!rrj_read32(m, 0x800D6C14))
         return 0;
-    rrj_write32(m, packet, *(uint8_t *)rrj_at(m, 0x800D7549, 1) ? 0 : rrj_read32(m, 0x800D7550));
+    rrj_write32(m, packet, r_u8(0x800D7549) ? 0 : rrj_read32(m, 0x800D7550));
     count = rrj_read32(m, 0x800D754C);
     for (index = 0; index < count; ++index)
     {
@@ -5392,7 +5156,7 @@ uint32_t sub_800212FC(RRJMemory *m, RRJRaceLeafCall call)
         rrj_write32(m, handles + index * 4, handle);
     }
     sub_8001F544(m, count, handles, call);
-    *(uint8_t *)rrj_at(m, base, 1) = 1;
+    w_u8(base, 1);
     rrj_write32(m, 0x800D75A8, rrj_read32(m, rrj_read32(m, 0x8005B2F8) + 12) + rrj_read32(m, 0x800D75A4));
     return 1;
 }
@@ -5405,8 +5169,8 @@ uint32_t sub_80021450(RRJMemory *m, RRJRaceLeafCall call)
     FUNCTION_MARKER(0x80021450, "SLUS_010.53");
     sub_8002167C(m, call);
     leaf_call(m, call, 0x80050C98, 0, 0, 0, 0);
-    *(uint8_t *)rrj_at(m, 0x800D7548, 1) = 0;
-    *(uint8_t *)rrj_at(m, 0x800D754A, 1) = 0;
+    w_u8(0x800D7548, 0);
+    w_u8(0x800D754A, 0);
     count = rrj_read32(m, 0x800D754C);
     for (index = 0; index < count; ++index)
     {
@@ -5782,7 +5546,7 @@ uint32_t sub_800247E8(RRJMemory *m, RRJRaceLeafCall call)
                 return sub_80024E64(m, rrj_read32(m, 0x8005B520), call);
             return delay;
         }
-        *(uint8_t *)rrj_at(m, 0x800D754A, 1) = 1;
+        w_u8(0x800D754A, 1);
         sub_80020DEC(m, call);
         rrj_write32(m, 0x800CD694, 3);
         if (rrj_s32(rrj_read32(m, 0x800D7F90)) >= 0)
@@ -5912,7 +5676,7 @@ uint32_t sub_80024DA8(RRJMemory *m, RRJRaceLeafCall call)
     uint32_t result;
     FUNCTION_MARKER(0x80024DA8, "SLUS_010.53");
     rrj_write32(m, 0x800D7F90, 0xFFFFFFFF);
-    result = *(uint8_t *)rrj_at(m, state + 4, 1) & 1;
+    result = r_u8(state + 4) & 1;
     if (!result)
     {
         int32_t delta;
@@ -5926,7 +5690,7 @@ uint32_t sub_80024DA8(RRJMemory *m, RRJRaceLeafCall call)
         rrj_write32(m, 0x800D7FA0, sub_800148BC(m, result, call));
         rrj_write32(m, 0x800D7FA4, 1);
         rrj_write32(m, 0x800D7F94, index << 17);
-        delta = (int32_t)*(int8_t *)rrj_at(m, 0x8005365C + index, 1) * 16384;
+        delta = (int32_t)r_s8(0x8005365C + index) * 16384;
         rrj_write32(m, 0x800CD674, rrj_read32(m, 0x800CD674) + (uint32_t)delta);
         result = (uint32_t)delta;
     }
@@ -5939,7 +5703,7 @@ uint32_t sub_80024E64(RRJMemory *m, uint32_t count, RRJRaceLeafCall call)
     uint32_t before;
     uint32_t consumed;
     FUNCTION_MARKER(0x80024E64, "SLUS_010.53");
-    if (rrj_s32(rrj_read32(m, stream)) < 0 || (*(uint8_t *)rrj_at(m, rrj_read32(m, 0x8005B2F8) + 4, 1) & 1))
+    if (rrj_s32(rrj_read32(m, stream)) < 0 || (r_u8(rrj_read32(m, 0x8005B2F8) + 4) & 1))
         stream = 0x800CD670;
     before = rrj_read32(m, stream + 4);
     sub_80023148(m, stream, count, 0, 0, call);
@@ -6024,7 +5788,7 @@ uint32_t sub_8003E1E8(RRJMemory *m, uint32_t object, uint32_t id, uint32_t direc
     uint32_t entry;
     int32_t offset;
     FUNCTION_MARKER(0x8003E1E8, "SLUS_010.53");
-    if (object && *(int16_t *)rrj_at(m, object + 16, 2) == 1 && !rrj_read32(m, object + 12))
+    if (object && r_s16(object + 16) == 1 && !rrj_read32(m, object + 12))
         header = sub_80039AFC(m, rrj_read32(m, object));
     if (!header)
         return 0;
@@ -6034,18 +5798,18 @@ uint32_t sub_8003E1E8(RRJMemory *m, uint32_t object, uint32_t id, uint32_t direc
     route = sub_80039C90(m, object, id);
     if (!route)
         return 0;
-    entry = rrj_read32(m, object + 48) + 28 * (uint32_t)(int32_t)*(int16_t *)rrj_at(m, route + 20, 2);
+    entry = rrj_read32(m, object + 48) + 28 * (uint32_t)(int32_t)r_s16(route + 20);
     if (!entry)
         return 0;
-    if (*(int16_t *)rrj_at(m, link + 2, 2) > 0)
-        offset = (int32_t)*(int16_t *)rrj_at(m, entry + 18, 2) << 4;
+    if (r_s16(link + 2) > 0)
+        offset = (int32_t)r_s16(entry + 18) << 4;
     else
-        offset = ((int32_t)*(int16_t *)rrj_at(m, entry + 18, 2) + (int32_t)*(int16_t *)rrj_at(m, entry + 16, 2)) * 16 - 16;
+        offset = ((int32_t)r_s16(entry + 18) + (int32_t)r_s16(entry + 16)) * 16 - 16;
     entry = rrj_read32(m, object + 56) + (uint32_t)offset;
-    if (*(int16_t *)rrj_at(m, entry + 4, 2) < 0)
+    if (r_s16(entry + 4) < 0)
         return 0;
-    rrj_write32(m, direction_out, (uint32_t)(int32_t)*(int16_t *)rrj_at(m, link + 2, 2));
-    return rrj_read32(m, object + 60) + 264 * (uint32_t)(int32_t)*(int16_t *)rrj_at(m, entry + 4, 2);
+    rrj_write32(m, direction_out, (uint32_t)(int32_t)r_s16(link + 2));
+    return rrj_read32(m, object + 60) + 264 * (uint32_t)(int32_t)r_s16(entry + 4);
 }
 
 uint32_t sub_80030CD8(RRJMemory *m, uint32_t outputs, uint32_t count, uint32_t kind, uint32_t duplicate, uint32_t options, RRJRaceLeafCall call)
@@ -6170,12 +5934,12 @@ uint32_t sub_80031368(RRJMemory *m, uint32_t record, uint32_t kind, RRJRaceLeafC
 
 void sub_80043DA4(RRJMemory *m)
 {
-    /* Native callbacks execute on one serialized thread */
+    m->cpu_status &= ~0x401u;
 }
 
 void sub_80043DB4(RRJMemory *m)
 {
-    /* Native callbacks execute on one serialized thread */
+    m->cpu_status |= 0x401u;
 }
 
 void sub_80043DD4(RRJMemory *m)
@@ -6287,7 +6051,7 @@ uint32_t sub_80092784(RRJMemory *m, uint32_t object, RRJReverbCall reverb)
     uint32_t record;
     uint32_t i;
     FUNCTION_MARKER(0x80092784, "RASHCDG.BIN");
-    if (*(uint8_t *)rrj_at(m, state + 57, 1) >= 2 && *(int8_t *)rrj_at(m, secondary + 571, 1) != -1)
+    if (r_u8(state + 57) >= 2 && r_s8(secondary + 571) != -1)
         (void)sub_80095AEC(m, secondary);
     if (rrj_read32(m, 0x8005B254) && ((uint32_t)rrj_u16(rrj_at(m, object + 172, 2)) < rrj_read32(m, state + 48) || (rrj_u16(rrj_at(m, object + 320, 2)) & 4)) && rrj_read32(m, 0x800CE178) == rrj_read32(m, 0x800CE17C))
         (void)sub_8008CC94(m);
@@ -6298,24 +6062,24 @@ uint32_t sub_80092784(RRJMemory *m, uint32_t object, RRJReverbCall reverb)
         if (!animation)
             return sub_800903F4(m, object, 0, reverb);
     }
-    record = object + 948 + 8 * (int32_t)*(int8_t *)rrj_at(m, object + 946, 1);
+    record = object + 948 + 8 * (int32_t)r_s8(object + 946);
     rrj_put16(rrj_at(m, record, 2), 1);
     rrj_put16(rrj_at(m, record + 2, 2), 224);
     rrj_put16(rrj_at(m, record + 6, 2), (uint16_t)((((uint32_t)(2180u * rrj_read32(m, state + 16) + 0x8000u)) >> 16) | 0xC000u));
     rrj_write32(m, secondary + 552, (rrj_read32(m, secondary + 552) | 0x40u) & 0xBFE67FC7u);
     rrj_write32(m, object + 720, 0);
     (void)sub_80012838(m, object, secondary, 2, 0);
-    *(uint8_t *)rrj_at(m, object + 72, 1) = 3;
+    w_u8(object + 72, 3);
     if (rrj_read32(m, object + 856) && rrj_read32(m, object + 1088))
     {
         uint32_t linked = rrj_read32(m, object + 856);
         (void)sub_800C4550(m, 4, secondary, options);
-        if ((*(uint8_t *)rrj_at(m, secondary + 572, 1) & 0x10) && *(uint8_t *)rrj_at(m, state + 57, 1) != 1)
+        if ((r_u8(secondary + 572) & 0x10) && r_u8(state + 57) != 1)
         {
             uint32_t linked_secondary = rrj_read32(m, linked + 852);
             rrj_put16(rrj_at(m, linked_secondary + 320, 2), rrj_u16(rrj_at(m, object + 320, 2)));
             (void)sub_80012838(m, object, linked_secondary, 2, 1);
-            *(uint8_t *)rrj_at(m, object + 72, 1) = 3;
+            w_u8(object + 72, 3);
             rrj_write32(m, linked_secondary + 552, (rrj_read32(m, linked_secondary + 552) | 0x40u) & 0xBFE67FE7u);
             (void)sub_800C4550(m, 77, linked_secondary, options);
         }
@@ -6351,7 +6115,7 @@ uint32_t sub_800BF978(RRJMemory *m, uint32_t actor)
 {
     uint32_t descriptor = rrj_read32(m, actor + 1084);
     uint32_t secondary = rrj_read32(m, actor + 852);
-    uint32_t kind = *(uint8_t *)rrj_at(m, descriptor + 60, 1);
+    uint32_t kind = r_u8(descriptor + 60);
     uint32_t variant = kind & 0x1F;
     uint32_t state = 0;
     uint32_t category;
@@ -6384,7 +6148,7 @@ uint32_t sub_800BF978(RRJMemory *m, uint32_t actor)
     }
     else
     {
-        category = *(uint8_t *)rrj_at(m, descriptor + 46, 1);
+        category = r_u8(descriptor + 46);
         if (category == 0)
         {
             state = 6;
@@ -6453,14 +6217,14 @@ uint32_t sub_800BF978(RRJMemory *m, uint32_t actor)
             variant = 25 - (variant & 1);
         }
     }
-    if (*(uint8_t *)rrj_at(m, secondary + 572, 1) & 0x20)
+    if (r_u8(secondary + 572) & 0x20)
         state = state == 19 ? 32 : state + 20;
-    *(uint8_t *)rrj_at(m, secondary + 569, 1) = (uint8_t)state;
-    *(uint8_t *)rrj_at(m, secondary + 570, 1) = 0;
-    if (!(rrj_read32(m, actor + 560) & 0x08000000u) && !(*(uint8_t *)rrj_at(m, secondary + 572, 1) & 0x40))
+    w_u8(secondary + 569, (uint8_t)state);
+    w_u8(secondary + 570, 0);
+    if (!(rrj_read32(m, actor + 560) & 0x08000000u) && !(r_u8(secondary + 572) & 0x40))
     {
-        *(uint8_t *)rrj_at(m, secondary + 574, 1) = 0;
-        memset(rrj_at(m, secondary + 575, 5), 0x3F, 5);
+        w_u8(secondary + 574, 0);
+        xport_guest_fill(secondary + 575, 0x3F, 5);
     }
     else
         (void)sub_8001E08C(m, secondary + 574, 0x800CCAD0 + 6 * variant, 6);
@@ -6516,13 +6280,13 @@ uint32_t sub_800C12D8(RRJMemory *m, uint32_t actor, uint32_t flags)
     int32_t index;
     uint32_t event;
     FUNCTION_MARKER(0x800C12D8, "RASHCDG.BIN");
-    *(uint8_t *)rrj_at(m, secondary + 572, 1) &= 0xFDu;
+    xport_update_u8(secondary + 572, XPORT_MEMORY_UPDATE_AND, 0xFDu);
     (void)sub_800BF978(m, actor);
-    index = *(int8_t *)rrj_at(m, secondary + 574 + *(uint8_t *)rrj_at(m, secondary + 570, 1), 1);
-    state = *(uint8_t *)rrj_at(m, secondary + 569, 1);
+    index = r_s8(secondary + 574 + r_u8(secondary + 570));
+    state = r_u8(secondary + 569);
     rrj_write32(m, secondary + 560, 0);
     rrj_write32(m, secondary + 564, 0);
-    *(uint8_t *)rrj_at(m, secondary + 568, 1) = 0;
+    w_u8(secondary + 568, 0);
     table = rrj_read32(m, rrj_read32(m, 0x8005AD4C) + 12 * state + 8);
     event = rrj_u16(rrj_at(m, table + 12 * (uint32_t)index, 2));
     return sub_800C4550(m, event, secondary, flags | 0x10u);
@@ -6534,7 +6298,7 @@ uint32_t sub_800C110C(RRJMemory *m, uint32_t actor, uint32_t other)
     uint32_t linked = rrj_read32(m, actor + 856);
     uint32_t flags = 0;
     FUNCTION_MARKER(0x800C110C, "RASHCDG.BIN");
-    *(uint8_t *)rrj_at(m, secondary + 572, 1) &= 0xFEu;
+    xport_update_u8(secondary + 572, XPORT_MEMORY_UPDATE_AND, 0xFEu);
     if (!other && !linked)
         flags = (sub_8001FC58(m) & 1) << 8;
     else if (!rrj_read32(m, actor + 1088))
@@ -6563,13 +6327,13 @@ uint32_t sub_800C122C(RRJMemory *m, uint32_t actor, uint32_t unused, uint32_t fl
 {
     uint32_t descriptor = rrj_read32(m, actor + 1084);
     FUNCTION_MARKER(0x800C122C, "RASHCDG.BIN");
-    if ((*(uint8_t *)rrj_at(m, descriptor + 61, 1) & 3) == 2)
+    if ((r_u8(descriptor + 61) & 3) == 2)
     {
         (void)sub_800B92C0(m, descriptor);
         descriptor = rrj_read32(m, actor + 1084);
     }
-    if ((*(uint8_t *)rrj_at(m, descriptor + 60, 1) & 0x80) && (!*(uint8_t *)rrj_at(m, descriptor + 46, 1) || *(uint8_t *)rrj_at(m, descriptor + 46, 1) == 4) && rrj_read32(m, 0x800CE178) == rrj_read32(m, 0x800CE17C))
-        *(uint8_t *)rrj_at(m, descriptor + 60, 1) = 0x20;
+    if ((r_u8(descriptor + 60) & 0x80) && (!r_u8(descriptor + 46) || r_u8(descriptor + 46) == 4) && rrj_read32(m, 0x800CE178) == rrj_read32(m, 0x800CE17C))
+        w_u8(descriptor + 60, 0x20);
     return sub_800C12D8(m, actor, flags);
 }
 
@@ -6592,17 +6356,17 @@ uint32_t sub_800138E8(RRJMemory *m, uint32_t actor, uint32_t mode)
     uint32_t object;
     int32_t index;
     FUNCTION_MARKER(0x800138E8, "SLUS_010.53");
-    if ((*(uint8_t *)rrj_at(m, descriptor + 1, 1) & 0x0F) == 2 && *(uint8_t *)rrj_at(m, descriptor + 39, 1) < 0xF7 && (actor_id >= players || ((*(uint8_t *)rrj_at(m, state + 4, 1) & 1) && !(rrj_read32(m, 0x8005AD48) & 1))))
+    if ((r_u8(descriptor + 1) & 0x0F) == 2 && r_u8(descriptor + 39) < 0xF7 && (actor_id >= players || ((r_u8(state + 4) & 1) && !(rrj_read32(m, 0x8005AD48) & 1))))
         return rrj_read32(m, 0x8005B1F8) + 1;
-    if (rrj_read32(m, descriptor + 40) || *(uint8_t *)rrj_at(m, descriptor + 39, 1) >= 0xF8)
-        return *(uint8_t *)rrj_at(m, descriptor + 39, 1);
+    if (rrj_read32(m, descriptor + 40) || r_u8(descriptor + 39) >= 0xF8)
+        return r_u8(descriptor + 39);
     score = sub_8003B96C(m, actor);
     index = rrj_s32(rrj_read32(m, rrj_read32(m, 0x800CE4DC)));
     object = rrj_read32(m, 0x800CE4D0);
     while (index >= 0)
     {
         uint32_t other_descriptor = rrj_read32(m, object + 1084);
-        if ((actor_id < players || (*(uint8_t *)rrj_at(m, other_descriptor + 1, 1) & 0x0F) != 2) && rrj_u16(rrj_at(m, object + 172, 2)) != actor_id && rrj_read32(m, 0x8005B1F8) >= *(uint8_t *)rrj_at(m, other_descriptor + 39, 1))
+        if ((actor_id < players || (r_u8(other_descriptor + 1) & 0x0F) != 2) && rrj_u16(rrj_at(m, object + 172, 2)) != actor_id && rrj_read32(m, 0x8005B1F8) >= r_u8(other_descriptor + 39))
         {
             if (mode == 1)
                 count += rrj_s32(rrj_read32(m, other_descriptor + 40)) > 0;
@@ -6625,14 +6389,14 @@ uint32_t sub_800BAA2C(RRJMemory *m, uint32_t actor, uint32_t record, uint32_t de
     uint32_t players = rrj_read32(m, state + 48);
     uint32_t result = 0;
     uint32_t selected = 0;
-    uint8_t mode = *(uint8_t *)rrj_at(m, state + 4, 1);
+    uint8_t mode = r_u8(state + 4);
     FUNCTION_MARKER(0x800BAA2C, "RASHCDG.BIN");
     if (mode & 1)
     {
         if (actor_id < players)
         {
             uint32_t descriptor = rrj_read32(m, actor + 1084);
-            if ((*(uint8_t *)rrj_at(m, descriptor + 1, 1) & 0x0F) == 2)
+            if ((r_u8(descriptor + 1) & 0x0F) == 2)
             {
                 uint32_t flags = rrj_read32(m, 0x8005AD48);
                 if (flags & 1)
@@ -6672,7 +6436,7 @@ uint32_t sub_800BAA2C(RRJMemory *m, uint32_t actor, uint32_t record, uint32_t de
                     stopped = rrj_read32(m, 0x1F8003F0);
                     if (rrj_s32(result) < 0 || rrj_s32(rrj_read32(m, 0x800530E4 + 4 * rrj_read32(m, state + 60))) < rrj_s32(rrj_read32(m, 0x8005B290)) || stopped)
                     {
-                        result = (uint8_t)(*(uint8_t *)rrj_at(m, descriptor + 39, 1) + 4) < 2;
+                        result = (uint8_t)(r_u8(descriptor + 39) + 4) < 2;
                         if (!result)
                         {
                             result = sub_800A0708(m, actor, reverb);
@@ -6690,12 +6454,12 @@ uint32_t sub_800BAA2C(RRJMemory *m, uint32_t actor, uint32_t record, uint32_t de
         uint32_t magnitude = leaf_abs32(distance);
         if (rrj_read32(m, actor + 180) < 18)
         {
-            if (*(uint8_t *)rrj_at(m, state + 57, 1) == 4 && rrj_s32((uint32_t)(int32_t)*(int8_t *)rrj_at(m, 0x8005ADF0, 1) << 16) < rrj_s32(magnitude))
+            if (r_u8(state + 57) == 4 && rrj_s32((uint32_t)(int32_t)r_s8(0x8005ADF0) << 16) < rrj_s32(magnitude))
                 selected = 1;
         }
         else
         {
-            uint32_t race_state = *(uint8_t *)rrj_at(m, state + 57, 1);
+            uint32_t race_state = r_u8(state + 57);
             if (race_state == 1 || race_state == 3)
                 selected = 1;
         }
@@ -6709,7 +6473,7 @@ uint32_t sub_800BAA2C(RRJMemory *m, uint32_t actor, uint32_t record, uint32_t de
     if (selected)
     {
         uint32_t value;
-        if (*(int8_t *)rrj_at(m, actor + 946, 1) >= 2)
+        if (r_s8(actor + 946) >= 2)
             record = actor + 956;
         rrj_put16(rrj_at(m, record, 2), 4);
         rrj_put16(rrj_at(m, record + 4, 2), 0);
@@ -6747,14 +6511,14 @@ uint32_t sub_80098F2C(RRJMemory *m, uint32_t actor, uint32_t direction, uint32_t
         scale = rrj_s32(0x80000000u / (uint32_t)(alignment >> 1));
     else
         scale = rrj_s32(0u - 0x80000000u / ((uint32_t)(-alignment) >> 1));
-    sum = leaf_product_asr16(delta[0], (int32_t)*(int16_t *)rrj_at(m, direction, 2) * 16);
-    sum = rrj_s32((uint32_t)sum + (uint32_t)leaf_product_asr16(delta[1], (int32_t)*(int16_t *)rrj_at(m, direction + 2, 2) * 16));
-    sum = rrj_s32((uint32_t)sum + (uint32_t)leaf_product_asr16(delta[2], (int32_t)*(int16_t *)rrj_at(m, direction + 4, 2) * 16));
+    sum = leaf_product_asr16(delta[0], (int32_t)r_s16(direction) * 16);
+    sum = rrj_s32((uint32_t)sum + (uint32_t)leaf_product_asr16(delta[1], (int32_t)r_s16(direction + 2) * 16));
+    sum = rrj_s32((uint32_t)sum + (uint32_t)leaf_product_asr16(delta[2], (int32_t)r_s16(direction + 4) * 16));
     first = (uint32_t)sub_8001FC90(sum, scale);
     rrj_write32(m, actor + 592, first);
-    sum = leaf_product_asr16(delta[0], (int32_t)*(int16_t *)rrj_at(m, actor + 528, 2) * 16);
-    sum = rrj_s32((uint32_t)sum + (uint32_t)leaf_product_asr16(delta[1], (int32_t)*(int16_t *)rrj_at(m, actor + 530, 2) * 16));
-    sum = rrj_s32((uint32_t)sum + (uint32_t)leaf_product_asr16(delta[2], (int32_t)*(int16_t *)rrj_at(m, actor + 532, 2) * 16));
+    sum = leaf_product_asr16(delta[0], (int32_t)r_s16(actor + 528) * 16);
+    sum = rrj_s32((uint32_t)sum + (uint32_t)leaf_product_asr16(delta[1], (int32_t)r_s16(actor + 530) * 16));
+    sum = rrj_s32((uint32_t)sum + (uint32_t)leaf_product_asr16(delta[2], (int32_t)r_s16(actor + 532) * 16));
     second = (uint32_t)sub_8001FC90(sum, scale);
     rrj_write32(m, actor + 600, second);
     if (rrj_s32(first ^ second) < 0)
@@ -6848,8 +6612,8 @@ uint32_t sub_80098A50(RRJMemory *m, uint32_t actor, uint32_t source, uint32_t ax
         uint32_t normalized = 0x1F800350;
         uint32_t matrix = 0x1F800360;
         uint32_t rotated = 0x1F800380;
-        int32_t first = (int32_t)sub_8001FC90((uint32_t)((int32_t)*(int16_t *)rrj_at(m, axis_out + 4, 2) << 4), rrj_read32(m, actor + 184) - rrj_read32(m, actor + 580));
-        int32_t second = (int32_t)sub_8001FC90((uint32_t)((int32_t)*(int16_t *)rrj_at(m, axis_out, 2) << 4), rrj_read32(m, actor + 192) - rrj_read32(m, actor + 588));
+        int32_t first = (int32_t)sub_8001FC90((uint32_t)((int32_t)r_s16(axis_out + 4) << 4), rrj_read32(m, actor + 184) - rrj_read32(m, actor + 580));
+        int32_t second = (int32_t)sub_8001FC90((uint32_t)((int32_t)r_s16(axis_out) << 4), rrj_read32(m, actor + 192) - rrj_read32(m, actor + 588));
         int32_t side = first - second;
         uint32_t valid = 1;
         uint32_t length;
@@ -6909,8 +6673,8 @@ uint32_t sub_800BEBA4(RRJMemory *m, uint16_t packed_id, uint32_t actor)
         record = object + 172;
         factor_address = 0x800CCAC8 + (rrj_u16(rrj_at(m, record, 2)) >> 5);
     }
-    factor = *(uint8_t *)rrj_at(m, factor_address, 1);
-    if (*(uint8_t *)rrj_at(m, actor + 928, 1) & 1)
+    factor = r_u8(factor_address);
+    if (r_u8(actor + 928) & 1)
     {
         uint32_t reference = rrj_read32(m, record + 188);
         if (reference == rrj_read32(m, actor + 360) && (!(reference >> 16) || rrj_read32(m, record + 164) == rrj_read32(m, actor + 336)))
@@ -6920,30 +6684,30 @@ uint32_t sub_800BEBA4(RRJMemory *m, uint16_t packed_id, uint32_t actor)
     }
     else
     {
-        longitudinal = leaf_product_asr16((int32_t)*(int16_t *)rrj_at(m, actor + 516, 2) * 16, rrj_s32(rrj_read32(m, record + 12) - rrj_read32(m, actor + 504)));
-        longitudinal = rrj_s32((uint32_t)longitudinal + (uint32_t)leaf_product_asr16((int32_t)*(int16_t *)rrj_at(m, actor + 518, 2) * 16, rrj_s32(rrj_read32(m, record + 16) - rrj_read32(m, actor + 508))));
-        longitudinal = rrj_s32((uint32_t)longitudinal + (uint32_t)leaf_product_asr16((int32_t)*(int16_t *)rrj_at(m, actor + 520, 2) * 16, rrj_s32(rrj_read32(m, record + 20) - rrj_read32(m, actor + 512))));
+        longitudinal = leaf_product_asr16((int32_t)r_s16(actor + 516) * 16, rrj_s32(rrj_read32(m, record + 12) - rrj_read32(m, actor + 504)));
+        longitudinal = rrj_s32((uint32_t)longitudinal + (uint32_t)leaf_product_asr16((int32_t)r_s16(actor + 518) * 16, rrj_s32(rrj_read32(m, record + 16) - rrj_read32(m, actor + 508))));
+        longitudinal = rrj_s32((uint32_t)longitudinal + (uint32_t)leaf_product_asr16((int32_t)r_s16(actor + 520) * 16, rrj_s32(rrj_read32(m, record + 20) - rrj_read32(m, actor + 512))));
     }
     if (leaf_abs32(longitudinal) > 0x20000)
         return 0x7FFF0000;
-    if ((*(uint8_t *)rrj_at(m, actor + 928, 1) & 1) && rrj_s32(rrj_read32(m, actor + 324)) > 0x3C000)
+    if ((r_u8(actor + 928) & 1) && rrj_s32(rrj_read32(m, actor + 324)) > 0x3C000)
     {
         lateral = rrj_s32((rrj_read32(m, actor + 324) - rrj_read32(m, record + 152)) << 4);
     }
     else
     {
-        lateral = leaf_product_asr16((int32_t)*(int16_t *)rrj_at(m, actor + 528, 2) * 16, rrj_s32(rrj_read32(m, record + 12) - rrj_read32(m, actor + 504)));
-        lateral = rrj_s32((uint32_t)lateral + (uint32_t)leaf_product_asr16((int32_t)*(int16_t *)rrj_at(m, actor + 530, 2) * 16, rrj_s32(rrj_read32(m, record + 16) - rrj_read32(m, actor + 508))));
-        lateral = rrj_s32((uint32_t)lateral + (uint32_t)leaf_product_asr16((int32_t)*(int16_t *)rrj_at(m, actor + 532, 2) * 16, rrj_s32(rrj_read32(m, record + 20) - rrj_read32(m, actor + 512))));
+        lateral = leaf_product_asr16((int32_t)r_s16(actor + 528) * 16, rrj_s32(rrj_read32(m, record + 12) - rrj_read32(m, actor + 504)));
+        lateral = rrj_s32((uint32_t)lateral + (uint32_t)leaf_product_asr16((int32_t)r_s16(actor + 530) * 16, rrj_s32(rrj_read32(m, record + 16) - rrj_read32(m, actor + 508))));
+        lateral = rrj_s32((uint32_t)lateral + (uint32_t)leaf_product_asr16((int32_t)r_s16(actor + 532) * 16, rrj_s32(rrj_read32(m, record + 20) - rrj_read32(m, actor + 512))));
     }
     if (lateral < -rrj_s32(rrj_read32(m, record + 136)))
         return 0x7FFF0000;
     relative_speed = rrj_s32(rrj_read32(m, actor + 480));
     if ((rrj_u16(rrj_at(m, record, 2)) >> 5) < 4)
     {
-        int32_t dot = (int16_t)(((int32_t)*(int16_t *)rrj_at(m, object + 444, 2) * *(int16_t *)rrj_at(m, actor + 528, 2)) >> 12);
-        dot += (int16_t)(((int32_t)*(int16_t *)rrj_at(m, object + 446, 2) * *(int16_t *)rrj_at(m, actor + 530, 2)) >> 12);
-        dot += (int16_t)(((int32_t)*(int16_t *)rrj_at(m, object + 448, 2) * *(int16_t *)rrj_at(m, actor + 532, 2)) >> 12);
+        int32_t dot = (int16_t)(((int32_t)r_s16(object + 444) * r_s16(actor + 528)) >> 12);
+        dot += (int16_t)(((int32_t)r_s16(object + 446) * r_s16(actor + 530)) >> 12);
+        dot += (int16_t)(((int32_t)r_s16(object + 448) * r_s16(actor + 532)) >> 12);
         if (leaf_abs32(rrj_s32((uint32_t)dot << 4)) >= 0x4000)
         {
             if (dot < 0)
@@ -7026,12 +6790,12 @@ uint32_t sub_8008AE94(RRJMemory *m, uint32_t output, uint32_t count_io, uint32_t
             int32_t x;
             for (x = x_first; x <= x_last; ++x)
             {
-                uint32_t node = *(uint8_t *)rrj_at(m, 0x800CD0B0 + 24 * (plane_offset + (uint32_t)z) + (uint32_t)x, 1);
+                uint32_t node = r_u8(0x800CD0B0 + 24 * (plane_offset + (uint32_t)z) + (uint32_t)x);
                 while (node != 0x80)
                 {
                     uint32_t link = 0x800CCFA8 + 2 * node;
-                    uint32_t next = *(uint8_t *)rrj_at(m, link, 1);
-                    uint32_t packed = *(uint8_t *)rrj_at(m, link + 1, 1);
+                    uint32_t next = r_u8(link);
+                    uint32_t packed = r_u8(link + 1);
                     uint32_t group = packed >> 5;
                     if (mask & (1u << (group & 31)))
                     {
@@ -7112,7 +6876,7 @@ uint32_t sub_800BB5B8(RRJMemory *m, uint32_t actor, uint16_t other_id)
     if (result)
         return result;
     other = rrj_read32(m, 0x8005B3A0) + 1096 * other_id;
-    if ((*(uint8_t *)rrj_at(m, rrj_read32(m, actor + 1084) + 1, 1) & 0x0F) == 2)
+    if ((r_u8(rrj_read32(m, actor + 1084) + 1) & 0x0F) == 2)
         delta = rrj_s32(sub_800B6AAC(m, other + 504, actor + 528, actor + 504));
     else
         delta = rrj_s32((rrj_read32(m, actor + 324) - rrj_read32(m, other + 324)) << 4);
@@ -7131,9 +6895,9 @@ uint32_t sub_800BB5B8(RRJMemory *m, uint32_t actor, uint16_t other_id)
         uint32_t kind;
         if (rrj_s32(rrj_read32(m, other + 364) ^ rrj_read32(m, actor + 364)) >= 0)
             relative = other_value - actor_value;
-        kind = rrj_u16(rrj_at(m, actor + 956 + 8 * ((int32_t)*(int8_t *)rrj_at(m, actor + 946, 1) - 2), 2));
+        kind = rrj_u16(rrj_at(m, actor + 956 + 8 * ((int32_t)r_s8(actor + 946) - 2), 2));
         limit = kind - 14 < 2 ? 0x20000 : rrj_s32(rrj_read32(m, actor + 304) + rrj_read32(m, other + 304));
-        if (limit >= relative && (rrj_s32(rrj_read32(m, 0x80052F64)) >= delta || -limit >= relative || ((uint32_t)(int32_t)*(int16_t *)rrj_at(m, rrj_read32(m, actor + 340) + 36, 2) >> 31) == (uint32_t)(rrj_s32(rrj_read32(m, actor + 364)) > 0)))
+        if (limit >= relative && (rrj_s32(rrj_read32(m, 0x80052F64)) >= delta || -limit >= relative || ((uint32_t)(int32_t)r_s16(rrj_read32(m, actor + 340) + 36) >> 31) == (uint32_t)(rrj_s32(rrj_read32(m, actor + 364)) > 0)))
             response = rrj_s32(rrj_read32(m, 0x80052F58));
         else
             response = -rrj_s32(rrj_read32(m, 0x80052F58));
@@ -7146,7 +6910,7 @@ uint32_t sub_800BB5B8(RRJMemory *m, uint32_t actor, uint16_t other_id)
         }
         sub_800BC4FC(m, actor, other, response);
     }
-    else if (*(int16_t *)rrj_at(m, actor + 944, 2) > 0)
+    else if (r_s16(actor + 944) > 0)
     {
         int32_t magnitude = rrj_s32(sub_8002E548(m, actor + 892));
         if (magnitude < 16)
@@ -7217,8 +6981,8 @@ uint32_t sub_8002EFF4(RRJMemory *m, uint32_t vector, uint32_t matrix, uint32_t o
         result = 0;
         for (row = 0; row < 3; ++row)
         {
-            int32_t left = *(int16_t *)rrj_at(m, vector + 2 * row, 2);
-            int32_t right = *(int16_t *)rrj_at(m, matrix + 2 * (3 * row + column), 2);
+            int32_t left = r_s16(vector + 2 * row);
+            int32_t right = r_s16(matrix + 2 * (3 * row + column));
             result = rrj_s32((uint32_t)result + (uint32_t)((left * right) >> 12));
         }
         rrj_put16(rrj_at(m, output + 2 * column, 2), (uint16_t)result);
@@ -7241,7 +7005,7 @@ uint32_t sub_800CA05C(RRJMemory *m, uint32_t mode)
     if (mode)
     {
         uint32_t descriptor = rrj_read32(m, primary + 1084);
-        *(uint8_t *)rrj_at(m, descriptor + 39, 1) = 0xFE;
+        w_u8(descriptor + 39, 0xFE);
         rrj_write32(m, descriptor + 40, rrj_read32(m, state + 16));
     }
     else
@@ -7250,7 +7014,7 @@ uint32_t sub_800CA05C(RRJMemory *m, uint32_t mode)
         sub_800BC8DC(m, linked);
         rrj_put16(rrj_at(m, event + 2, 2), rrj_u16(rrj_at(m, primary + 172, 2)));
         (void)sub_800BCA68(m, event, 0, linked);
-        *(uint8_t *)rrj_at(m, rrj_read32(m, primary + 852) + 572, 1) |= 0x10;
+        xport_update_u8(rrj_read32(m, primary + 852) + 572, XPORT_MEMORY_UPDATE_OR, 0x10);
     }
     index = rrj_s32(rrj_read32(m, rrj_read32(m, 0x800CE4DC)));
     object = rrj_read32(m, 0x800CE4D0);
@@ -7262,8 +7026,8 @@ uint32_t sub_800CA05C(RRJMemory *m, uint32_t mode)
         if (!rrj_u16(rrj_at(m, object + 320, 2)))
             goto next_object;
         descriptor = rrj_read32(m, object + 1084);
-        type = *(uint8_t *)rrj_at(m, descriptor + 1, 1) & 0x0F;
-        if (type == 2 || type == (uint32_t)(*(uint8_t *)rrj_at(m, rrj_read32(m, primary + 1084) + 1, 1) & 0x0F))
+        type = r_u8(descriptor + 1) & 0x0F;
+        if (type == 2 || type == (uint32_t)(r_u8(rrj_read32(m, primary + 1084) + 1) & 0x0F))
             goto next_object;
         secondary = rrj_read32(m, object + 852);
         if (rrj_u16(rrj_at(m, secondary + 544, 2)) != 64)
@@ -7328,14 +7092,14 @@ uint32_t sub_800C9E74(RRJMemory *m)
     uint32_t result;
     int32_t distance;
     FUNCTION_MARKER(0x800C9E74, "RASHCDG.BIN");
-    distance = rrj_s32((uint32_t)(int32_t)*(int8_t *)rrj_at(m, 0x8005ADF2, 1) << 16);
+    distance = rrj_s32((uint32_t)(int32_t)r_s8(0x8005ADF2) << 16);
     distance = rrj_s32((uint32_t)distance - rrj_read32(m, actor + 0x170));
-    distance = rrj_s32((uint32_t)distance + ((uint32_t)rrj_u16(rrj_at(m, 0x80053174 + 4 * (*(uint8_t *)rrj_at(m, state + 57, 1) - 1) + 2, 2)) << 16));
+    distance = rrj_s32((uint32_t)distance + ((uint32_t)rrj_u16(rrj_at(m, 0x80053174 + 4 * (r_u8(state + 57) - 1) + 2, 2)) << 16));
     if (distance > 0xA0000)
     {
         int32_t product;
         piece = rrj_read32(m, actor + 0x154);
-        product = (int32_t)*(uint8_t *)rrj_at(m, rrj_read32(m, actor + 0x43C) + 0x45, 1) * rrj_s32(rrj_read32(m, rrj_read32(m, actor + 0x22C) + 0xE0));
+        product = (int32_t)r_u8(rrj_read32(m, actor + 0x43C) + 0x45) * rrj_s32(rrj_read32(m, rrj_read32(m, actor + 0x22C) + 0xE0));
         if (product < 0)
             product += 0x7F;
         rrj_write32(m, actor + 0x39C, (uint32_t)(product >> 7));
@@ -7343,7 +7107,7 @@ uint32_t sub_800C9E74(RRJMemory *m)
         if (distance <= 0x280000)
         {
             actor = rrj_read32(m, 0x8005B38C);
-            result = sub_8002EAD8(m, actor + 0x370, rrj_read32(m, actor + 0x154) + 2, (uint32_t)(int32_t)*(int8_t *)rrj_at(m, 0x8005ADF3, 1) << 16, actor + 0x370);
+            result = sub_8002EAD8(m, actor + 0x370, rrj_read32(m, actor + 0x154) + 2, (uint32_t)(int32_t)r_s8(0x8005ADF3) << 16, actor + 0x370);
         }
         return result;
     }
@@ -7356,10 +7120,10 @@ uint32_t sub_800C9E74(RRJMemory *m)
         rrj_write32(m, actor + 0x398, 0);
         rrj_write32(m, actor + 0x234, rrj_read32(m, actor + 0x234) & 0xFFF7FFFF);
     }
-    if (*(uint8_t *)rrj_at(m, state + 57, 1) == 2 && rrj_s32(rrj_read32(m, actor + 0x1E0)) <= 0x7FFF)
+    if (r_u8(state + 57) == 2 && rrj_s32(rrj_read32(m, actor + 0x1E0)) <= 0x7FFF)
     {
         uint32_t linked = rrj_read32(m, actor + 0x358);
-        int32_t index = (int32_t)*(int8_t *)rrj_at(m, linked + 0x3B2, 1) - 1;
+        int32_t index = (int32_t)r_s8(linked + 0x3B2) - 1;
         if (!rrj_u16(rrj_at(m, linked + 8 * (uint32_t)index + 0x3BC, 2)))
             return sub_800CA05C(m, 0);
     }
@@ -7370,18 +7134,18 @@ void sub_800BADB8(RRJMemory *m, uint32_t actor, uint32_t contact)
 {
     uint32_t state = rrj_read32(m, 0x8005B2F8);
     uint32_t actor_id = rrj_u16(rrj_at(m, actor + 172, 2));
-    uint32_t actor_type = *(uint8_t *)rrj_at(m, rrj_read32(m, actor + 1084) + 1, 1) & 0x0F;
+    uint32_t actor_type = r_u8(rrj_read32(m, actor + 1084) + 1) & 0x0F;
     uint32_t primary = rrj_read32(m, 0x8005B38C);
     uint32_t retained = 0;
     FUNCTION_MARKER(0x800BADB8, "RASHCDG.BIN");
-    if (actor_id < rrj_read32(m, state + 48) && (uint32_t)(*(uint8_t *)rrj_at(m, state + 57, 1) - 1) < 2)
+    if (actor_id < rrj_read32(m, state + 48) && (uint32_t)(r_u8(state + 57) - 1) < 2)
     {
         (void)sub_800C9E74(m);
     }
     else if (rrj_s32(rrj_read32(m, actor + 480)) > 0x8000)
     {
-        uint32_t primary_type = *(uint8_t *)rrj_at(m, rrj_read32(m, primary + 1084) + 1, 1) & 0x0F;
-        if (*(uint8_t *)rrj_at(m, state + 57, 1) >= 4 && actor_type != primary_type)
+        uint32_t primary_type = r_u8(rrj_read32(m, primary + 1084) + 1) & 0x0F;
+        if (r_u8(state + 57) >= 4 && actor_type != primary_type)
         {
             int32_t relative;
             int32_t magnitude;
@@ -7392,7 +7156,7 @@ void sub_800BADB8(RRJMemory *m, uint32_t actor, uint32_t contact)
                 relative = rrj_s32(rrj_read32(m, actor + 344) - rrj_read32(m, primary + 344));
             if (rrj_read32(m, actor + 372) && !rrj_u16(rrj_at(m, actor + 362, 2)))
             {
-                int16_t factor = *(int16_t *)rrj_at(m, actor + (relative < 0 ? 408 : 420), 2);
+                int16_t factor = r_s16(actor + (relative < 0 ? 408 : 420));
                 magnitude = rrj_s32(rrj_read32(m, actor + 424)) * factor;
             }
             else
@@ -7401,7 +7165,7 @@ void sub_800BADB8(RRJMemory *m, uint32_t actor, uint32_t contact)
             }
             if (relative < 0)
                 magnitude = -magnitude;
-            magnitude = rrj_s32((uint32_t)magnitude - ((uint32_t)(int32_t)*(int16_t *)rrj_at(m, actor + 878, 2) << 5));
+            magnitude = rrj_s32((uint32_t)magnitude - ((uint32_t)(int32_t)r_s16(actor + 878) << 5));
             leaf_80093CAC_scalar(m, actor, actor + 872, magnitude, 1);
             return;
         }
@@ -7447,7 +7211,7 @@ void sub_800BADB8(RRJMemory *m, uint32_t actor, uint32_t contact)
         {
             uint32_t descriptor = rrj_read32(m, actor + 1084);
             uint32_t event = 9;
-            if (actor_id < rrj_read32(m, state + 48) && rrj_read32(m, descriptor + 40) && *(uint8_t *)rrj_at(m, descriptor + 39, 1) < 4 && !*(uint8_t *)rrj_at(m, state + 57, 1))
+            if (actor_id < rrj_read32(m, state + 48) && rrj_read32(m, descriptor + 40) && r_u8(descriptor + 39) < 4 && !r_u8(state + 57))
                 event = 1;
             (void)sub_800C4550(m, event, secondary, 2);
         }
@@ -7455,7 +7219,7 @@ void sub_800BADB8(RRJMemory *m, uint32_t actor, uint32_t contact)
     if (actor_id < rrj_read32(m, state + 48))
     {
         uint32_t player = 0x800CD898 + 1132 * actor_id;
-        if (!(rrj_read32(m, player + 552) & 0x44) && *(uint8_t *)rrj_at(m, state + 4, 1) != 44)
+        if (!(rrj_read32(m, player + 552) & 0x44) && r_u8(state + 4) != 44)
             (void)sub_8008A998(m, player, 10);
     }
 }
@@ -7471,7 +7235,7 @@ uint32_t sub_800BFF04(RRJMemory *m, uint32_t first, uint32_t second, uint32_t fl
     uint32_t special;
     uint32_t result = 0;
     FUNCTION_MARKER(0x800BFF04, "RASHCDG.BIN");
-    special = first_id < player_count || second_id < player_count || (*(uint8_t *)rrj_at(m, first_secondary + 572, 1) & 0x20) || (*(uint8_t *)rrj_at(m, second_secondary + 572, 1) & 0x20);
+    special = first_id < player_count || second_id < player_count || (r_u8(first_secondary + 572) & 0x20) || (r_u8(second_secondary + 572) & 0x20);
     if (!special)
         return 0;
     if (rrj_u16(rrj_at(m, 0x800541D4 + 8 * rrj_u16(rrj_at(m, second_secondary + 544, 2)) + 2, 2)) != 3)
@@ -7483,13 +7247,13 @@ uint32_t sub_800BFF04(RRJMemory *m, uint32_t first, uint32_t second, uint32_t fl
         uint32_t entry;
         int32_t frame;
         uint32_t limit;
-        if (!(*(uint8_t *)rrj_at(m, second_descriptor + 60, 1) & 0x80))
+        if (!(r_u8(second_descriptor + 60) & 0x80))
             return 0;
-        result = sub_800C2E9C(m, first_secondary, *(uint8_t *)rrj_at(m, second_descriptor + 46, 1));
+        result = sub_800C2E9C(m, first_secondary, r_u8(second_descriptor + 46));
         if (!result)
             return result;
         animation = rrj_read32(m, second_secondary + 540);
-        entry = rrj_read32(m, rrj_read32(m, rrj_read32(m, animation + 40) + 4) + 4 * *(uint8_t *)rrj_at(m, rrj_read32(m, animation + 4) + 12 * rrj_read32(m, animation + 12), 1));
+        entry = rrj_read32(m, rrj_read32(m, rrj_read32(m, animation + 40) + 4) + 4 * r_u8(rrj_read32(m, animation + 4) + 12 * rrj_read32(m, animation + 12)));
         frame = (int16_t)(rrj_u16(rrj_at(m, entry + 16, 2)) - 1);
         limit = rrj_read32(m, animation + 16);
         if (3 * frame < rrj_s32(4 * limit))
@@ -7500,43 +7264,43 @@ uint32_t sub_800BFF04(RRJMemory *m, uint32_t first, uint32_t second, uint32_t fl
         if (frame >= rrj_s32(2 * limit))
             return result;
         rrj_write32(m, flags_out, result);
-        *(uint8_t *)rrj_at(m, first_descriptor + 46, 1) = *(uint8_t *)rrj_at(m, second_descriptor + 46, 1);
-        rrj_put16(rrj_at(m, first_descriptor + 44, 2), rrj_u16(rrj_at(m, first_descriptor + 44, 2)) | (uint16_t)(1u << (*(uint8_t *)rrj_at(m, second_descriptor + 46, 1) & 31)));
-        rrj_put16(rrj_at(m, second_descriptor + 44, 2), rrj_u16(rrj_at(m, second_descriptor + 44, 2)) & (uint16_t)~(1u << (*(uint8_t *)rrj_at(m, second_descriptor + 46, 1) & 31)));
-        *(uint8_t *)rrj_at(m, second_descriptor + 46, 1) = 9;
-        *(uint8_t *)rrj_at(m, second_descriptor + 70, 1) = (uint8_t)first_id;
-        *(uint8_t *)rrj_at(m, first_descriptor + 71, 1) = (uint8_t)second_id;
+        w_u8(first_descriptor + 46, r_u8(second_descriptor + 46));
+        rrj_put16(rrj_at(m, first_descriptor + 44, 2), rrj_u16(rrj_at(m, first_descriptor + 44, 2)) | (uint16_t)(1u << (r_u8(second_descriptor + 46) & 31)));
+        rrj_put16(rrj_at(m, second_descriptor + 44, 2), rrj_u16(rrj_at(m, second_descriptor + 44, 2)) & (uint16_t)~(1u << (r_u8(second_descriptor + 46) & 31)));
+        w_u8(second_descriptor + 46, 9);
+        w_u8(second_descriptor + 70, (uint8_t)first_id);
+        w_u8(first_descriptor + 71, (uint8_t)second_id);
         (void)sub_800BFE58(m, first, 0, 0);
         (void)sub_800BFE58(m, second, 0, 1);
         {
-            uint32_t row = *(uint8_t *)rrj_at(m, second_secondary + 569, 1);
-            uint32_t column = *(uint8_t *)rrj_at(m, second_secondary + 570, 1);
-            int32_t variant = (int32_t)*(int8_t *)rrj_at(m, second_secondary + 574 + column, 1);
+            uint32_t row = r_u8(second_secondary + 569);
+            uint32_t column = r_u8(second_secondary + 570);
+            int32_t variant = (int32_t)r_s8(second_secondary + 574 + column);
             uint32_t table = rrj_read32(m, 0x8005AD4C) + 12 * row;
             uint32_t sound = rrj_u16(rrj_at(m, rrj_read32(m, table + 8) + 12 * (uint32_t)variant, 2));
-            uint32_t transfer = *(uint8_t *)rrj_at(m, second_secondary + 572, 1) >> 7;
-            uint32_t effect = (*(uint8_t *)rrj_at(m, first_descriptor + 1, 1) & 0x0F) ? 0x61 : 0x60;
+            uint32_t transfer = r_u8(second_secondary + 572) >> 7;
+            uint32_t effect = (r_u8(first_descriptor + 1) & 0x0F) ? 0x61 : 0x60;
             (void)sub_80017BA0(m, rrj_read32(m, first + 184), rrj_read32(m, first + 192), effect, 0);
-            *(uint8_t *)rrj_at(m, first_descriptor + 60, 1) = 0x8E;
-            *(uint8_t *)rrj_at(m, second_descriptor + 60, 1) = 0x20;
+            w_u8(first_descriptor + 60, 0x8E);
+            w_u8(second_descriptor + 60, 0x20);
             (void)sub_800C4550(m, 16, second_secondary, ((flags & 0xFFFFFFF0) ^ 0x100) | 0x10);
             (void)sub_800958F0(m, first_secondary, flags & 0x100);
             if (transfer)
             {
-                uint32_t lane = *(uint8_t *)rrj_at(m, first_descriptor + 46, 1);
-                uint32_t value = *(uint8_t *)rrj_at(m, second_descriptor + 47, 1);
+                uint32_t lane = r_u8(first_descriptor + 46);
+                uint32_t value = r_u8(second_descriptor + 47);
                 uint32_t packed;
-                *(uint8_t *)rrj_at(m, second_secondary + 572, 1) &= 0x7F;
+                xport_update_u8(second_secondary + 572, XPORT_MEMORY_UPDATE_AND, 0x7F);
                 if (lane < 8)
                     value += (rrj_read32(m, first_descriptor + 48) >> (4 * lane)) & 0x0F;
                 packed = rrj_read32(m, first_descriptor + 48) & ~(0x0Fu << ((4 * lane) & 31));
                 rrj_write32(m, first_descriptor + 48, packed | ((value & 0x0F) << ((4 * lane) & 31)));
-                *(uint8_t *)rrj_at(m, first_descriptor + 47, 1) = (uint8_t)value;
+                w_u8(first_descriptor + 47, (uint8_t)value);
                 rrj_write32(m, second_descriptor + 48, rrj_read32(m, second_descriptor + 48) & ~(0x0Fu << ((4 * lane) & 31)));
-                (void)sub_800273EC(m, 0x800CF018 + 172 * (uint32_t)(int32_t)*(int8_t *)rrj_at(m, first_secondary + 571, 1), 0, 1500, 6, 0);
-                *(uint8_t *)rrj_at(m, first_secondary + 572, 1) |= 0x80;
+                (void)sub_800273EC(m, 0x800CF018 + 172 * (uint32_t)(int32_t)r_s8(first_secondary + 571), 0, 1500, 6, 0);
+                xport_update_u8(first_secondary + 572, XPORT_MEMORY_UPDATE_OR, 0x80);
             }
-            *(uint8_t *)rrj_at(m, second_descriptor + 47, 1) = 0;
+            w_u8(second_descriptor + 47, 0);
             sub_800C2F84(m, sound, first_secondary, (flags >> 8) & 0xFF, (flags >> 16) & 0xFF);
             return sub_800C2030(m, first_secondary);
         }
@@ -7584,8 +7348,8 @@ uint32_t sub_8009989C(RRJMemory *m, uint32_t actor, uint32_t linked, uint32_t ve
         (void)sub_8002EED8(m, reciprocal, vector, normalized);
         for (index = 0; index < 3; ++index)
         {
-            diagonal[index] = *(int16_t *)rrj_at(m, actor + 522 + 2 * index, 2);
-            direction[index] = *(int16_t *)rrj_at(m, normalized + 2 * index, 2);
+            diagonal[index] = r_s16(actor + 522 + 2 * index);
+            direction[index] = r_s16(normalized + 2 * index);
         }
         leaf_direction_op_local(diagonal, direction, first_cross);
         for (index = 0; index < 3; ++index)
@@ -7597,8 +7361,8 @@ uint32_t sub_8009989C(RRJMemory *m, uint32_t actor, uint32_t linked, uint32_t ve
         }
         for (index = 0; index < 3; ++index)
         {
-            first_cross[index] = *(int16_t *)rrj_at(m, first_cross_address + 2 * index, 2);
-            direction[index] = *(int16_t *)rrj_at(m, actor + 522 + 2 * index, 2);
+            first_cross[index] = r_s16(first_cross_address + 2 * index);
+            direction[index] = r_s16(actor + 522 + 2 * index);
         }
         leaf_direction_op_local(first_cross, direction, second_cross);
         for (index = 0; index < 3; ++index)
@@ -7629,7 +7393,7 @@ uint32_t sub_8009989C(RRJMemory *m, uint32_t actor, uint32_t linked, uint32_t ve
         int64_t dot = 0;
         uint32_t index;
         for (index = 0; index < 3; ++index)
-            dot += (int64_t)rrj_s32(rrj_read32(m, vector + 4 * index)) * ((int32_t)*(int16_t *)rrj_at(m, actor + 528 + 2 * index, 2) << 4);
+            dot += (int64_t)rrj_s32(rrj_read32(m, vector + 4 * index)) * ((int32_t)r_s16(actor + 528 + 2 * index) << 4);
         stopped = dot < 0;
     }
     if (stopped)
@@ -7652,7 +7416,7 @@ uint32_t sub_8009989C(RRJMemory *m, uint32_t actor, uint32_t linked, uint32_t ve
 uint32_t sub_80096820(RRJMemory *m, uint32_t state, uint32_t actor, uint32_t delta, RRJRaceLeafCall call)
 {
     uint32_t descriptor = rrj_read32(m, actor + 1084);
-    uint32_t type = *(uint8_t *)rrj_at(m, descriptor + 1, 1) & 0x0F;
+    uint32_t type = r_u8(descriptor + 1) & 0x0F;
     uint32_t race = rrj_read32(m, 0x8005B2F8);
     uint32_t course = rrj_read32(m, race + 60);
     uint32_t result = 0;
@@ -7674,12 +7438,12 @@ uint32_t sub_80096820(RRJMemory *m, uint32_t state, uint32_t actor, uint32_t del
                 rrj_write32(m, actor + 924, rrj_read32(m, table + 4 * course));
                 return 0;
             }
-            *(uint8_t *)rrj_at(m, descriptor + 39, 1) = (uint8_t)sub_800138E8(m, actor, 0);
+            w_u8(descriptor + 39, (uint8_t)sub_800138E8(m, actor, 0));
             remaining = rrj_s32(rrj_read32(m, rrj_read32(m, 0x800CE4DC)));
             object = rrj_read32(m, 0x800CE4D0);
             for (index = remaining; index >= 0; --index, object += rrj_read32(m, 0x800CE4D4))
             {
-                if (*(int16_t *)rrj_at(m, object + 320, 2))
+                if (r_s16(object + 320))
                 {
                     uint32_t secondary = rrj_read32(m, object + 852);
                     if ((uint32_t)(rrj_read32(m, secondary + 604) - 3) < 2)
@@ -7687,7 +7451,7 @@ uint32_t sub_80096820(RRJMemory *m, uint32_t state, uint32_t actor, uint32_t del
                 }
             }
             remaining = rrj_s32(rrj_read32(m, 0x8005B1F8)) - (int32_t)(active + 1) - rrj_s32(rrj_read32(m, 0x80053168 + 4 * course));
-            if (*(uint8_t *)rrj_at(m, descriptor + 39, 1) < (uint32_t)remaining)
+            if (r_u8(descriptor + 39) < (uint32_t)remaining)
             {
                 table = rrj_read32(m, 0x8005B2B0) ? 0x80053048 : 0x80053030;
                 rrj_write32(m, actor + 924, rrj_read32(m, table + 4 * course));
@@ -7703,9 +7467,9 @@ uint32_t sub_80096820(RRJMemory *m, uint32_t state, uint32_t actor, uint32_t del
                 if (contact)
                 {
                     uint32_t vector = 0x1F800340;
-                    int16_t x = *(int16_t *)rrj_at(m, rrj_read32(m, actor + 340) + 14, 2);
-                    int16_t y = *(int16_t *)rrj_at(m, rrj_read32(m, actor + 340) + 16, 2);
-                    int16_t z = *(int16_t *)rrj_at(m, rrj_read32(m, actor + 340) + 18, 2);
+                    int16_t x = r_s16(rrj_read32(m, actor + 340) + 14);
+                    int16_t y = r_s16(rrj_read32(m, actor + 340) + 16);
+                    int16_t z = r_s16(rrj_read32(m, actor + 340) + 18);
                     int32_t first;
                     int32_t second;
                     int32_t third;
@@ -7741,7 +7505,7 @@ uint32_t sub_80096820(RRJMemory *m, uint32_t state, uint32_t actor, uint32_t del
                 rrj_write32(m, record + 116, rrj_read32(m, race + 16));
                 rrj_write32(m, 0x8005B2EC, 0);
                 rrj_write32(m, record + 108, 0);
-                if (rrj_u16(rrj_at(m, actor + 948 + 8 * (uint32_t)(int32_t)*(int8_t *)rrj_at(m, actor + 946, 1), 2)) >= 3)
+                if (rrj_u16(rrj_at(m, actor + 948 + 8 * (uint32_t)(int32_t)r_s8(actor + 946), 2)) >= 3)
                 {
                     rrj_write32(m, 0x8005AD48, (rrj_read32(m, 0x8005AD48) & 0xFFFFFFF9u) | 4);
                     return 0;
@@ -7752,7 +7516,7 @@ uint32_t sub_80096820(RRJMemory *m, uint32_t state, uint32_t actor, uint32_t del
             if (type == 2)
             {
                 uint32_t timer = rrj_read32(m, 0x8005B2EC) + delta;
-                uint32_t position = (uint8_t)(*(uint8_t *)rrj_at(m, descriptor + 39, 1) + 4);
+                uint32_t position = (uint8_t)(r_u8(descriptor + 39) + 4);
                 uint32_t near_front = position < 2;
                 rrj_write32(m, 0x8005B2EC, timer);
                 if (timer >= 20001 && position >= 2 && rrj_read32(m, actor + 180) >= 0x12)
@@ -7762,7 +7526,7 @@ uint32_t sub_80096820(RRJMemory *m, uint32_t state, uint32_t actor, uint32_t del
                 rrj_write32(m, 0x8005AD48, rrj_read32(m, 0x8005AD48) & 0xFFFFFFFBu);
                 if (near_front)
                 {
-                    uint32_t mode = *(uint8_t *)rrj_at(m, descriptor + 39, 1) == 252 ? 0 : 2;
+                    uint32_t mode = r_u8(descriptor + 39) == 252 ? 0 : 2;
                     (void)leaf_call(m, call, 0x8001B244, mode, 0x80060000, 0, 0);
                     rrj_write32(m, 0x8005AD48, rrj_read32(m, 0x8005AD48) | 0x10);
                 }
@@ -7804,7 +7568,7 @@ uint32_t sub_80096820(RRJMemory *m, uint32_t state, uint32_t actor, uint32_t del
         uint32_t record = 0x800CD898 + 1132 * rrj_u16(rrj_at(m, actor + 172, 2));
         if (!rrj_read32(m, record + 772) && !(rrj_read32(m, record + 548) & 0x2008))
         {
-            uint32_t contact = actor + 948 + 8 * (uint32_t)(int32_t)*(int8_t *)rrj_at(m, actor + 946, 1);
+            uint32_t contact = actor + 948 + 8 * (uint32_t)(int32_t)r_s8(actor + 946);
             uint32_t blocked = rrj_u16(rrj_at(m, contact, 2)) == 3 && ((rrj_u16(rrj_at(m, contact + 2, 2)) >> 5) == 3);
             if (rrj_s32(rrj_read32(m, actor + 480)) <= 439457 || (!blocked && !rrj_u16(rrj_at(m, actor + 362, 2))))
             {
@@ -7874,7 +7638,7 @@ uint32_t sub_8009AD50(RRJMemory *m, uint32_t enabled, uint32_t specification, ui
         rrj_write32(m, 0x800CF658, current);
     rrj_write32(m, object + 180, rrj_u16(rrj_at(m, specification + 2, 2)));
     rrj_put16(rrj_at(m, object + 322, 2), rrj_u16(rrj_at(m, specification + 62, 2)));
-    if (!sub_8003A700(m, segment, config, geometry) || *(int16_t *)rrj_at(m, rrj_read32(m, geometry + 4) + 2, 2) == 1)
+    if (!sub_8003A700(m, segment, config, geometry) || r_s16(rrj_read32(m, geometry + 4) + 2) == 1)
     {
         (void)sub_8008C000(m, object + 172, 3);
         return 0;
@@ -7917,8 +7681,8 @@ uint32_t sub_8009AD50(RRJMemory *m, uint32_t enabled, uint32_t specification, ui
         }
         else
         {
-            int32_t dx = ((int32_t)position[0] >> 16) - *(int16_t *)rrj_at(m, object + 186, 2);
-            int32_t dz = ((int32_t)position[2] >> 16) - *(int16_t *)rrj_at(m, object + 194, 2);
+            int32_t dx = ((int32_t)position[0] >> 16) - r_s16(object + 186);
+            int32_t dz = ((int32_t)position[2] >> 16) - r_s16(object + 194);
             int32_t major = (int32_t)leaf_abs32(dx);
             int32_t minor = (int32_t)leaf_abs32(dz);
             if (major < minor)
@@ -7932,7 +7696,7 @@ uint32_t sub_8009AD50(RRJMemory *m, uint32_t enabled, uint32_t specification, ui
     }
     {
         uint32_t race = rrj_read32(m, 0x8005B2F8);
-        if (*(uint8_t *)rrj_at(m, race + 4, 1) != 44 && rrj_s32(rrj_read32(m, race + 16)) > 0 && rrj_s32((uint32_t)distance << 16) <= 0x77FFFF)
+        if (r_u8(race + 4) != 44 && rrj_s32(rrj_read32(m, race + 16)) > 0 && rrj_s32((uint32_t)distance << 16) <= 0x77FFFF)
         {
             (void)sub_8008C000(m, object + 172, 3);
             return 0;
@@ -7947,19 +7711,19 @@ uint32_t sub_8009AD50(RRJMemory *m, uint32_t enabled, uint32_t specification, ui
         do
         {
             candidate = (int32_t)(sub_8001FC58(m) & 3);
-            *(uint8_t *)rrj_at(m, object + 508, 1) = (uint8_t)candidate;
+            w_u8(object + 508, (uint8_t)candidate);
             ++attempts;
-        } while (candidate == (int32_t)*(int8_t *)rrj_at(m, 0x8005B358, 1) && attempts < 5);
-        *(uint8_t *)rrj_at(m, 0x8005B358, 1) = (uint8_t)candidate;
+        } while (candidate == (int32_t)r_s8(0x8005B358) && attempts < 5);
+        w_u8(0x8005B358, (uint8_t)candidate);
     }
     else
     {
-        *(uint8_t *)rrj_at(m, object + 508, 1) = (uint8_t)turn;
+        w_u8(object + 508, (uint8_t)turn);
     }
-    if (!*(int8_t *)rrj_at(m, object + 508, 1))
-        *(uint8_t *)rrj_at(m, object + 508, 1) = 1;
+    if (!r_s8(object + 508))
+        w_u8(object + 508, 1);
     if (turn < 0)
-        *(uint8_t *)rrj_at(m, object + 508, 1) = (uint8_t)-*(int8_t *)rrj_at(m, object + 508, 1);
+        w_u8(object + 508, (uint8_t)-r_s8(object + 508));
     (void)sub_8003DE28(m, object, 1, 0, 0xFFFFFFFF);
     if (rrj_read32(m, object + 372))
     {
@@ -7974,15 +7738,15 @@ uint32_t sub_8009AD50(RRJMemory *m, uint32_t enabled, uint32_t specification, ui
     }
     if (side < 0)
         rrj_write32(m, object + 344, (uint32_t)-rrj_s32(rrj_read32(m, object + 344)));
-    if (*(int8_t *)rrj_at(m, object + 508, 1) < 0)
+    if (r_s8(object + 508) < 0)
         rrj_write32(m, object + 344, (uint32_t)-rrj_s32(rrj_read32(m, object + 344)));
     (void)sub_8002EAD8(m, object + 184, source + 2, rrj_read32(m, object + 344), object + 184);
     sub_8003DF54(m, object, 1, 0xFFFFFFFF);
     rrj_write32(m, object + 492, 0);
     rrj_write32(m, object + 496, 0);
-    rrj_put16(rrj_at(m, object + 438, 2), (uint16_t)-*(int16_t *)rrj_at(m, source + 8, 2));
-    rrj_put16(rrj_at(m, object + 440, 2), (uint16_t)-*(int16_t *)rrj_at(m, source + 10, 2));
-    rrj_put16(rrj_at(m, object + 442, 2), (uint16_t)-*(int16_t *)rrj_at(m, source + 12, 2));
+    rrj_put16(rrj_at(m, object + 438, 2), (uint16_t)-r_s16(source + 8));
+    rrj_put16(rrj_at(m, object + 440, 2), (uint16_t)-r_s16(source + 10));
+    rrj_put16(rrj_at(m, object + 442, 2), (uint16_t)-r_s16(source + 12));
     for (index = 0; index < 3; ++index)
     {
         rrj_put16(rrj_at(m, object + 444 + 2 * index, 2), rrj_u16(rrj_at(m, source + 14 + 2 * index, 2)));
@@ -7992,8 +7756,8 @@ uint32_t sub_8009AD50(RRJMemory *m, uint32_t enabled, uint32_t specification, ui
     {
         for (index = 0; index < 3; ++index)
         {
-            rrj_put16(rrj_at(m, object + 432 + 2 * index, 2), (uint16_t)-*(int16_t *)rrj_at(m, object + 432 + 2 * index, 2));
-            rrj_put16(rrj_at(m, object + 444 + 2 * index, 2), (uint16_t)-*(int16_t *)rrj_at(m, object + 444 + 2 * index, 2));
+            rrj_put16(rrj_at(m, object + 432 + 2 * index, 2), (uint16_t)-r_s16(object + 432 + 2 * index));
+            rrj_put16(rrj_at(m, object + 444 + 2 * index, 2), (uint16_t)-r_s16(object + 444 + 2 * index));
         }
     }
     (void)sub_8003AF9C(m, object + 172, 0, actor);
@@ -8006,27 +7770,27 @@ uint32_t sub_8009AD50(RRJMemory *m, uint32_t enabled, uint32_t specification, ui
     }
     (void)sub_80012FC8(m, object, 0);
     (void)sub_8008BA18(m, object);
-    axis = sub_80020018(m, (uint32_t)(int32_t)*(int16_t *)rrj_at(m, object + 444, 2), (uint32_t)(int32_t)*(int16_t *)rrj_at(m, object + 448, 2));
+    axis = sub_80020018(m, (uint32_t)(int32_t)r_s16(object + 444), (uint32_t)(int32_t)r_s16(object + 448));
     rrj_write32(m, object + 292, axis);
-    rrj_write32(m, object + 296, (uint32_t)((int32_t)*(int16_t *)rrj_at(m, 0x8005624E + 4 * (axis & 0xFFF), 2) << 4));
-    rrj_write32(m, object + 300, (uint32_t)((int32_t)*(int16_t *)rrj_at(m, 0x8005624C + 4 * (axis & 0xFFF), 2) << 4));
+    rrj_write32(m, object + 296, (uint32_t)((int32_t)r_s16(0x8005624E + 4 * (axis & 0xFFF)) << 4));
+    rrj_write32(m, object + 300, (uint32_t)((int32_t)r_s16(0x8005624C + 4 * (axis & 0xFFF)) << 4));
     rrj_write32(m, object + 484, 0x00026666);
     rrj_put16(rrj_at(m, object + 452, 2), rrj_u16(rrj_at(m, object + 446, 2)));
     rrj_put16(rrj_at(m, object + 454, 2), rrj_u16(rrj_at(m, object + 448, 2)));
     rrj_put16(rrj_at(m, object + 450, 2), rrj_u16(rrj_at(m, object + 444, 2)));
-    *(uint8_t *)rrj_at(m, object + 509, 1) = 0;
-    *(uint8_t *)rrj_at(m, object + 510, 1) = 0;
+    w_u8(object + 509, 0);
+    w_u8(object + 510, 0);
     rrj_write32(m, object + 316, 0x05500000);
     rrj_write32(m, object + 504, 0xFFFF0000);
-    *(uint8_t *)rrj_at(m, object + 511, 1) = 0xFF;
+    w_u8(object + 511, 0xFF);
     rrj_put16(rrj_at(m, object + 320, 2), (uint16_t)sub_80039F68(m, object + 172));
     rrj_write32(m, object + 176, 0xFFFFFFFF);
-    if (!*(int16_t *)rrj_at(m, object + 320, 2))
+    if (!r_s16(object + 320))
     {
         (void)sub_8008C000(m, object + 172, 3);
         object = 0;
     }
-    if ((*(uint8_t *)rrj_at(m, rrj_read32(m, 0x8005B2F8) + 4, 1) & 1) && object && !rrj_read32(m, object + 180))
+    if ((r_u8(rrj_read32(m, 0x8005B2F8) + 4) & 1) && object && !rrj_read32(m, object + 180))
         (void)sub_80028034(m, object);
     return object;
 }
@@ -8034,7 +7798,7 @@ uint32_t sub_8009AD50(RRJMemory *m, uint32_t enabled, uint32_t specification, ui
 uint32_t sub_8009AD48(RRJMemory *m, uint32_t specification, uint32_t actor, RRJRaceLeafCall call)
 {
     FUNCTION_MARKER(0x8009AD48, "RASHCDG.BIN");
-    return sub_8009AD50(m, (uint32_t)(int32_t)*(int16_t *)rrj_at(m, 0x800CE578, 2), specification, actor, call);
+    return sub_8009AD50(m, (uint32_t)(int32_t)r_s16(0x800CE578), specification, actor, call);
 }
 
 uint32_t sub_8009D664(RRJMemory *m, uint32_t actor, uint32_t source, RRJRaceLeafCall call)
@@ -8062,7 +7826,7 @@ uint32_t sub_8009D664(RRJMemory *m, uint32_t actor, uint32_t source, RRJRaceLeaf
                 uint32_t player;
                 for (player = 0; rrj_s32(player) < rrj_s32(rrj_read32(m, race + 48)); ++player)
                 {
-                    if (!((*(uint8_t *)rrj_at(m, object + 9, 1) >> (player & 31)) & 1))
+                    if (!((r_u8(object + 9) >> (player & 31)) & 1))
                     {
                         candidate = object;
                         break;
@@ -8155,7 +7919,7 @@ uint32_t sub_8009D664(RRJMemory *m, uint32_t actor, uint32_t source, RRJRaceLeaf
     for (index = 0; index < 68; ++index)
     {
         if (index != 8 && index != 9 && index != 36 && index != 37 && index != 60 && index != 61)
-            *(uint8_t *)rrj_at(m, specification + index, 1) = 0;
+            w_u8(specification + index, 0);
     }
     rrj_put16(rrj_at(m, specification + 64, 2), 4);
     rrj_put16(rrj_at(m, specification + 2, 2), (uint16_t)(rrj_u16(rrj_at(m, 0x800CE578, 2)) - 1));
@@ -8165,7 +7929,7 @@ uint32_t sub_8009D664(RRJMemory *m, uint32_t actor, uint32_t source, RRJRaceLeaf
         if (object)
         {
             rrj_write32(m, object + 480, 0x00283BBA);
-            *(uint8_t *)rrj_at(m, object + 511, 1) = *(uint8_t *)rrj_at(m, source + 172, 1);
+            w_u8(object + 511, r_u8(source + 172));
         }
         return object;
     }
@@ -8181,36 +7945,36 @@ uint32_t sub_80096F30(RRJMemory *m, uint32_t actor, uint32_t other, uint32_t mod
     if (rrj_u16(rrj_at(m, actor + 172, 2)) >= rrj_read32(m, race + 48))
         return 0;
     descriptor = rrj_read32(m, actor + 1084);
-    if ((*(uint8_t *)rrj_at(m, descriptor + 1, 1) & 0x0F) != 2)
+    if ((r_u8(descriptor + 1) & 0x0F) != 2)
         return 0;
     secondary = rrj_read32(m, actor + 852);
     if (rrj_read32(m, secondary + 604) >= 2 || (rrj_read32(m, secondary + 552) & 0x8000) || rrj_read32(m, 0x8005AD48))
         return 0;
     if (rrj_read32(m, rrj_read32(m, other + 1084) + 40))
         return 0;
-    if (rrj_u16(rrj_at(m, other + 172, 2)) == *(uint8_t *)rrj_at(m, race + 6, 1))
+    if (rrj_u16(rrj_at(m, other + 172, 2)) == r_u8(race + 6))
     {
-        if (*(uint8_t *)rrj_at(m, race + 4, 1) == 33)
+        if (r_u8(race + 4) == 33)
         {
-            *(uint8_t *)rrj_at(m, descriptor + 39, 1) = 0xF8;
+            w_u8(descriptor + 39, 0xF8);
             rrj_write32(m, descriptor + 40, rrj_read32(m, race + 16));
         }
         else
         {
-            *(uint8_t *)rrj_at(m, descriptor + 39, 1) = 0xFC;
+            w_u8(descriptor + 39, 0xFC);
             (void)leaf_call(m, call, 0x8001B244, 0, descriptor, 0, 0);
         }
     }
     else
     {
-        if (*(uint8_t *)rrj_at(m, race + 4, 1) == 33)
+        if (r_u8(race + 4) == 33)
             return 33;
         rrj_write32(m, 0x8005AD44, rrj_read32(m, 0x8005AD44) - 1);
         if (rrj_s32(rrj_read32(m, 0x8005AD44)) <= 0)
-            *(uint8_t *)rrj_at(m, descriptor + 39, 1) = 0xFD;
+            w_u8(descriptor + 39, 0xFD);
     }
     (void)sub_80097308(m, other);
-    if (*(uint8_t *)rrj_at(m, race + 4, 1) != 33)
+    if (r_u8(race + 4) != 33)
     {
         uint32_t obstacle = sub_8009D664(m, actor, other, call);
         if (obstacle)
@@ -8229,7 +7993,7 @@ uint32_t sub_80096F30(RRJMemory *m, uint32_t actor, uint32_t other, uint32_t mod
         uint32_t type = rrj_u16(rrj_at(m, secondary + 544, 2));
         if (rrj_u16(rrj_at(m, 0x800541D4 + 8 * type + 2, 2)) == 3)
         {
-            uint32_t table = rrj_read32(m, 0x8005AD4C) + 12 * *(uint8_t *)rrj_at(m, secondary + 569, 1);
+            uint32_t table = rrj_read32(m, 0x8005AD4C) + 12 * r_u8(secondary + 569);
             (void)sub_800C4550(m, rrj_u16(rrj_at(m, table, 2)), secondary, 2);
         }
     }
@@ -8259,7 +8023,7 @@ uint32_t sub_80096F30(RRJMemory *m, uint32_t actor, uint32_t other, uint32_t mod
             rrj_write32(m, actor + 924, rrj_read32(m, 0x80053048 + 4 * rrj_read32(m, race + 60)));
         }
     }
-    result = (uint8_t)(*(uint8_t *)rrj_at(m, descriptor + 39, 1) + 4) < 2;
+    result = (uint8_t)(r_u8(descriptor + 39) + 4) < 2;
     if (result)
     {
         uint32_t record = 0x800CD898 + 1132 * rrj_u16(rrj_at(m, actor + 172, 2));
@@ -8268,7 +8032,7 @@ uint32_t sub_80096F30(RRJMemory *m, uint32_t actor, uint32_t other, uint32_t mod
             (void)sub_8008A998(m, record, mode);
         rrj_write32(m, descriptor + 40, rrj_read32(m, race + 16));
         result = 2;
-        if (*(uint8_t *)rrj_at(m, descriptor + 39, 1) == 0xFD && rrj_read32(m, race + 48) == 2)
+        if (r_u8(descriptor + 39) == 0xFD && rrj_read32(m, race + 48) == 2)
         {
             uint32_t other_actor = rrj_read32(m, 0x8005B268 + 4 * (rrj_u16(rrj_at(m, actor + 172, 2)) == 0));
             result = rrj_read32(m, race + 16);
@@ -8322,7 +8086,7 @@ uint32_t sub_800BF674(RRJMemory *m, uint32_t object, uint8_t event, uint32_t dir
     {
         uint32_t slot = actor_id > 1 ? 1 : actor_id;
         rrj_write32(m, 0x800D6198 + 224 * slot + 140, 1);
-        result = *(uint8_t *)rrj_at(m, race + 4, 1) & 1;
+        result = r_u8(race + 4) & 1;
         if (result)
             return sub_80096F30(m, actor, object, 9, call);
     }
@@ -8343,45 +8107,45 @@ uint32_t sub_800C17B0(RRJMemory *m, uint32_t first, uint32_t second, uint32_t fl
     FUNCTION_MARKER(0x800C17B0, "RASHCDG.BIN");
     if (active & 1)
     {
-        uint8_t packed = *(uint8_t *)rrj_at(m, first_descriptor + 61, 1);
+        uint8_t packed = r_u8(first_descriptor + 61);
         packed = (uint8_t)((((packed & 0x0F) + 1) & 0x0F) | (packed & 0xF0));
-        *(uint8_t *)rrj_at(m, first_descriptor + 61, 1) = packed;
-        if (!(*(uint8_t *)rrj_at(m, first_secondary + 572, 1) & 0x20))
+        w_u8(first_descriptor + 61, packed);
+        if (!(r_u8(first_secondary + 572) & 0x20))
         {
             uint32_t id = rrj_read32(m, second + 1088) ? rrj_u16(rrj_at(m, second + 172, 2)) : rrj_u16(rrj_at(m, rrj_read32(m, second + 856) + 172, 2));
             rrj_write32(m, local + 4, rrj_u16(rrj_at(m, first_descriptor + 66, 2)));
             (void)sub_800A8BE0(m, (uint16_t)id, local + 4);
             rrj_put16(rrj_at(m, first_descriptor + 66, 2), rrj_u16(rrj_at(m, local + 4, 2)));
         }
-        if (!(*(uint8_t *)rrj_at(m, second_secondary + 572, 1) & 0x20))
+        if (!(r_u8(second_secondary + 572) & 0x20))
         {
             rrj_write32(m, local + 4, rrj_u16(rrj_at(m, second_descriptor + 64, 2)));
             (void)sub_800A8BE0(m, rrj_u16(rrj_at(m, first + 172, 2)), local + 4);
             rrj_put16(rrj_at(m, second_descriptor + 64, 2), rrj_u16(rrj_at(m, local + 4, 2)));
         }
-        if (*(uint8_t *)rrj_at(m, first_secondary + 572, 1) & 0x80)
+        if (r_u8(first_secondary + 572) & 0x80)
         {
             rrj_write32(m, local, 3 * rrj_read32(m, local));
             (void)sub_80017BA0(m, rrj_read32(m, first + 184), rrj_read32(m, first + 192), 105, 0);
         }
         {
-            uint32_t strength = *(uint8_t *)rrj_at(m, first_descriptor + 15, 1);
+            uint32_t strength = r_u8(first_descriptor + 15);
             int32_t product;
             int32_t divisor;
             int32_t remaining;
             if (strength < 0x61)
                 strength = 0x60;
-            product = rrj_s32(rrj_read32(m, local) * strength * *(uint8_t *)rrj_at(m, first_descriptor + 12, 1));
+            product = rrj_s32(rrj_read32(m, local) * strength * r_u8(first_descriptor + 12));
             damage = product < 0 ? (product + 0x3FFF) >> 14 : product >> 14;
             divisor = rrj_s32(rrj_read32(m, 0x80053188 + 4 * rrj_read32(m, race + 60)));
             divisor = divisor ? divisor : 1;
-            remaining = (int32_t)*(uint8_t *)rrj_at(m, second_descriptor + 15, 1) - damage;
+            remaining = (int32_t)r_u8(second_descriptor + 15) - damage;
             {
                 int32_t decrement = (damage + 1) / divisor;
                 if (remaining < 0)
                 {
-                    uint32_t sound = (*(uint8_t *)rrj_at(m, first_descriptor + 1, 1) & 0x0F) ? 97 : 96;
-                    *(uint8_t *)rrj_at(m, second_descriptor + 15, 1) = 0;
+                    uint32_t sound = (r_u8(first_descriptor + 1) & 0x0F) ? 97 : 96;
+                    w_u8(second_descriptor + 15, 0);
                     if (rrj_u16(rrj_at(m, first + 172, 2)) < rrj_read32(m, race + 48) || !rrj_read32(m, first + 1088))
                     {
                         (void)leaf_call(m, call, 0x80017B6C, first, 109, 4, 0);
@@ -8390,44 +8154,44 @@ uint32_t sub_800C17B0(RRJMemory *m, uint32_t first, uint32_t second, uint32_t fl
                 }
                 else
                 {
-                    uint8_t marker = *(uint8_t *)rrj_at(m, second_descriptor + 68, 1);
-                    uint32_t old = *(uint8_t *)rrj_at(m, second_descriptor + 15, 1);
+                    uint8_t marker = r_u8(second_descriptor + 68);
+                    uint32_t old = r_u8(second_descriptor + 15);
                     if ((old >= 0x40 && remaining < 0x40) || (old >= 0x20 && remaining < 0x20))
                         marker |= 0x20;
-                    *(uint8_t *)rrj_at(m, second_descriptor + 68, 1) = marker;
-                    *(uint8_t *)rrj_at(m, second_descriptor + 15, 1) = (uint8_t)remaining;
+                    w_u8(second_descriptor + 68, marker);
+                    w_u8(second_descriptor + 15, (uint8_t)remaining);
                 }
-                remaining = (int32_t)*(uint8_t *)rrj_at(m, second_descriptor + 14, 1) - decrement;
-                if ((*(uint8_t *)rrj_at(m, second_secondary + 572, 1) & 0x20))
+                remaining = (int32_t)r_u8(second_descriptor + 14) - decrement;
+                if ((r_u8(second_secondary + 572) & 0x20))
                 {
                     uint32_t linked_descriptor = rrj_read32(m, rrj_read32(m, second + 856) + 1084);
-                    uint32_t linked = *(uint8_t *)rrj_at(m, linked_descriptor + 14, 1);
+                    uint32_t linked = r_u8(linked_descriptor + 14);
                     if ((int32_t)linked >= remaining)
                         remaining = (int32_t)linked;
                 }
                 if (remaining > 0)
                 {
-                    uint8_t marker = *(uint8_t *)rrj_at(m, second_descriptor + 68, 1);
-                    uint32_t old = *(uint8_t *)rrj_at(m, second_descriptor + 14, 1);
+                    uint8_t marker = r_u8(second_descriptor + 68);
+                    uint32_t old = r_u8(second_descriptor + 14);
                     if ((old >= 0x40 && remaining < 0x40) || (old >= 0x20 && remaining < 0x20))
                         marker |= 0x20;
-                    *(uint8_t *)rrj_at(m, second_descriptor + 68, 1) = marker;
-                    *(uint8_t *)rrj_at(m, second_descriptor + 14, 1) = (uint8_t)remaining;
+                    w_u8(second_descriptor + 68, marker);
+                    w_u8(second_descriptor + 14, (uint8_t)remaining);
                 }
                 else
                 {
-                    *(uint8_t *)rrj_at(m, second_descriptor + 14, 1) = 0;
+                    w_u8(second_descriptor + 14, 0);
                 }
             }
         }
         (void)sub_800BFE58(m, first, 2, 0);
         (void)sub_800BFE58(m, second, 2, 1);
     }
-    if (!*(uint8_t *)rrj_at(m, second_descriptor + 15, 1))
+    if (!r_u8(second_descriptor + 15))
     {
         if (!(rrj_read32(m, second + 568) & 0x3EC) && !(rrj_read32(m, second + 560) & 0x20000000))
         {
-            (void)sub_800BF674(m, second, *(uint8_t *)rrj_at(m, first_descriptor + 60, 1), (flags >> 8) & 1, first, call);
+            (void)sub_800BF674(m, second, r_u8(first_descriptor + 60), (flags >> 8) & 1, first, call);
             (void)sub_800BFE58(m, first, 1, 0);
             (void)sub_800BFE58(m, second, 1, 1);
         }
@@ -8435,8 +8199,8 @@ uint32_t sub_800C17B0(RRJMemory *m, uint32_t first, uint32_t second, uint32_t fl
         {
             uint32_t target = rrj_read32(m, second + 1088) ? second : rrj_read32(m, second + 856);
             uint32_t descriptor = rrj_read32(m, target + 1084);
-            int32_t value = (int32_t)*(uint8_t *)rrj_at(m, descriptor + 37, 1) - (*(uint8_t *)rrj_at(m, descriptor + 36, 1) >> 4);
-            *(uint8_t *)rrj_at(m, descriptor + 37, 1) = (uint8_t)(value < 0 ? 0 : value);
+            int32_t value = (int32_t)r_u8(descriptor + 37) - (r_u8(descriptor + 36) >> 4);
+            w_u8(descriptor + 37, (uint8_t)(value < 0 ? 0 : value));
         }
     }
     (void)sub_800BF424(m, first, second);
@@ -8450,12 +8214,12 @@ uint32_t sub_800C17B0(RRJMemory *m, uint32_t first, uint32_t second, uint32_t fl
             {
                 if (rrj_read32(m, second + 1088))
                 {
-                    uint32_t row = *(uint8_t *)rrj_at(m, first_secondary + 569, 1);
-                    if (*(uint8_t *)rrj_at(m, first_secondary + 572, 1) & 0x20)
+                    uint32_t row = r_u8(first_secondary + 569);
+                    if (r_u8(first_secondary + 572) & 0x20)
                         row -= 20;
-                    (void)sub_800BF604(m, second, *(uint8_t *)rrj_at(m, first_secondary + 570, 1), row, (base_flags >> 8) & 1);
+                    (void)sub_800BF604(m, second, r_u8(first_secondary + 570), row, (base_flags >> 8) & 1);
                 }
-                if ((rrj_u16(rrj_at(m, second + 172, 2)) < rrj_read32(m, race + 48) || (!rrj_read32(m, second + 1088) && !(*(uint8_t *)rrj_at(m, second_secondary + 572, 1) & 0x40))) && !rrj_read32(m, 0x8005B220))
+                if ((rrj_u16(rrj_at(m, second + 172, 2)) < rrj_read32(m, race + 48) || (!rrj_read32(m, second + 1088) && !(r_u8(second_secondary + 572) & 0x40))) && !rrj_read32(m, 0x8005B220))
                     (void)sub_800BFD74(m, second, damage);
             }
             {
@@ -8470,7 +8234,7 @@ uint32_t sub_800C17B0(RRJMemory *m, uint32_t first, uint32_t second, uint32_t fl
     }
     if (!(active & 1))
         return completed;
-    if ((rrj_u16(rrj_at(m, first + 172, 2)) < rrj_read32(m, race + 48) || (!rrj_read32(m, first + 1088) && !(*(uint8_t *)rrj_at(m, first_secondary + 572, 1) & 0x40))) && !rrj_read32(m, 0x8005B220))
+    if ((rrj_u16(rrj_at(m, first + 172, 2)) < rrj_read32(m, race + 48) || (!rrj_read32(m, first + 1088) && !(r_u8(first_secondary + 572) & 0x40))) && !rrj_read32(m, 0x8005B220))
         (void)sub_800BFD74(m, first, damage);
     return completed;
 }
@@ -8502,13 +8266,13 @@ uint32_t sub_800C1370(RRJMemory *m, uint32_t first, uint32_t second, RRJRaceLeaf
     lateral = rrj_s32(sub_800B6AAC(m, first + 504, second + 528, second + 504));
     if (rrj_u16(rrj_at(m, 0x800541D4 + 8 * rrj_u16(rrj_at(m, first_secondary + 544, 2)) + 2, 2)) == 3)
     {
-        *(uint8_t *)rrj_at(m, first_descriptor + 60, 1) = 71;
+        w_u8(first_descriptor + 60, 71);
         if (sub_800C09B0(m, first))
             active = 32;
     }
     else if ((int32_t)leaf_abs32(lateral) <= 65534 && longitudinal < rrj_s32(rrj_read32(m, first_descriptor + 8) + rrj_read32(m, first + 304)))
     {
-        *(uint8_t *)rrj_at(m, first_descriptor + 60, 1) = 71;
+        w_u8(first_descriptor + 60, 71);
         (void)sub_800C122C(m, first, second, direction);
         active = 48;
     }
@@ -8577,8 +8341,8 @@ uint32_t sub_800C035C(RRJMemory *m, uint32_t actor, uint16_t other_id, RRJRaceLe
             exit(20);
         }
     }
-    rrj_write32(m, flags_out, (*(uint8_t *)rrj_at(m, descriptor + 60, 1) & 0x40) ? 32 : 0);
-    if (!(rrj_read32(m, actor + 560) & 0x08000000) && !(*(uint8_t *)rrj_at(m, secondary + 572, 1) & 0x40))
+    rrj_write32(m, flags_out, (r_u8(descriptor + 60) & 0x40) ? 32 : 0);
+    if (!(rrj_read32(m, actor + 560) & 0x08000000) && !(r_u8(secondary + 572) & 0x40))
     {
         if (type - 30 < 8)
         {
@@ -8608,7 +8372,7 @@ uint32_t sub_800C035C(RRJMemory *m, uint32_t actor, uint16_t other_id, RRJRaceLe
     rrj_trace_dispatch_target(0x800B6AACu);
     lateral = rrj_s32(sub_800B6AAC(m, actor + 504, other + 528, other + 504));
     rrj_trace_dispatch_target(0x800C035Cu);
-    if (*(uint8_t *)rrj_at(m, race + 57, 1) == 3 && rrj_u16(rrj_at(m, other + 172, 2)) < rrj_read32(m, race + 48))
+    if (r_u8(race + 57) == 3 && rrj_u16(rrj_at(m, other + 172, 2)) < rrj_read32(m, race + 48))
         response = 5;
     else
     {
@@ -8647,13 +8411,13 @@ uint32_t sub_800C035C(RRJMemory *m, uint32_t actor, uint16_t other_id, RRJRaceLe
         }
     }
     linked = 0;
-    if (*(uint8_t *)rrj_at(m, rrj_read32(m, other + 852) + 572, 1) & 0x10)
+    if (r_u8(rrj_read32(m, other + 852) + 572) & 0x10)
     {
         uint32_t linked_actor = rrj_read32(m, other + 856);
         if (linked_actor != actor && rrj_read32(m, rrj_read32(m, linked_actor + 852) + 604) < 2)
             linked = longitudinal > 0 ? 2 : 0;
     }
-    if ((rrj_read32(m, actor + 560) & 0x08000000) || (*(uint8_t *)rrj_at(m, secondary + 572, 1) & 0x40))
+    if ((rrj_read32(m, actor + 560) & 0x08000000) || (r_u8(secondary + 572) & 0x40))
     {
         if (rrj_u16(rrj_at(m, 0x800541D4 + 8 * type + 2, 2)) == 3)
             pending = sub_800C09B0(m, actor);
@@ -8675,7 +8439,7 @@ uint32_t sub_800C035C(RRJMemory *m, uint32_t actor, uint16_t other_id, RRJRaceLe
     {
         rrj_write32(m, actor + 924, 0);
         rrj_write32(m, actor + 564, rrj_read32(m, actor + 564) | 0x80000);
-        *(uint8_t *)rrj_at(m, rrj_read32(m, other + 1084) + 39, 1) = 0xFE;
+        w_u8(rrj_read32(m, other + 1084) + 39, 0xFE);
         if (!rrj_read32(m, rrj_read32(m, other + 1084) + 40))
         {
             if (rrj_read32(m, rrj_read32(m, other + 852) + 604) < 2)
@@ -8694,23 +8458,23 @@ uint32_t sub_800C035C(RRJMemory *m, uint32_t actor, uint16_t other_id, RRJRaceLe
         uint32_t direction = longitudinal > 0 ? 0x100 : 0;
         if (linked)
             other = rrj_read32(m, other + 856);
-        if (((rrj_read32(m, actor + 560) & 0x08000000) || (*(uint8_t *)rrj_at(m, secondary + 572, 1) & 0x40)) && rrj_u16(rrj_at(m, 0x800541D4 + 8 * type + 2, 2)) != 3)
+        if (((rrj_read32(m, actor + 560) & 0x08000000) || (r_u8(secondary + 572) & 0x40)) && rrj_u16(rrj_at(m, 0x800541D4 + 8 * type + 2, 2)) != 3)
         {
             (void)sub_800C122C(m, actor, other, direction);
             setup = 1;
         }
-        if (setup && *(uint8_t *)rrj_at(m, descriptor + 47, 1) && (*(uint8_t *)rrj_at(m, descriptor + 60, 1) & 0x80) && *(int8_t *)rrj_at(m, secondary + 571, 1) != -1)
+        if (setup && r_u8(descriptor + 47) && (r_u8(descriptor + 60) & 0x80) && r_s8(secondary + 571) != -1)
         {
-            uint32_t lane = *(uint8_t *)rrj_at(m, descriptor + 46, 1);
+            uint32_t lane = r_u8(descriptor + 46);
             rrj_write32(m, flags_out, rrj_read32(m, flags_out) | 0x100);
             if (sub_800C159C(m, actor, other, longitudinal, lateral, flags_out))
             {
-                *(uint8_t *)rrj_at(m, descriptor + 47, 1) -= 1;
-                rrj_write32(m, descriptor + 48, (rrj_read32(m, descriptor + 48) & ~(0x0Fu << (4 * lane))) | ((*(uint8_t *)rrj_at(m, descriptor + 47, 1) & 0x0F) << (4 * lane)));
+                xport_update_u8(descriptor + 47, XPORT_MEMORY_UPDATE_SUBTRACT, 1);
+                rrj_write32(m, descriptor + 48, (rrj_read32(m, descriptor + 48) & ~(0x0Fu << (4 * lane))) | ((r_u8(descriptor + 47) & 0x0F) << (4 * lane)));
             }
             rrj_write32(m, flags_out, rrj_read32(m, flags_out) & 0xFFFFFEFFu);
         }
-        if (*(uint8_t *)rrj_at(m, descriptor + 60, 1) == 32)
+        if (r_u8(descriptor + 60) == 32)
             (void)sub_800BFF04(m, actor, other, direction, flags_out);
         if (pending && sub_800C159C(m, actor, other, longitudinal, lateral, flags_out))
             return sub_800C17B0(m, actor, other, direction, rrj_read32(m, flags_out), call);
@@ -8722,11 +8486,11 @@ uint32_t sub_80095BF8(RRJMemory *m, uint32_t actor, uint32_t delta)
 {
     uint32_t race = rrj_read32(m, 0x8005B2F8);
     uint32_t descriptor = rrj_read32(m, actor + 1084);
-    uint32_t type = *(uint8_t *)rrj_at(m, descriptor + 1, 1) & 0x0F;
+    uint32_t type = r_u8(descriptor + 1) & 0x0F;
     uint32_t reference = rrj_read32(m, 0x8005B38C);
     uint32_t course = rrj_read32(m, race + 60);
     uint32_t target = rrj_read32(m, actor + 556) + 224;
-    uint32_t contact = actor + 948 + 8 * (uint32_t)(int32_t)*(int8_t *)rrj_at(m, actor + 946, 1);
+    uint32_t contact = actor + 948 + 8 * (uint32_t)(int32_t)r_s8(actor + 946);
     FUNCTION_MARKER(0x80095BF8, "RASHCDG.BIN");
     if (rrj_read32(m, race + 48) == 2)
     {
@@ -8734,16 +8498,16 @@ uint32_t sub_80095BF8(RRJMemory *m, uint32_t actor, uint32_t delta)
         uint32_t second = rrj_read32(m, 0x8005B21C);
         uint32_t first_descriptor = rrj_read32(m, first + 1084);
         uint32_t second_descriptor = rrj_read32(m, second + 1084);
-        if (rrj_read32(m, first_descriptor + 40) || *(uint8_t *)rrj_at(m, first_descriptor + 39, 1) >= 0xF8)
+        if (rrj_read32(m, first_descriptor + 40) || r_u8(first_descriptor + 39) >= 0xF8)
             reference = second;
-        else if (rrj_read32(m, second_descriptor + 40) || *(uint8_t *)rrj_at(m, second_descriptor + 39, 1) >= 0xF8)
+        else if (rrj_read32(m, second_descriptor + 40) || r_u8(second_descriptor + 39) >= 0xF8)
             reference = first;
         else
         {
             uint32_t nearer = rrj_s32(rrj_read32(m, first + 324)) < rrj_s32(rrj_read32(m, second + 324));
-            int32_t rank_delta = (int32_t)*(uint8_t *)rrj_at(m, first_descriptor + 39, 1) - *(uint8_t *)rrj_at(m, second_descriptor + 39, 1);
+            int32_t rank_delta = (int32_t)r_u8(first_descriptor + 39) - r_u8(second_descriptor + 39);
             uint32_t candidate = rrj_read32(m, 0x8005B268 + 4 * nearer);
-            uint32_t choose = nearer ^ (*(uint8_t *)rrj_at(m, descriptor + 39, 1) < (uint32_t)((int32_t)*(uint8_t *)rrj_at(m, rrj_read32(m, candidate + 1084) + 39, 1) - (int32_t)leaf_abs32(rank_delta) / 2));
+            uint32_t choose = nearer ^ (r_u8(descriptor + 39) < (uint32_t)((int32_t)r_u8(rrj_read32(m, candidate + 1084) + 39) - (int32_t)leaf_abs32(rank_delta) / 2));
             reference = rrj_read32(m, 0x8005B268 + 4 * choose);
         }
     }
@@ -8752,14 +8516,14 @@ uint32_t sub_80095BF8(RRJMemory *m, uint32_t actor, uint32_t delta)
         int32_t relative;
         int32_t elapsed;
         int32_t speed = rrj_s32(rrj_read32(m, target));
-        if (!(*(uint8_t *)rrj_at(m, actor + 928, 1) & 0x10))
+        if (!(r_u8(actor + 928) & 0x10))
             return 0;
-        if (*(uint8_t *)rrj_at(m, race + 57, 1) >= 4)
+        if (r_u8(race + 57) >= 4)
             return rrj_read32(m, 0x80053030 + 4 * course);
-        elapsed = (rrj_s32(rrj_read32(m, race + 16) - ((uint32_t)rrj_u16(rrj_at(m, descriptor + 62, 2)) << 8)) / 300) - *(int16_t *)rrj_at(m, 0x80053146 + 4 * course, 2);
+        elapsed = (rrj_s32(rrj_read32(m, race + 16) - ((uint32_t)rrj_u16(rrj_at(m, descriptor + 62, 2)) << 8)) / 300) - r_s16(0x80053146 + 4 * course);
         if (elapsed > 0)
         {
-            int32_t divisor = *(int16_t *)rrj_at(m, 0x80053152 + 4 * course, 2);
+            int32_t divisor = r_s16(0x80053152 + 4 * course);
             int32_t reduction = divisor ? (elapsed / divisor + 1) * rrj_s32(rrj_read32(m, 0x8005315C + 4 * course)) : 0;
             int32_t adjusted = rrj_s32(rrj_read32(m, 0x800D86F8)) * (128 - reduction);
             int32_t floor = rrj_s32(rrj_read32(m, 0x80053138 + 4 * course));
@@ -8773,23 +8537,23 @@ uint32_t sub_80095BF8(RRJMemory *m, uint32_t actor, uint32_t delta)
             }
         }
         relative = (rrj_s32(rrj_read32(m, actor + 324) - rrj_read32(m, reference + 324))) >> 12;
-        if (*(int16_t *)rrj_at(m, actor + 320, 2) && relative >= -63 && relative < 12)
+        if (r_s16(actor + 320) && relative >= -63 && relative < 12)
             rrj_put16(rrj_at(m, actor + 320, 2), rrj_u16(rrj_at(m, actor + 320, 2)) | 2);
         if (rrj_u16(rrj_at(m, contact, 2)) == 4 && relative < 0 && (rrj_u16(rrj_at(m, contact + 2, 2)) >> 5))
             return rrj_read32(m, 0x80053138 + 4 * course);
         return (uint32_t)speed;
     }
-    if (*(uint8_t *)rrj_at(m, race + 57, 1) == 1 && rrj_read32(m, 0x800CCC18))
+    if (r_u8(race + 57) == 1 && rrj_read32(m, 0x800CCC18))
         return rrj_read32(m, rrj_read32(m, 0x800CCC18) + 480);
-    if (*(uint8_t *)rrj_at(m, race + 57, 1) == 3)
+    if (r_u8(race + 57) == 3)
     {
         uint32_t primary_descriptor = rrj_read32(m, rrj_read32(m, 0x8005B38C) + 1084);
-        if (type == (uint32_t)(*(uint8_t *)rrj_at(m, primary_descriptor + 1, 1) & 0x0F))
+        if (type == (uint32_t)(r_u8(primary_descriptor + 1) & 0x0F))
             return 0;
     }
     {
-        int32_t rank_delta = (int32_t)*(uint8_t *)rrj_at(m, rrj_read32(m, reference + 1084) + 39, 1) - *(uint8_t *)rrj_at(m, descriptor + 39, 1);
-        uint32_t mode = *(uint8_t *)rrj_at(m, race + 4, 1);
+        int32_t rank_delta = (int32_t)r_u8(rrj_read32(m, reference + 1084) + 39) - r_u8(descriptor + 39);
+        uint32_t mode = r_u8(race + 4);
         uint32_t table_index;
         uint32_t curve;
         int32_t position;
@@ -8802,7 +8566,7 @@ uint32_t sub_80095BF8(RRJMemory *m, uint32_t actor, uint32_t delta)
         curve = rrj_read32(m, 0x80052FD0 + 4 * table_index);
         if (rrj_s32(rrj_read32(m, race + 16)) < rrj_s32(((300u * curve) >> 16) + 300))
         {
-            *(uint8_t *)rrj_at(m, descriptor, 1) |= 1;
+            xport_update_u8(descriptor, XPORT_MEMORY_UPDATE_OR, 1);
             if (rrj_s32(rrj_read32(m, actor + 704)) > 0)
             {
                 int32_t timer = rrj_s32(rrj_read32(m, actor + 704) - delta);
@@ -8816,26 +8580,26 @@ uint32_t sub_80095BF8(RRJMemory *m, uint32_t actor, uint32_t delta)
             }
             else
             {
-                uint32_t rank = *(uint8_t *)rrj_at(m, descriptor + 39, 1);
+                uint32_t rank = r_u8(descriptor + 39);
                 uint32_t interval = rrj_read32(m, 0x80052FF4 + 4 * table_index);
-                if ((((rank - 1) / 2 + 1) * ((300u * interval) >> 16)) < rrj_read32(m, race + 16) && !(*(uint8_t *)rrj_at(m, descriptor, 1) & 2))
+                if ((((rank - 1) / 2 + 1) * ((300u * interval) >> 16)) < rrj_read32(m, race + 16) && !(r_u8(descriptor) & 2))
                 {
                     rrj_write32(m, actor + 564, rrj_read32(m, actor + 564) | 0x200);
                     rrj_write32(m, actor + 704, curve - (((rank - 1) / 2) * 2 * interval));
-                    *(uint8_t *)rrj_at(m, descriptor, 1) |= 2;
+                    xport_update_u8(descriptor, XPORT_MEMORY_UPDATE_OR, 2);
                 }
             }
             return rrj_read32(m, target);
         }
-        *(uint8_t *)rrj_at(m, descriptor, 1) &= 0xFE;
+        xport_update_u8(descriptor, XPORT_MEMORY_UPDATE_AND, 0xFE);
         position = rrj_s32(rrj_read32(m, actor + 324));
         if (position <= 0)
             return 0xA0000;
         position = rrj_s32((uint32_t)(position - rrj_read32(m, reference + 324))) >> 12;
         speed = rrj_s32(rrj_read32(m, target));
-        if (*(uint8_t *)rrj_at(m, race + 4, 1) == 44 && (*(uint8_t *)rrj_at(m, descriptor, 1) & 0x10))
-            return (uint32_t)((*(uint8_t *)rrj_at(m, descriptor + 69, 1) * speed) / 128);
-        if (*(uint8_t *)rrj_at(m, descriptor, 1) & 8)
+        if (r_u8(race + 4) == 44 && (r_u8(descriptor) & 0x10))
+            return (uint32_t)((r_u8(descriptor + 69) * speed) / 128);
+        if (r_u8(descriptor) & 8)
         {
             int32_t comparison = rrj_s32(rrj_read32(m, reference + 480)) + 0xA0000;
             if (position > 0)
@@ -8844,20 +8608,20 @@ uint32_t sub_80095BF8(RRJMemory *m, uint32_t actor, uint32_t delta)
                 rrj_write32(m, actor + 564, rrj_read32(m, actor + 564) | 0x200);
             return (uint32_t)comparison;
         }
-        if (*(int16_t *)rrj_at(m, actor + 320, 2) && position >= -63 && position < 12)
+        if (r_s16(actor + 320) && position >= -63 && position < 12)
         {
-            int32_t product = *(uint8_t *)rrj_at(m, descriptor + 69, 1) * speed;
+            int32_t product = r_u8(descriptor + 69) * speed;
             rrj_put16(rrj_at(m, actor + 320, 2), rrj_u16(rrj_at(m, actor + 320, 2)) | 2);
-            *(uint8_t *)rrj_at(m, actor + 928, 1) |= 8;
+            xport_update_u8(actor + 928, XPORT_MEMORY_UPDATE_OR, 8);
             return (uint32_t)(product < 0 ? (product + 127) >> 7 : product >> 7);
         }
-        if (*(uint8_t *)rrj_at(m, actor + 928, 1) & 8)
+        if (r_u8(actor + 928) & 8)
         {
-            *(uint8_t *)rrj_at(m, actor + 928, 1) &= 0xF7;
-            *(uint8_t *)rrj_at(m, actor + 929, 1) = 0;
+            xport_update_u8(actor + 928, XPORT_MEMORY_UPDATE_AND, 0xF7);
+            w_u8(actor + 929, 0);
         }
-        speed = (speed * ((int32_t)*(int8_t *)rrj_at(m, actor + 929, 1) + 128)) / 128;
-        if (!*(int16_t *)rrj_at(m, actor + 320, 2))
+        speed = (speed * ((int32_t)r_s8(actor + 929) + 128)) / 128;
+        if (!r_s16(actor + 320))
             return (uint32_t)sub_8001FC90((uint32_t)speed, rrj_read32(m, 0x80052FA0 + 4 * type));
         return (uint32_t)speed;
     }
@@ -8882,7 +8646,7 @@ uint32_t sub_800954A0(RRJMemory *m, uint32_t actor, uint32_t delta, RRJRaceLeafC
             magnitude = 0xF0000;
         if (magnitude > 0x500000)
             magnitude = 0x500000;
-        if (*(uint8_t *)rrj_at(m, rrj_read32(m, actor + 1084), 1) & 0x80)
+        if (r_u8(rrj_read32(m, actor + 1084)) & 0x80)
             direction = -direction;
         args[0] = actor;
         args[1] = (uint32_t)magnitude;
@@ -8908,7 +8672,7 @@ uint32_t sub_800954A0(RRJMemory *m, uint32_t actor, uint32_t delta, RRJRaceLeafC
         rrj_put16(rrj_at(m, actor + 320, 2), rrj_u16(rrj_at(m, actor + 320, 2)) | 2);
         if (!(rrj_read32(m, actor + 560) & 0x08000000))
             return 0;
-        if (*(uint8_t *)rrj_at(m, race + 4, 1) & 1)
+        if (r_u8(race + 4) & 1)
         {
             uint32_t record;
             if (!sub_80096818(m, actor, delta, call))
@@ -8921,7 +8685,7 @@ uint32_t sub_800954A0(RRJMemory *m, uint32_t actor, uint32_t delta, RRJRaceLeafC
             }
         }
         {
-            int32_t product = *(uint8_t *)rrj_at(m, rrj_read32(m, actor + 1084) + 69, 1) * rrj_s32(rrj_read32(m, dynamics + 224));
+            int32_t product = r_u8(rrj_read32(m, actor + 1084) + 69) * rrj_s32(rrj_read32(m, dynamics + 224));
             target = (uint32_t)(product < 0 ? (product + 127) >> 7 : product >> 7);
         }
     }
@@ -8945,7 +8709,7 @@ uint32_t sub_800BA304(RRJMemory *m, uint32_t delta, uint32_t skip_mask, uint32_t
         uint32_t descriptor;
         if (skip_mask & bit)
             continue;
-        state = rrj_u16(rrj_at(m, actor + 948 + 8 * (uint32_t)(int32_t)(*(int8_t *)rrj_at(m, actor + 946, 1) - 1), 2));
+        state = rrj_u16(rrj_at(m, actor + 948 + 8 * (uint32_t)(int32_t)(r_s8(actor + 946) - 1), 2));
         if (rrj_read32(m, actor + 564) & 0x200)
             rrj_write32(m, marked_out, rrj_read32(m, marked_out) | bit);
         if (state - 3 < 15)
@@ -8957,14 +8721,14 @@ uint32_t sub_800BA304(RRJMemory *m, uint32_t delta, uint32_t skip_mask, uint32_t
             if (state < 5)
                 continue;
             descriptor = rrj_read32(m, actor + 1084);
-            if (rrj_read32(m, descriptor + 40) || *(uint8_t *)rrj_at(m, descriptor + 39, 1) >= 0xF8)
+            if (rrj_read32(m, descriptor + 40) || r_u8(descriptor + 39) >= 0xF8)
                 continue;
             sub_800BC8DC(m, actor);
         }
         else
         {
             descriptor = rrj_read32(m, actor + 1084);
-            if (rrj_read32(m, descriptor + 40) && rrj_s32(rrj_read32(m, actor + 480)) >= 132 && (rrj_read32(m, actor + 560) & 0x08000000) && *(int16_t *)rrj_at(m, actor + 320, 2))
+            if (rrj_read32(m, descriptor + 40) && rrj_s32(rrj_read32(m, actor + 480)) >= 132 && (rrj_read32(m, actor + 560) & 0x08000000) && r_s16(actor + 320))
                 (void)sub_800954A0(m, actor, delta, call);
         }
     }
@@ -8983,11 +8747,11 @@ static void race_leaf_heading(RRJMemory *m, uint32_t object)
     uint32_t angle;
     uint32_t table;
     (void)sub_8008BA18(m, object);
-    angle = sub_80020018(m, (uint32_t)(int32_t)*(int16_t *)rrj_at(m, object + 444, 2), (uint32_t)(int32_t)*(int16_t *)rrj_at(m, object + 448, 2));
+    angle = sub_80020018(m, (uint32_t)(int32_t)r_s16(object + 444), (uint32_t)(int32_t)r_s16(object + 448));
     rrj_write32(m, object + 292, angle);
     table = 0x8005624C + 4 * (angle & 0xFFF);
-    rrj_write32(m, object + 296, (uint32_t)((int32_t)*(int16_t *)rrj_at(m, table + 2, 2) << 4));
-    rrj_write32(m, object + 300, (uint32_t)((int32_t)*(int16_t *)rrj_at(m, table, 2) << 4));
+    rrj_write32(m, object + 296, (uint32_t)((int32_t)r_s16(table + 2) << 4));
+    rrj_write32(m, object + 300, (uint32_t)((int32_t)r_s16(table) << 4));
 }
 
 uint32_t sub_800C9420(RRJMemory *m, uint32_t group, RRJRaceLeafCall call)
@@ -9029,7 +8793,7 @@ uint32_t sub_800C9420(RRJMemory *m, uint32_t group, RRJRaceLeafCall call)
         }
         if (kind == 0)
         {
-            uint32_t wanted = (*(uint8_t *)rrj_at(m, rrj_read32(m, current + 1084) + 1, 1) & 15) == 0;
+            uint32_t wanted = (r_u8(rrj_read32(m, current + 1084) + 1) & 15) == 0;
             uint32_t candidate_kind = 2;
             if (actor_index < player_count)
             {
@@ -9038,7 +8802,7 @@ uint32_t sub_800C9420(RRJMemory *m, uint32_t group, RRJRaceLeafCall call)
                     uint32_t candidate = actor_base + 1096 * (actor_index + 1);
                     if (candidate_kind == wanted)
                         break;
-                    candidate_kind = *(uint8_t *)rrj_at(m, rrj_read32(m, candidate + 1084) + 1, 1) & 15;
+                    candidate_kind = r_u8(rrj_read32(m, candidate + 1084) + 1) & 15;
                     actor_offset += 1096;
                     ++actor_index;
                 } while (actor_index < player_count);
@@ -9061,7 +8825,7 @@ uint32_t sub_800C9420(RRJMemory *m, uint32_t group, RRJRaceLeafCall call)
                 {
                     secondary = rrj_read32(m, actor + 852);
                     rrj_put16(rrj_at(m, actor + 966, 2), 224);
-                    *(uint8_t *)rrj_at(m, actor + 946, 1) = 2;
+                    w_u8(actor + 946, 2);
                     rrj_put16(rrj_at(m, actor + 964, 2), 0);
                     rrj_write32(m, secondary + 604, 4);
                 }
@@ -9069,7 +8833,7 @@ uint32_t sub_800C9420(RRJMemory *m, uint32_t group, RRJRaceLeafCall call)
         }
         else if (kind == 1)
         {
-            uint32_t current_kind = *(uint8_t *)rrj_at(m, rrj_read32(m, current + 1084) + 1, 1) & 15;
+            uint32_t current_kind = r_u8(rrj_read32(m, current + 1084) + 1) & 15;
             uint32_t high_group = selector >= 17;
             uint32_t desired = current_kind ? (high_group ? 0 : current_kind) : high_group;
             uint32_t side = high_group ? 0 : 1;
@@ -9081,7 +8845,7 @@ uint32_t sub_800C9420(RRJMemory *m, uint32_t group, RRJRaceLeafCall call)
             while (remaining[side] > 0)
             {
                 uint32_t candidate = actor_base + 1096 * (remaining[side] - 1);
-                uint32_t candidate_kind = *(uint8_t *)rrj_at(m, rrj_read32(m, candidate + 1084) + 1, 1) & 15;
+                uint32_t candidate_kind = r_u8(rrj_read32(m, candidate + 1084) + 1) & 15;
                 if (candidate_kind == desired)
                     break;
                 --remaining[side];
@@ -9092,12 +8856,12 @@ uint32_t sub_800C9420(RRJMemory *m, uint32_t group, RRJRaceLeafCall call)
             {
                 uint32_t linked = rrj_read32(m, current + 856);
                 uint32_t linked_body = rrj_read32(m, linked + 852);
-                *(uint8_t *)rrj_at(m, linked_body + 572, 1) |= 0x60;
-                *(uint8_t *)rrj_at(m, rrj_read32(m, current + 852) + 572, 1) |= 0x10;
+                xport_update_u8(linked_body + 572, XPORT_MEMORY_UPDATE_OR, 0x60);
+                xport_update_u8(rrj_read32(m, current + 852) + 572, XPORT_MEMORY_UPDATE_OR, 0x10);
             }
-            if (*(int8_t *)rrj_at(m, body + 72, 1) == 1)
+            if (r_s8(body + 72) == 1)
                 (void)sub_80068D20(m, rider, body, rrj_read32(m, rider + 856) != 0);
-            *(uint8_t *)rrj_at(m, body + 72, 1) = 3;
+            w_u8(body + 72, 3);
             rrj_write32(m, position, rrj_u16(rrj_at(m, 0x80053178, 2)));
             rrj_write32(m, position + 4, rrj_read32(m, current + 364));
             rrj_write32(m, position + 8, (rrj_u16(rrj_at(m, 0x8005317A, 2)) << 16) + rrj_read32(m, entry + 4));
@@ -9113,9 +8877,9 @@ uint32_t sub_800C9420(RRJMemory *m, uint32_t group, RRJRaceLeafCall call)
             (void)sub_8002EAD8(m, source + 20, source + 14, rrj_read32(m, geometry + 20), body + 184);
             (void)sub_8002EAD8(m, body + 184, source + 2, rrj_read32(m, entry), body + 184);
             rrj_write32(m, body + 508, 0);
-            rrj_put16(rrj_at(m, body + 438, 2), (uint16_t)-*(int16_t *)rrj_at(m, source + 8, 2));
-            rrj_put16(rrj_at(m, body + 440, 2), (uint16_t)-*(int16_t *)rrj_at(m, source + 10, 2));
-            rrj_put16(rrj_at(m, body + 442, 2), (uint16_t)-*(int16_t *)rrj_at(m, source + 12, 2));
+            rrj_put16(rrj_at(m, body + 438, 2), (uint16_t)-r_s16(source + 8));
+            rrj_put16(rrj_at(m, body + 440, 2), (uint16_t)-r_s16(source + 10));
+            rrj_put16(rrj_at(m, body + 442, 2), (uint16_t)-r_s16(source + 12));
             rrj_put16(rrj_at(m, body + 444, 2), rrj_u16(rrj_at(m, source + 14, 2)));
             rrj_put16(rrj_at(m, body + 446, 2), rrj_u16(rrj_at(m, source + 16, 2)));
             rrj_put16(rrj_at(m, body + 448, 2), rrj_u16(rrj_at(m, source + 18, 2)));
@@ -9134,11 +8898,11 @@ uint32_t sub_800C9420(RRJMemory *m, uint32_t group, RRJRaceLeafCall call)
             if (desired == current_kind)
             {
                 event = 66;
-                if ((rrj_u16(rrj_at(m, body + 172, 2)) & 2) && !(*(uint8_t *)rrj_at(m, body + 572, 1) & 0x40))
+                if ((rrj_u16(rrj_at(m, body + 172, 2)) & 2) && !(r_u8(body + 572) & 0x40))
                 {
                     uint32_t descriptor = rrj_read32(m, rrj_read32(m, body + 596) + 1084);
-                    *(uint8_t *)rrj_at(m, descriptor + 46, 1) = 5;
-                    *(uint8_t *)rrj_at(m, descriptor + 47, 1) = 0;
+                    w_u8(descriptor + 46, 5);
+                    w_u8(descriptor + 47, 0);
                     (void)sub_800958F0(m, body, 0);
                     event = 65;
                 }
@@ -9148,14 +8912,14 @@ uint32_t sub_800C9420(RRJMemory *m, uint32_t group, RRJRaceLeafCall call)
             else
             {
                 uint32_t descriptor = rrj_read32(m, rrj_read32(m, body + 596) + 1084);
-                *(uint8_t *)rrj_at(m, descriptor + 46, 1) = 2;
-                *(uint8_t *)rrj_at(m, descriptor + 47, 1) = 0;
+                w_u8(descriptor + 46, 2);
+                w_u8(descriptor + 47, 0);
                 (void)sub_800958F0(m, body, 0);
                 event = 64;
             }
             rrj_put16(rrj_at(m, rider + 966, 2), 224);
             rrj_put16(rrj_at(m, rider + 964, 2), 0);
-            *(uint8_t *)rrj_at(m, rider + 946, 1) = 2;
+            w_u8(rider + 946, 2);
             options |= 0x800 | (((3 * (sub_80043F00(m, 0xF2000002) & 0xFF) >> 7) + 5) << 16);
             (void)sub_800C4550(m, event, body, options);
         }
@@ -9203,7 +8967,7 @@ uint32_t sub_800C9420(RRJMemory *m, uint32_t group, RRJRaceLeafCall call)
             rrj_put16(rrj_at(m, specification + 60, 2), rrj_u16(rrj_at(m, current + 364, 2)));
             rrj_put16(rrj_at(m, specification + 62, 2), (uint16_t)selector);
             rrj_write32(m, position, rrj_read32(m, specification + 8));
-            rrj_write32(m, position + 4, (uint32_t)(int32_t)*(int16_t *)rrj_at(m, specification + 60, 2));
+            rrj_write32(m, position + 4, (uint32_t)(int32_t)r_s16(specification + 60));
             rrj_write32(m, position + 8, rrj_read32(m, specification + 36));
             segment = sub_80039DFC(m, 0, position);
             if (segment && sub_8003A700(m, segment, position, geometry))
@@ -9238,9 +9002,9 @@ uint32_t sub_800C8D5C(RRJMemory *m, RRJRaceLeafCall call, RRJReverbCall reverb)
     uint32_t descriptor = rrj_read32(m, current + 1084);
     uint32_t event = 0x1F8003D0;
     uint32_t active = 0;
-    int32_t offset = (int32_t)*(int8_t *)rrj_at(m, 0x8005ADF0, 1) << 16;
+    int32_t offset = (int32_t)r_s8(0x8005ADF0) << 16;
     FUNCTION_MARKER(0x800C8D5C, "RASHCDG.BIN");
-    switch (*(uint8_t *)rrj_at(m, race + 57, 1))
+    switch (r_u8(race + 57))
     {
         case 1:
         {
@@ -9251,7 +9015,7 @@ uint32_t sub_800C8D5C(RRJMemory *m, RRJRaceLeafCall call, RRJReverbCall reverb)
             if (active)
             {
                 rrj_write32(m, descriptor + 40, time);
-                *(uint8_t *)rrj_at(m, descriptor + 39, 1) = 0xFA;
+                w_u8(descriptor + 39, 0xFA);
             }
             (void)sub_800C9420(m, active ^ 1, call);
             if (active)
@@ -9275,7 +9039,7 @@ uint32_t sub_800C8D5C(RRJMemory *m, RRJRaceLeafCall call, RRJReverbCall reverb)
             rrj_write32(m, current + 924, 0);
             rrj_write32(m, current + 560, rrj_read32(m, current + 560) | 0x28000000);
             rrj_write32(m, current + 564, rrj_read32(m, current + 564) & 0xFFFFFDFF);
-            contact = current + 8 * (uint32_t)(int32_t)(*(int8_t *)rrj_at(m, current + 946, 1) - 1);
+            contact = current + 8 * (uint32_t)(int32_t)(r_s8(current + 946) - 1);
             state = rrj_u16(rrj_at(m, contact + 956, 2));
             if (!state)
                 return 0;
@@ -9285,7 +9049,7 @@ uint32_t sub_800C8D5C(RRJMemory *m, RRJRaceLeafCall call, RRJReverbCall reverb)
             rrj_put16(rrj_at(m, event, 2), 2);
             rrj_put16(rrj_at(m, event + 2, 2), 224);
             (void)sub_800BCA68(m, event, 0, current);
-            *(uint8_t *)rrj_at(m, descriptor + 69, 1) = 64;
+            w_u8(descriptor + 69, 64);
             (void)sub_8002EAD8(m, rrj_read32(m, current + 340) + 20, rrj_read32(m, current + 340) + 14, rrj_read32(m, current + 348), 0x800CE5A8);
             {
                 uint32_t player = 0x800CD898 + 1132 * rrj_u16(rrj_at(m, current + 172, 2));
@@ -9301,13 +9065,13 @@ uint32_t sub_800C8D5C(RRJMemory *m, RRJRaceLeafCall call, RRJReverbCall reverb)
         case 3:
         {
             int32_t direction = rrj_u16(rrj_at(m, 0x80053186, 2)) < rrj_u16(rrj_at(m, 0x80053182, 2)) ? -1 : 1;
-            uint32_t kind = *(uint8_t *)rrj_at(m, descriptor + 1, 1) & 15;
+            uint32_t kind = r_u8(descriptor + 1) & 15;
             uint32_t count_pointer = rrj_read32(m, 0x800CE4DC);
             int32_t count = rrj_s32(rrj_read32(m, count_pointer));
             uint32_t actor = rrj_read32(m, 0x800CE4D0);
             uint32_t stride = rrj_read32(m, 0x800CE4D4);
             rrj_write32(m, current + 560, rrj_read32(m, current + 560) & 0xD7FFFFFF);
-            *(uint8_t *)rrj_at(m, descriptor + 69, 1) = *(uint8_t *)rrj_at(m, 0x8005ADF1, 1);
+            w_u8(descriptor + 69, r_u8(0x8005ADF1));
             rrj_write32(m, 0x8005ACC0, 1);
             rrj_write32(m, 0x8005B2E8, (uint32_t)direction);
             if (direction < 0)
@@ -9315,7 +9079,7 @@ uint32_t sub_800C8D5C(RRJMemory *m, RRJRaceLeafCall call, RRJReverbCall reverb)
             while (count >= 0)
             {
                 uint32_t actor_descriptor = rrj_read32(m, actor + 1084);
-                if ((uint32_t)(*(uint8_t *)rrj_at(m, actor_descriptor + 1, 1) & 15) == kind && actor != current)
+                if ((uint32_t)(r_u8(actor_descriptor + 1) & 15) == kind && actor != current)
                 {
                     uint32_t secondary;
                     uint32_t animation;
@@ -9324,14 +9088,14 @@ uint32_t sub_800C8D5C(RRJMemory *m, RRJRaceLeafCall call, RRJReverbCall reverb)
                     rrj_write32(m, actor + 924, 0);
                     rrj_write32(m, actor + 480, 0);
                     rrj_write32(m, actor + 368, (rrj_u16(rrj_at(m, 0x80053182, 2)) << 16) + (uint32_t)offset);
-                    *(uint8_t *)rrj_at(m, actor_descriptor + 69, 1) = *(uint8_t *)rrj_at(m, 0x8005ADF1, 1);
+                    w_u8(actor_descriptor + 69, r_u8(0x8005ADF1));
                     rrj_write32(m, actor + 704, 0);
                     rrj_write32(m, actor + 564, rrj_read32(m, actor + 564) & 0xFFFFFDFF);
                     offset += direction < 0 ? -393216 : 393216;
                     (void)sub_800903F4(m, actor, 1, reverb);
                     secondary = rrj_read32(m, actor + 852);
                     rrj_put16(rrj_at(m, actor + 956, 2), 1);
-                    animation = *(uint8_t *)rrj_at(m, 0x80054114 + rrj_read32(m, secondary + 180), 1);
+                    animation = r_u8(0x80054114 + rrj_read32(m, secondary + 180));
                     (void)sub_800302C4(m, secondary, animation);
                     rrj_write32(m, secondary + 36, (rrj_read32(m, secondary + 36) & 0xFFFC0FFF) | ((kind ? 4 : 8) << 12));
                 }
@@ -9346,14 +9110,14 @@ uint32_t sub_800C8D5C(RRJMemory *m, RRJRaceLeafCall call, RRJReverbCall reverb)
             int32_t count = rrj_s32(rrj_read32(m, count_pointer));
             uint32_t actor = rrj_read32(m, 0x800CE4D0);
             uint32_t stride = rrj_read32(m, 0x800CE4D4);
-            uint32_t kind = *(uint8_t *)rrj_at(m, descriptor + 1, 1) & 15;
+            uint32_t kind = r_u8(descriptor + 1) & 15;
             rrj_write32(m, 0x8005ACC0, 0);
             rrj_write32(m, 0x8005ACC4, 0);
             rrj_write32(m, current + 560, rrj_read32(m, current + 560) | 0x28000000);
             while (count >= 0)
             {
                 uint32_t actor_descriptor = rrj_read32(m, actor + 1084);
-                if ((uint32_t)(*(uint8_t *)rrj_at(m, actor_descriptor + 1, 1) & 15) != kind)
+                if ((uint32_t)(r_u8(actor_descriptor + 1) & 15) != kind)
                 {
                     (void)sub_800BCD10(m, actor);
                     rrj_put16(rrj_at(m, event, 2), 2);
@@ -9368,7 +9132,7 @@ uint32_t sub_800C8D5C(RRJMemory *m, RRJRaceLeafCall call, RRJReverbCall reverb)
         }
         case 5:
             rrj_write32(m, descriptor + 40, rrj_read32(m, race + 16));
-            *(uint8_t *)rrj_at(m, descriptor + 39, 1) = 0xF9;
+            w_u8(descriptor + 39, 0xF9);
             rrj_write32(m, 0x800CDAC0, rrj_read32(m, 0x800CDAC0) | 0x14);
             return 0;
         default:
@@ -9382,7 +9146,7 @@ static uint32_t race_leaf_checkpoint_progress(RRJMemory *m, uint32_t actor, uint
     uint32_t output = 0x1F8000F0;
     if (rrj_read32(m, secondary + 604) >= 3)
         return rrj_read32(m, secondary + 368);
-    if (!*(int16_t *)rrj_at(m, actor + 320, 2))
+    if (!r_s16(actor + 320))
         return rrj_read32(m, actor + 368);
     (void)sub_8002EAD8(m, actor + 504, actor + 528, rrj_read32(m, actor + 308), vector);
     sub_80036800(m, vector, rrj_read32(m, actor + 340), 0, output);
@@ -9418,9 +9182,9 @@ uint32_t sub_800B9958(RRJMemory *m, uint32_t actor, RRJRaceLeafCall call, RRJRev
             rrj_write32(m, actor + 560, rrj_read32(m, actor + 560) | 0x08000000);
         return 1;
     }
-    if (rrj_u16(rrj_at(m, actor + 172, 2)) < rrj_read32(m, race + 48) && *(uint8_t *)rrj_at(m, race + 4, 1) != 33)
+    if (rrj_u16(rrj_at(m, actor + 172, 2)) < rrj_read32(m, race + 48) && r_u8(race + 4) != 33)
     {
-        uint32_t phase = *(uint8_t *)rrj_at(m, race + 4, 1);
+        uint32_t phase = r_u8(race + 4);
         uint32_t time = rrj_read32(m, race + 16);
         uint32_t mode = rrj_read32(m, 0x8005B220);
         if (mode && rrj_s32(mode) < 3 && rrj_s32(time) > 108000)
@@ -9428,7 +9192,7 @@ uint32_t sub_800B9958(RRJMemory *m, uint32_t actor, RRJRaceLeafCall call, RRJRev
         else if ((phase == 36 && rrj_s32(rrj_read32(m, 0x8005ACC8)) < rrj_s32(time)) || ((phase & 1) && rrj_s32(rrj_read32(m, 0x8005ACC8) - (time - rrj_read32(m, 0x8005ACD0))) <= 0))
         {
             finished = 1;
-            *(uint8_t *)rrj_at(m, descriptor + 39, 1) = 0xFA;
+            w_u8(descriptor + 39, 0xFA);
         }
         else if (phase & 4)
         {
@@ -9440,14 +9204,14 @@ uint32_t sub_800B9958(RRJMemory *m, uint32_t actor, RRJRaceLeafCall call, RRJRev
     }
     if (!finished)
     {
-        if (*(int16_t *)rrj_at(m, 0x800D6182, 2) != -1)
+        if (r_s16(0x800D6182) != -1)
         {
-            uint32_t stage = *(uint8_t *)rrj_at(m, race + 57, 1);
+            uint32_t stage = r_u8(race + 57);
             uint32_t schedule = 0x80053174 + 4 * stage;
             uint32_t route;
             uint32_t path;
             uint32_t crossed;
-            if (*(uint8_t *)rrj_at(m, race + 4, 1) == 44 && rrj_u16(rrj_at(m, actor + 172, 2)) < rrj_read32(m, race + 48))
+            if (r_u8(race + 4) == 44 && rrj_u16(rrj_at(m, actor + 172, 2)) < rrj_read32(m, race + 48))
             {
                 if (rrj_u16(rrj_at(m, schedule, 2)) == rrj_read32(m, actor + 360))
                     stage_match = 2;
@@ -9458,7 +9222,7 @@ uint32_t sub_800B9958(RRJMemory *m, uint32_t actor, RRJRaceLeafCall call, RRJRev
                         rrj_write32(m, actor + 560, rrj_read32(m, actor + 560) | 0x28000000);
                     else
                     {
-                        *(uint8_t *)rrj_at(m, descriptor + 39, 1) = 0xFA;
+                        w_u8(descriptor + 39, 0xFA);
                         finished = 1;
                     }
                 }
@@ -9486,7 +9250,7 @@ uint32_t sub_800B9958(RRJMemory *m, uint32_t actor, RRJRaceLeafCall call, RRJRev
                     uint32_t delta = progress - rrj_read32(m, checkpoint + 4);
                     last_delta = rrj_s32(delta);
                     finished = race_leaf_checkpoint_crossed(m, path, delta, checkpoint);
-                    if (*(uint8_t *)rrj_at(m, secondary + 572, 1) & 0x10)
+                    if (r_u8(secondary + 572) & 0x10)
                     {
                         uint32_t linked_body = rrj_read32(m, rrj_read32(m, actor + 856) + 852);
                         uint32_t state = rrj_read32(m, linked_body + 604);
@@ -9504,19 +9268,19 @@ uint32_t sub_800B9958(RRJMemory *m, uint32_t actor, RRJRaceLeafCall call, RRJRev
                     last_delta = rrj_s32(delta);
                     if (rrj_s32(direction ^ rrj_read32(m, 0x8005B2E8)) >= 0 && rrj_s32(direction ^ delta) >= 0)
                     {
-                        *(uint8_t *)rrj_at(m, race + 57, 1) += 1;
+                        xport_update_u8(race + 57, XPORT_MEMORY_UPDATE_ADD, 1);
                         finished = sub_800C8D4C(m, call, reverb);
                     }
-                    if (*(uint8_t *)rrj_at(m, race + 57, 1) == 1)
+                    if (r_u8(race + 57) == 1)
                         sub_800C92F8(m);
                 }
             }
         }
-        else if (*(int16_t *)rrj_at(m, actor + 320, 2))
+        else if (r_s16(actor + 320))
         {
             uint32_t track = rrj_read32(m, actor + 340);
-            int16_t piece = *(int16_t *)rrj_at(m, track, 2);
-            if ((!piece || piece == *(int16_t *)rrj_at(m, rrj_read32(m, actor + 336) + 10, 2) - 1) && sub_800394F0(m, actor + 328, rrj_read32(m, actor + 364)))
+            int16_t piece = r_s16(track);
+            if ((!piece || piece == r_s16(rrj_read32(m, actor + 336) + 10) - 1) && sub_800394F0(m, actor + 328, rrj_read32(m, actor + 364)))
                 finished = 1;
         }
     }
@@ -9524,8 +9288,8 @@ uint32_t sub_800B9958(RRJMemory *m, uint32_t actor, RRJRaceLeafCall call, RRJRev
         return 0;
     if (rrj_u16(rrj_at(m, actor + 172, 2)) < rrj_read32(m, race + 48))
     {
-        uint32_t phase = *(uint8_t *)rrj_at(m, race + 4, 1);
-        uint32_t status = *(uint8_t *)rrj_at(m, descriptor + 39, 1);
+        uint32_t phase = r_u8(race + 4);
+        uint32_t status = r_u8(descriptor + 39);
         if (!(rrj_read32(m, actor + 560) & 0x08000000))
         {
             rrj_write32(m, actor + 560, rrj_read32(m, actor + 560) | 0x08000000);
@@ -9537,11 +9301,11 @@ uint32_t sub_800B9958(RRJMemory *m, uint32_t actor, RRJRaceLeafCall call, RRJRev
             status = 0xFA;
         else
         {
-            if ((phase & 1) && ((*(uint8_t *)rrj_at(m, descriptor + 1, 1) & 15) == 2))
+            if ((phase & 1) && ((r_u8(descriptor + 1) & 15) == 2))
                 status = 0xFA;
-            if (*(uint8_t *)rrj_at(m, race + 57, 1) == 1)
+            if (r_u8(race + 57) == 1)
                 status = 0xFA;
-            else if (*(uint8_t *)rrj_at(m, race + 57, 1) == 2)
+            else if (r_u8(race + 57) == 2)
                 status = 0xFE;
             else if (phase & 4)
             {
@@ -9551,42 +9315,42 @@ uint32_t sub_800B9958(RRJMemory *m, uint32_t actor, RRJRaceLeafCall call, RRJRev
                     status = 0xFA;
             }
         }
-        *(uint8_t *)rrj_at(m, descriptor + 39, 1) = (uint8_t)status;
-        if (phase == 17 && ((*(uint8_t *)rrj_at(m, descriptor + 1, 1) & 15) != 2))
+        w_u8(descriptor + 39, (uint8_t)status);
+        if (phase == 17 && ((r_u8(descriptor + 1) & 15) != 2))
         {
             uint32_t other = rrj_read32(m, 0x8005B268 + 4 * (rrj_u16(rrj_at(m, actor + 172, 2)) == 0));
             uint32_t other_descriptor = rrj_read32(m, other + 1084);
-            if (!rrj_read32(m, other_descriptor + 40) && *(uint8_t *)rrj_at(m, other_descriptor + 39, 1) < 0xF8)
+            if (!rrj_read32(m, other_descriptor + 40) && r_u8(other_descriptor + 39) < 0xF8)
                 rrj_write32(m, other_descriptor + 40, rrj_read32(m, race + 16));
         }
     }
-    if (*(uint8_t *)rrj_at(m, descriptor + 39, 1) < 0xF7)
-        *(uint8_t *)rrj_at(m, descriptor + 39, 1) = (uint8_t)sub_800138E8(m, actor, 1);
+    if (r_u8(descriptor + 39) < 0xF7)
+        w_u8(descriptor + 39, (uint8_t)sub_800138E8(m, actor, 1));
     rrj_write32(m, descriptor + 40, rrj_read32(m, race + 16));
     (void)sub_800BC7CC(m, actor);
     (void)leaf_call(m, call, 0x8003F680, rrj_u16(rrj_at(m, actor + 172, 2)), 1, 0, 0);
-    if (actor == rrj_read32(m, 0x8005B21C) && !(*(uint8_t *)rrj_at(m, race + 4, 1) & 1))
+    if (actor == rrj_read32(m, 0x8005B21C) && !(r_u8(race + 4) & 1))
     {
         uint32_t current = rrj_read32(m, 0x8005B38C);
         uint32_t current_descriptor = rrj_read32(m, current + 1084);
-        uint32_t status = *(uint8_t *)rrj_at(m, descriptor + 39, 1);
+        uint32_t status = r_u8(descriptor + 39);
         if (rrj_read32(m, current_descriptor + 40) == rrj_read32(m, race + 16) && status < 0xF7)
         {
-            uint32_t current_status = *(uint8_t *)rrj_at(m, current_descriptor + 39, 1);
+            uint32_t current_status = r_u8(current_descriptor + 39);
             if (current_status < 0xF7)
             {
                 int32_t current_delta = rrj_s32(rrj_read32(m, current + 368) - rrj_read32(m, rrj_read32(m, 0x800D6188) + 4));
                 if (leaf_abs32(last_delta) < leaf_abs32(current_delta))
                 {
-                    *(uint8_t *)rrj_at(m, descriptor + 39, 1) = (uint8_t)current_status;
-                    *(uint8_t *)rrj_at(m, current_descriptor + 39, 1) = (uint8_t)status;
+                    w_u8(descriptor + 39, (uint8_t)current_status);
+                    w_u8(current_descriptor + 39, (uint8_t)status);
                     rrj_write32(m, 0x800D5DA8 + 16 * (current_status - 1), rrj_u16(rrj_at(m, actor + 172, 2)));
                     rrj_write32(m, 0x800D5DA8 + 16 * (status - 1), rrj_u16(rrj_at(m, current + 172, 2)));
                 }
             }
         }
     }
-    if (rrj_read32(m, race + 48) == 2 && *(int16_t *)rrj_at(m, actor + 320, 2) && rrj_read32(m, secondary + 604) < 2 && rrj_u16(rrj_at(m, actor + 172, 2)) >= 2)
+    if (rrj_read32(m, race + 48) == 2 && r_s16(actor + 320) && rrj_read32(m, secondary + 604) < 2 && rrj_u16(rrj_at(m, actor + 172, 2)) >= 2)
     {
         uint32_t first = rrj_read32(m, actor + 48);
         uint32_t second = rrj_read32(m, actor + 44);
@@ -9614,7 +9378,7 @@ uint32_t sub_800B9794(RRJMemory *m, uint32_t inactive_mask, RRJRaceLeafCall call
         uint32_t descriptor = rrj_read32(m, actor + 1084);
         uint32_t mark = 0;
         uint32_t status;
-        if (rrj_u16(rrj_at(m, actor + 172, 2)) >= rrj_read32(m, rrj_read32(m, 0x8005B2F8) + 48) && ((*(uint8_t *)rrj_at(m, descriptor + 1, 1) & 15) == 2) && !(*(uint8_t *)rrj_at(m, actor + 928, 1) & 0x10))
+        if (rrj_u16(rrj_at(m, actor + 172, 2)) >= rrj_read32(m, rrj_read32(m, 0x8005B2F8) + 48) && ((r_u8(descriptor + 1) & 15) == 2) && !(r_u8(actor + 928) & 0x10))
         {
             mark = 1;
         }
@@ -9622,16 +9386,16 @@ uint32_t sub_800B9794(RRJMemory *m, uint32_t inactive_mask, RRJRaceLeafCall call
         {
             rrj_write32(m, secondary + 552, rrj_read32(m, secondary + 552) & 0xFDFFFFFF);
             rrj_write32(m, actor + 560, rrj_read32(m, actor + 560) & 0xFFFBFFFF);
-            *(uint8_t *)rrj_at(m, actor + 928, 1) &= 0xBF;
+            xport_update_u8(actor + 928, XPORT_MEMORY_UPDATE_AND, 0xBF);
             if (rrj_read32(m, descriptor + 40) || sub_800B9958(m, actor, call, reverb))
             {
-                status = *(uint8_t *)rrj_at(m, descriptor + 39, 1);
+                status = r_u8(descriptor + 39);
                 if (status < 0xF7 || status == 0xFA || status == 0xFE || status == 0xFF)
                     rrj_write32(m, actor + 560, rrj_read32(m, actor + 560) | 0x08000000);
                 if ((uint8_t)(status + 2) < 2)
                     mark = 1;
             }
-            if (!mark && !*(int16_t *)rrj_at(m, actor + 320, 2) && (rrj_read32(m, secondary + 604) < 3 || !*(int16_t *)rrj_at(m, secondary + 320, 2)))
+            if (!mark && !r_s16(actor + 320) && (rrj_read32(m, secondary + 604) < 3 || !r_s16(secondary + 320)))
                 mark = 1;
         }
         if (mark)
@@ -9651,7 +9415,7 @@ static void race_leaf_track_pose(RRJMemory *m, uint32_t actor, uint32_t body)
     {
         rrj_write32(m, actor + 184 + 4 * index, rrj_read32(m, actor + 504 + 4 * index));
         rrj_put16(rrj_at(m, actor + 528 + 2 * index, 2), rrj_u16(rrj_at(m, track + 14 + 2 * index, 2)));
-        rrj_put16(rrj_at(m, actor + 522 + 2 * index, 2), (uint16_t)-*(int16_t *)rrj_at(m, track + 8 + 2 * index, 2));
+        rrj_put16(rrj_at(m, actor + 522 + 2 * index, 2), (uint16_t)-r_s16(track + 8 + 2 * index));
         rrj_put16(rrj_at(m, actor + 516 + 2 * index, 2), rrj_u16(rrj_at(m, track + 2 + 2 * index, 2)));
     }
     (void)sub_8001E0B4(m, actor + 328, body + 328, 32);
@@ -9664,15 +9428,15 @@ static void race_leaf_track_pose(RRJMemory *m, uint32_t actor, uint32_t body)
         rrj_put16(rrj_at(m, actor + 432 + 2 * index, 2), rrj_u16(rrj_at(m, actor + 522 + 2 * index, 2)));
         rrj_put16(rrj_at(m, actor + 438 + 2 * index, 2), rrj_u16(rrj_at(m, actor + 516 + 2 * index, 2)));
     }
-    if (*(int16_t *)rrj_at(m, actor + 434, 2) >= 0)
+    if (r_s16(actor + 434) >= 0)
     {
         for (index = 0; index < 3; ++index)
-            rrj_put16(rrj_at(m, actor + 438 + 2 * index, 2), (uint16_t)-*(int16_t *)rrj_at(m, actor + 438 + 2 * index, 2));
+            rrj_put16(rrj_at(m, actor + 438 + 2 * index, 2), (uint16_t)-r_s16(actor + 438 + 2 * index));
     }
     else
     {
         for (index = 0; index < 3; ++index)
-            rrj_put16(rrj_at(m, actor + 432 + 2 * index, 2), (uint16_t)-*(int16_t *)rrj_at(m, actor + 432 + 2 * index, 2));
+            rrj_put16(rrj_at(m, actor + 432 + 2 * index, 2), (uint16_t)-r_s16(actor + 432 + 2 * index));
     }
     for (index = 0; index < 3; ++index)
         rrj_put16(rrj_at(m, actor + 450 + 2 * index, 2), rrj_u16(rrj_at(m, actor + 528 + 2 * index, 2)));
@@ -9684,7 +9448,7 @@ static void race_leaf_track_pose(RRJMemory *m, uint32_t actor, uint32_t body)
         rrj_put16(rrj_at(m, actor + 814 + 2 * index, 2), rrj_u16(rrj_at(m, actor + 516 + 2 * index, 2)));
     (void)sub_8002090C(m, actor);
     rrj_write32(m, actor + 568, rrj_read32(m, actor + 568) | ((rrj_read32(m, actor + 568) & 0x100) ? 0x100 : 0x900));
-    rrj_write32(m, actor + 652, *(int16_t *)rrj_at(m, actor + 434, 2) < 0 ? 0xFFFE6DE1 : 102943);
+    rrj_write32(m, actor + 652, r_s16(actor + 434) < 0 ? 0xFFFE6DE1 : 102943);
     rrj_write32(m, actor + 492, rrj_read32(m, body + 492));
     rrj_write32(m, actor + 496, rrj_read32(m, body + 496));
     (void)sub_8001E0B4(m, actor + 372, body + 372, 56);
@@ -9711,9 +9475,9 @@ static uint32_t race_leaf_reset_body(RRJMemory *m, uint32_t actor, uint32_t body
     rrj_write32(m, body + 508, 0);
     for (index = 0; index < 3; ++index)
     {
-        rrj_put16(rrj_at(m, body + 522 + 2 * index, 2), (uint16_t)-*(int16_t *)rrj_at(m, track + 8 + 2 * index, 2));
+        rrj_put16(rrj_at(m, body + 522 + 2 * index, 2), (uint16_t)-r_s16(track + 8 + 2 * index));
         rrj_put16(rrj_at(m, body + 516 + 2 * index, 2), rrj_u16(rrj_at(m, track + 14 + 2 * index, 2)));
-        rrj_put16(rrj_at(m, body + 528 + 2 * index, 2), (uint16_t)-*(int16_t *)rrj_at(m, track + 2 + 2 * index, 2));
+        rrj_put16(rrj_at(m, body + 528 + 2 * index, 2), (uint16_t)-r_s16(track + 2 + 2 * index));
         rrj_put16(rrj_at(m, body + 432 + 2 * index, 2), rrj_u16(rrj_at(m, body + 522 + 2 * index, 2)));
         rrj_put16(rrj_at(m, body + 438 + 2 * index, 2), rrj_u16(rrj_at(m, body + 516 + 2 * index, 2)));
         rrj_put16(rrj_at(m, body + 444 + 2 * index, 2), rrj_u16(rrj_at(m, body + 528 + 2 * index, 2)));
@@ -9735,7 +9499,7 @@ uint32_t sub_80092E04(RRJMemory *m, uint32_t actor, uint32_t delta, RRJReverbCal
     uint32_t race = rrj_read32(m, 0x8005B2F8);
     uint32_t body = rrj_read32(m, actor + 852);
     uint32_t source = actor;
-    uint32_t linked_mode = (*(uint8_t *)rrj_at(m, body + 572, 1) >> 5) & 1;
+    uint32_t linked_mode = (r_u8(body + 572) >> 5) & 1;
     uint32_t player = rrj_u16(rrj_at(m, actor + 172, 2)) < rrj_read32(m, race + 48);
     uint32_t blocked = 0;
     uint32_t far = 0;
@@ -9744,18 +9508,18 @@ uint32_t sub_80092E04(RRJMemory *m, uint32_t actor, uint32_t delta, RRJReverbCal
     FUNCTION_MARKER(0x80092E04, "RASHCDG.BIN");
     if (linked_mode)
         source = rrj_read32(m, rrj_read32(m, body + 596) + 856);
-    if (*(uint8_t *)rrj_at(m, race + 57, 1) == 2)
+    if (r_u8(race + 57) == 2)
     {
         if (player)
         {
             uint32_t descriptor = rrj_read32(m, source + 1084);
-            if (!rrj_read32(m, descriptor + 40) && *(uint8_t *)rrj_at(m, descriptor + 39, 1) < 0xF8)
+            if (!rrj_read32(m, descriptor + 40) && r_u8(descriptor + 39) < 0xF8)
                 return sub_800CA05C(m, 1);
             return rrj_read32(m, descriptor + 40);
         }
         else
         {
-            uint32_t contact = source + 8 * (uint32_t)(int32_t)*(int8_t *)rrj_at(m, source + 946, 1) + 952;
+            uint32_t contact = source + 8 * (uint32_t)(int32_t)r_s8(source + 946) + 952;
             uint32_t timer = rrj_u16(rrj_at(m, contact, 2));
             if (timer)
             {
@@ -9771,7 +9535,7 @@ uint32_t sub_80092E04(RRJMemory *m, uint32_t actor, uint32_t delta, RRJReverbCal
             {
                 uint32_t current = rrj_read32(m, 0x8005B38C);
                 uint32_t descriptor = rrj_read32(m, current + 1084);
-                if (rrj_read32(m, descriptor + 40) || *(uint8_t *)rrj_at(m, descriptor + 39, 1) >= 0xF8)
+                if (rrj_read32(m, descriptor + 40) || r_u8(descriptor + 39) >= 0xF8)
                 {
                     uint32_t current_body = rrj_read32(m, current + 852);
                     int32_t dx = rrj_s32(rrj_read32(m, body + 184) - rrj_read32(m, current_body + 184)) >> 16;
@@ -9790,19 +9554,19 @@ uint32_t sub_80092E04(RRJMemory *m, uint32_t actor, uint32_t delta, RRJReverbCal
             }
         }
     }
-    if (!*(int16_t *)rrj_at(m, body + 320, 2))
+    if (!r_s16(body + 320))
         return 0;
     if ((rrj_read32(m, body + 552) & 0x1000) || (rrj_read32(m, source + 856) && rrj_read32(m, source + 1088) && !linked_mode) || (player && rrj_read32(m, 0x8005B220)))
         blocked = 1;
-    if (!blocked && player && *(int16_t *)rrj_at(m, source + 320, 2) && (rrj_read32(m, source + 388) & 1) && (rrj_read32(m, source + 568) & 0x100))
+    if (!blocked && player && r_s16(source + 320) && (rrj_read32(m, source + 388) & 1) && (rrj_read32(m, source + 568) & 0x100))
     {
         uint32_t track = rrj_read32(m, source + 340);
         int32_t dx = rrj_s32(rrj_read32(m, source + 184) - rrj_read32(m, track + 20));
         int32_t dy = rrj_s32(rrj_read32(m, source + 188) - rrj_read32(m, track + 24));
         int32_t dz = rrj_s32(rrj_read32(m, source + 192) - rrj_read32(m, track + 28));
-        int32_t dot = leaf_product_asr16(dx, (int32_t)*(int16_t *)rrj_at(m, track + 8, 2) << 4);
-        dot += leaf_product_asr16(dy, (int32_t)*(int16_t *)rrj_at(m, track + 10, 2) << 4);
-        dot += leaf_product_asr16(dz, (int32_t)*(int16_t *)rrj_at(m, track + 12, 2) << 4);
+        int32_t dot = leaf_product_asr16(dx, (int32_t)r_s16(track + 8) << 4);
+        dot += leaf_product_asr16(dy, (int32_t)r_s16(track + 10) << 4);
+        dot += leaf_product_asr16(dz, (int32_t)r_s16(track + 12) << 4);
         blocked = leaf_abs32(dot) > 0x10000;
     }
     distance = sub_8001FCB0((uint32_t)(rrj_s32(rrj_read32(m, body + 184) - rrj_read32(m, source + 184)) >> 16), (uint32_t)(rrj_s32(rrj_read32(m, body + 188) - rrj_read32(m, source + 188)) >> 16), (uint32_t)(rrj_s32(rrj_read32(m, body + 192) - rrj_read32(m, source + 192)) >> 16));
@@ -9852,7 +9616,7 @@ uint32_t sub_80092E04(RRJMemory *m, uint32_t actor, uint32_t delta, RRJReverbCal
         if (rrj_u16(rrj_at(m, source + 172, 2)) < rrj_read32(m, race + 48))
         {
             uint32_t descriptor = rrj_read32(m, source + 1084);
-            if (!*(uint8_t *)rrj_at(m, descriptor + 37, 1) || !*(uint8_t *)rrj_at(m, descriptor + 14, 1))
+            if (!r_u8(descriptor + 37) || !r_u8(descriptor + 14))
             {
                 (void)sub_80092C7C(m, source, 8);
                 return race_leaf_reset_body(m, source, body);
@@ -9866,7 +9630,7 @@ uint32_t sub_80092E04(RRJMemory *m, uint32_t actor, uint32_t delta, RRJReverbCal
         }
         return sub_8009277C(m, source, reverb);
     }
-    if (*(uint8_t *)rrj_at(m, rrj_read32(m, source + 1084) + 39, 1) >= 0xF7)
+    if (r_u8(rrj_read32(m, source + 1084) + 39) >= 0xF7)
     {
         result = rrj_read32(m, body + 552) & 0xFFEFFFE7;
         rrj_write32(m, body + 552, result);
@@ -9933,7 +9697,7 @@ uint32_t sub_80092E04(RRJMemory *m, uint32_t actor, uint32_t delta, RRJReverbCal
                             if (rrj_read32(m, body + 552) & 8)
                             {
                                 uint32_t descriptor = rrj_read32(m, source + 1084);
-                                if (player && (!*(uint8_t *)rrj_at(m, descriptor + 37, 1) || !*(uint8_t *)rrj_at(m, descriptor + 14, 1)))
+                                if (player && (!r_u8(descriptor + 37) || !r_u8(descriptor + 14)))
                                     (void)sub_80092C7C(m, source, 8);
                                 (void)sub_80098F2C(m, body, axis, direction, magnitude, fixed_result);
                             }
@@ -9979,7 +9743,7 @@ uint32_t sub_800BA4CC(RRJMemory *m, uint32_t delta, uint32_t skip_mask, uint32_t
         {
             uint32_t secondary = rrj_read32(m, actor + 852);
             uint32_t descriptor = rrj_read32(m, actor + 1084);
-            uint32_t slot = (uint32_t)(int32_t)*(int8_t *)rrj_at(m, actor + 946, 1);
+            uint32_t slot = (uint32_t)(int32_t)r_s8(actor + 946);
             uint32_t contact = actor + 948 + 8 * slot;
             uint32_t actor_id = rrj_u16(rrj_at(m, actor + 172, 2));
             uint32_t players = rrj_read32(m, rrj_read32(m, 0x8005B2F8) + 48);
@@ -9995,7 +9759,7 @@ uint32_t sub_800BA4CC(RRJMemory *m, uint32_t delta, uint32_t skip_mask, uint32_t
                 case 1:
                     if (!(rrj_read32(m, secondary + 552) & 0x40))
                     {
-                        if (rrj_u16(rrj_at(m, contact + 4, 2)) || (actor_id < players && ((*(uint8_t *)rrj_at(m, descriptor + 1, 1) & 15) == 2) && (rrj_read32(m, 0x8005AD48) & 0x1F)))
+                        if (rrj_u16(rrj_at(m, contact + 4, 2)) || (actor_id < players && ((r_u8(descriptor + 1) & 15) == 2) && (rrj_read32(m, 0x8005AD48) & 0x1F)))
                         {
                             uint32_t linked;
                             rrj_trace_dispatch_target(0x800BAA2Cu);
@@ -10004,7 +9768,7 @@ uint32_t sub_800BA4CC(RRJMemory *m, uint32_t delta, uint32_t skip_mask, uint32_t
                             linked = rrj_read32(m, actor + 856);
                             if (linked && rrj_u16(rrj_at(m, contact, 2)) == 4)
                             {
-                                uint32_t linked_slot = (uint32_t)(int32_t)*(int8_t *)rrj_at(m, linked + 946, 1);
+                                uint32_t linked_slot = (uint32_t)(int32_t)r_s8(linked + 946);
                                 rrj_trace_dispatch_target(0x800BAA2Cu);
                                 (void)sub_800BAA2C(m, linked, linked + 948 + 8 * linked_slot, delta, reverb);
                                 rrj_trace_dispatch_target(0x800BA4CCu);
@@ -10108,7 +9872,7 @@ uint32_t sub_800BD4D4(RRJMemory *m, uint32_t actor)
     FUNCTION_MARKER(0x800BD4D4, "RASHCDG.BIN");
     if (!actor)
         return 0;
-    contact = actor + 948 + 8u * (uint32_t)(int32_t)*(int8_t *)rrj_at(m, actor + 946, 1);
+    contact = actor + 948 + 8u * (uint32_t)(int32_t)r_s8(actor + 946);
     if (rrj_s32(rrj_read32(m, actor + 480)) < 131)
     {
         if (rrj_u16(rrj_at(m, contact, 2)) == 3)
@@ -10120,13 +9884,13 @@ uint32_t sub_800BD4D4(RRJMemory *m, uint32_t actor)
     (void)sub_8008AE94(m, candidates, candidate_count, actor + 184, range, 73, rrj_u16(rrj_at(m, actor + 172, 2)));
     if (rrj_read32(m, candidate_count))
     {
-        uint8_t actor_flags = *(uint8_t *)rrj_at(m, actor + 928, 1) & 0xFE;
-        *(uint8_t *)rrj_at(m, actor + 928, 1) = actor_flags;
+        uint8_t actor_flags = r_u8(actor + 928) & 0xFE;
+        w_u8(actor + 928, actor_flags);
         if (!(rrj_read32(m, actor + 388) & 1))
         {
             int32_t alignment = rrj_s32(sub_8002E698(m, actor + 528, rrj_read32(m, actor + 340) + 14));
             if (leaf_abs32(alignment) > 53739)
-                *(uint8_t *)rrj_at(m, actor + 928, 1) = actor_flags | 1;
+                w_u8(actor + 928, actor_flags | 1);
         }
     }
     for (index = 0; index < rrj_read32(m, candidate_count); ++index)
@@ -10144,7 +9908,7 @@ uint32_t sub_800BD4D4(RRJMemory *m, uint32_t actor)
     {
         if (rrj_u16(rrj_at(m, contact, 2)) != 3)
             return 0;
-        if (*(uint8_t *)rrj_at(m, actor + 928, 1) & 1)
+        if (r_u8(actor + 928) & 1)
         {
             uint16_t previous = rrj_u16(rrj_at(m, contact + 2, 2));
             if ((previous >> 5) == 3)
@@ -10188,7 +9952,7 @@ uint32_t sub_800BD4D4(RRJMemory *m, uint32_t actor)
             if (rrj_read32(m, actor + 360) == rrj_read32(m, object + 360) && !(rrj_read32(m, actor + 360) >> 16))
             {
                 flags |= 2;
-                if (*(uint8_t *)rrj_at(m, object + 510, 1) & 2)
+                if (r_u8(object + 510) & 2)
                     flags |= 0x40;
             }
             break;
@@ -10201,7 +9965,7 @@ uint32_t sub_800BD4D4(RRJMemory *m, uint32_t actor)
         default:
             return 0;
     }
-    if ((*(uint8_t *)rrj_at(m, actor + 928, 1) & 1) && rrj_read32(m, actor + 360) == rrj_read32(m, record + 188))
+    if ((r_u8(actor + 928) & 1) && rrj_read32(m, actor + 360) == rrj_read32(m, record + 188))
         separation = rrj_s32(16u * (rrj_read32(m, actor + 324) - rrj_read32(m, record + 152)) - rrj_read32(m, actor + 308) - rrj_read32(m, record + 136));
     else
     {
@@ -10218,7 +9982,7 @@ uint32_t sub_800BD4D4(RRJMemory *m, uint32_t actor)
                 sub_800BC8DC(m, actor);
                 return 0;
             }
-            if ((*(uint8_t *)rrj_at(m, actor + 928, 1) & 1) && group == 3)
+            if ((r_u8(actor + 928) & 1) && group == 3)
                 flags |= 0x20;
             if (!(flags & 0x20))
             {
@@ -10250,8 +10014,8 @@ uint32_t sub_800BD4D4(RRJMemory *m, uint32_t actor)
             lateral = rrj_s32((uint32_t)lateral + rrj_read32(m, object + 304) + rrj_read32(m, rrj_read32(m, object + 856) + 304));
         if (leaf_abs32(lateral) > 98304 || separation > 655360)
             return 0;
-        other_contact = object + 948 + 8u * (uint32_t)(int32_t)*(int8_t *)rrj_at(m, object + 946, 1);
-        if ((*(uint8_t *)rrj_at(m, rrj_read32(m, object + 1084) + 1, 1) & 15) == (*(uint8_t *)rrj_at(m, rrj_read32(m, actor + 1084) + 1, 1) & 15))
+        other_contact = object + 948 + 8u * (uint32_t)(int32_t)r_s8(object + 946);
+        if ((r_u8(rrj_read32(m, object + 1084) + 1) & 15) == (r_u8(rrj_read32(m, actor + 1084) + 1) & 15))
         {
             if (rrj_u16(rrj_at(m, other_contact, 2)) == 10 && rrj_u16(rrj_at(m, actor + 172, 2)) == 0)
                 kind = 12;
@@ -10298,7 +10062,7 @@ create_contact:
         rrj_put16(rrj_at(m, event + 2, 2), (uint16_t)packed);
         (void)sub_800BCA68(m, event, 2, actor);
         created = 1;
-        contact = actor + 948 + 8u * (uint32_t)(int32_t)*(int8_t *)rrj_at(m, actor + 946, 1);
+        contact = actor + 948 + 8u * (uint32_t)(int32_t)r_s8(actor + 946);
     }
     if (flags & 2)
     {
@@ -10342,7 +10106,7 @@ create_contact:
     }
     {
         uint32_t sine_address = 0x8005624C + (((uint32_t)(163u * rrj_read32(m, actor + 652)) >> 12) & 0x3FFC);
-        curve = rrj_s32((uint32_t)sub_8001FC90((int32_t)*(int16_t *)rrj_at(m, sine_address, 2) * 16, rrj_s32(rrj_read32(m, actor + 312))));
+        curve = rrj_s32((uint32_t)sub_8001FC90((int32_t)r_s16(sine_address) * 16, rrj_s32(rrj_read32(m, actor + 312))));
         curve = rrj_s32(leaf_abs32(curve));
     }
     if (rrj_s32(rrj_read32(m, actor + 652)) < -1143)
@@ -10365,7 +10129,7 @@ create_contact:
         if (left_abs < right_abs)
             flags |= 1;
         if (!(rrj_u16(rrj_at(m, contact + 6, 2)) & 0x8000))
-            flags = (flags & ~1u) | ((*(uint8_t *)rrj_at(m, actor + 928, 1) >> 2) & 1);
+            flags = (flags & ~1u) | ((r_u8(actor + 928) >> 2) & 1);
         if (flags & 2)
         {
             int32_t adjusted = curve + edge + rrj_s32(rrj_read32(m, actor + 304));
@@ -10381,7 +10145,7 @@ create_contact:
                 flags |= 0x20;
             if (record_side < 0)
                 flags |= 8;
-            if (*(int16_t *)rrj_at(m, actor + ((flags & 8) ? 400 : 412) + 8, 2) >= 2)
+            if (r_s16(actor + ((flags & 8) ? 400 : 412) + 8) >= 2)
                 impulse = race_leaf_signed_ratio((int32_t)leaf_abs32(record_side), rrj_s32(rrj_read32(m, actor + 424)));
             impulse = rrj_s32((uint32_t)sub_8001FC90(rrj_s32(rrj_read32(m, actor + 424)), impulse));
             if (flags & 8)
@@ -10393,8 +10157,8 @@ create_contact:
                 int32_t signed_curve = ((rrj_s32(rrj_read32(m, actor + 652)) >= 0) ^ (rrj_s32(rrj_read32(m, actor + 364)) > 0)) ? curve : -curve;
                 impulse = rrj_s32((uint32_t)impulse + 2u * (uint32_t)signed_curve);
             }
-            impulse = rrj_s32((uint32_t)impulse - 32u * (uint32_t)(int32_t)*(int16_t *)rrj_at(m, actor + 878, 2));
-            if ((int16_t)(((int32_t)*(int16_t *)rrj_at(m, rrj_read32(m, actor + 340) + 2, 2) * *(int16_t *)rrj_at(m, actor + 872, 2)) >> 12) + (int16_t)(((int32_t)*(int16_t *)rrj_at(m, rrj_read32(m, actor + 340) + 6, 2) * *(int16_t *)rrj_at(m, actor + 876, 2)) >> 12) < 0)
+            impulse = rrj_s32((uint32_t)impulse - 32u * (uint32_t)(int32_t)r_s16(actor + 878));
+            if ((int16_t)(((int32_t)r_s16(rrj_read32(m, actor + 340) + 2) * r_s16(actor + 872)) >> 12) + (int16_t)(((int32_t)r_s16(rrj_read32(m, actor + 340) + 6) * r_s16(actor + 876)) >> 12) < 0)
                 impulse = -impulse;
             rrj_write32(m, scalar, (uint32_t)impulse);
             sub_80093CAC(m, actor, 0, actor + 872, scalar, 0);
@@ -10435,7 +10199,7 @@ create_contact:
             sub_80093CAC(m, actor, vector, 0, 0, 0);
         }
     }
-    *(uint8_t *)rrj_at(m, actor + 928, 1) = (*(uint8_t *)rrj_at(m, actor + 928, 1) & 0xFB) | (uint8_t)(4 * (flags & 1));
+    w_u8(actor + 928, (r_u8(actor + 928) & 0xFB) | (uint8_t)(4 * (flags & 1)));
     {
         uint32_t state = rrj_read32(m, 0x8005B2F8);
         uint32_t mode = rrj_read32(m, state + 60);
@@ -10478,12 +10242,12 @@ uint32_t sub_800BCD48(RRJMemory *m, uint32_t delta, uint32_t skip_mask, uint32_t
     for (index = 0; index < count; ++index, actor += 1096)
     {
         uint32_t bit = 1u << (index & 31);
-        uint32_t contact = actor + 948 + 8u * (uint32_t)(int32_t)*(int8_t *)rrj_at(m, actor + 946, 1);
+        uint32_t contact = actor + 948 + 8u * (uint32_t)(int32_t)r_s8(actor + 946);
         uint16_t kind = rrj_u16(rrj_at(m, contact, 2));
         uint32_t flags;
         uint32_t created;
         int32_t timer;
-        if (skip_mask & bit || !*(int16_t *)rrj_at(m, actor + 320, 2) || (rrj_read32(m, actor + 560) & 0x18000000) != 0x08000000 || (*(uint8_t *)rrj_at(m, rrj_read32(m, actor + 1084), 1) & 1) || kind < 3 || kind >= 18)
+        if (skip_mask & bit || !r_s16(actor + 320) || (rrj_read32(m, actor + 560) & 0x18000000) != 0x08000000 || (r_u8(rrj_read32(m, actor + 1084)) & 1) || kind < 3 || kind >= 18)
             continue;
         created = sub_800BD4D4(m, actor);
         flags = rrj_read32(m, actor + 564);
@@ -10535,16 +10299,16 @@ uint32_t sub_800B941C(RRJMemory *m, uint32_t delta, RRJRaceLeafCall call, RRJRev
         uint32_t secondary = rrj_read32(m, actor + 852);
         uint32_t descriptor = rrj_read32(m, actor + 1084);
         uint32_t finished = 0;
-        if (*(uint8_t *)rrj_at(m, secondary + 572, 1) & 0x10)
+        if (r_u8(secondary + 572) & 0x10)
         {
             uint32_t linked = rrj_read32(m, actor + 856);
             uint32_t linked_secondary = rrj_read32(m, linked + 852);
             uint32_t type = rrj_u16(rrj_at(m, linked_secondary + 544, 2));
             rrj_write32(m, linked_secondary + 552, rrj_read32(m, linked_secondary + 552) & 0xFDFFFFFFu);
-            if (rrj_read32(m, secondary + 604) < 2 && rrj_u16(rrj_at(m, 0x800541D4 + 8 * type + 2, 2)) == 8 && !rrj_read32(m, actor + 480) && !*(uint8_t *)rrj_at(m, race + 57, 1))
+            if (rrj_read32(m, secondary + 604) < 2 && rrj_u16(rrj_at(m, 0x800541D4 + 8 * type + 2, 2)) == 8 && !rrj_read32(m, actor + 480) && !r_u8(race + 57))
                 (void)sub_800903F4(m, actor, 1, reverb);
         }
-        if (rrj_read32(m, descriptor + 40) || *(uint8_t *)rrj_at(m, descriptor + 39, 1) >= 0xF8)
+        if (rrj_read32(m, descriptor + 40) || r_u8(descriptor + 39) >= 0xF8)
             finished = 1u << (index & 31);
         finished_mask |= finished;
         if (finished_mask == (1u << (players & 31)) - 1)
@@ -10558,11 +10322,11 @@ uint32_t sub_800B941C(RRJMemory *m, uint32_t delta, RRJRaceLeafCall call, RRJRev
             if ((rrj_read32(m, player + 552) & 8) || timer >= rrj_s32(rrj_read32(m, 0x8005B228)))
             {
                 if (rrj_read32(m, 0x8005B220))
-                    *(uint8_t *)rrj_at(m, race, 1) = 2;
+                    w_u8(race, 2);
                 else
                 {
                     (void)leaf_call(m, call, 0x8003F708, 0x80060000, 0, 0, 0);
-                    *(uint8_t *)rrj_at(m, race, 1) = 6;
+                    w_u8(race, 6);
                 }
                 (void)sub_80018C1C(m, 1, call);
             }
@@ -10582,9 +10346,9 @@ uint32_t sub_800B941C(RRJMemory *m, uint32_t delta, RRJRaceLeafCall call, RRJRev
         uint32_t actor = rrj_read32(m, 0x8005B268 + 4 * index);
         uint32_t secondary = rrj_read32(m, actor + 852);
         uint32_t linked = rrj_read32(m, actor + 856);
-        if (*(uint8_t *)rrj_at(m, secondary + 572, 1) & 0x10)
+        if (r_u8(secondary + 572) & 0x10)
         {
-            uint32_t contact = linked + 948 + 8u * (uint32_t)(int32_t)*(int8_t *)rrj_at(m, linked + 946, 1);
+            uint32_t contact = linked + 948 + 8u * (uint32_t)(int32_t)r_s8(linked + 946);
             if (rrj_u16(rrj_at(m, contact, 2)) == 16)
             {
                 rrj_trace_dispatch_target(0x800C035Cu);
@@ -10592,9 +10356,9 @@ uint32_t sub_800B941C(RRJMemory *m, uint32_t delta, RRJRaceLeafCall call, RRJRev
                 rrj_trace_dispatch_target(0x800B941Cu);
             }
         }
-        if (linked && *(uint8_t *)rrj_at(m, race + 57, 1) == 2)
+        if (linked && r_u8(race + 57) == 2)
         {
-            uint32_t previous = linked + 948 + 8u * (uint32_t)((int32_t)*(int8_t *)rrj_at(m, linked + 946, 1) - 1);
+            uint32_t previous = linked + 948 + 8u * (uint32_t)((int32_t)r_s8(linked + 946) - 1);
             if (rrj_u16(rrj_at(m, previous, 2)) == 18)
             {
                 rrj_trace_dispatch_target(0x80092E04u);
@@ -10623,7 +10387,7 @@ uint32_t sub_8009F700(RRJMemory *m, uint32_t actor, uint32_t sample)
     {
         uint32_t player = 0x800CD898 + 1132u * (uint32_t)index;
         int32_t dx = (rrj_s32(rrj_read32(m, player + 184)) >> 16) - (rrj_s32(rrj_read32(m, actor + 184)) >> 16);
-        int32_t dz = (int32_t)*(int16_t *)rrj_at(m, player + 194, 2) - *(int16_t *)rrj_at(m, actor + 194, 2);
+        int32_t dz = (int32_t)r_s16(player + 194) - r_s16(actor + 194);
         int32_t high = rrj_s32(leaf_abs32(dx));
         int32_t low = rrj_s32(leaf_abs32(dz));
         int32_t actor_x = rrj_s32(rrj_read32(m, actor + 184) - rrj_read32(m, player + 184));
@@ -10632,9 +10396,9 @@ uint32_t sub_8009F700(RRJMemory *m, uint32_t actor, uint32_t sample)
         int32_t sample_x = rrj_s32(rrj_read32(m, sample + 12) - rrj_read32(m, player + 184));
         int32_t sample_y = rrj_s32(rrj_read32(m, sample + 16) - rrj_read32(m, player + 188));
         int32_t sample_z = rrj_s32(rrj_read32(m, sample + 20) - rrj_read32(m, player + 192));
-        int32_t axis_x = (int32_t)*(int16_t *)rrj_at(m, player + 444, 2) * 16;
-        int32_t axis_y = (int32_t)*(int16_t *)rrj_at(m, player + 446, 2) * 16;
-        int32_t axis_z = (int32_t)*(int16_t *)rrj_at(m, player + 448, 2) * 16;
+        int32_t axis_x = (int32_t)r_s16(player + 444) * 16;
+        int32_t axis_y = (int32_t)r_s16(player + 446) * 16;
+        int32_t axis_z = (int32_t)r_s16(player + 448) * 16;
         int32_t actor_dot;
         int32_t sample_dot;
         int32_t metric;
@@ -10650,7 +10414,7 @@ uint32_t sub_8009F700(RRJMemory *m, uint32_t actor, uint32_t sample)
         if (metric >= 160 && ((actor_dot < 0 && sample_dot < 0) || (rrj_u16(rrj_at(m, sample, 2)) >> 5) == 3))
             flags[index] = 1;
     }
-    if (!(*(uint8_t *)rrj_at(m, race + 4, 1) & 0x10))
+    if (!(r_u8(race + 4) & 0x10))
         return flags[0];
     return flags[0] && flags[1];
 }
@@ -10664,7 +10428,7 @@ void sub_8009F9EC(RRJMemory *m, uint32_t actor, uint32_t packed_id)
         return;
     packed = rrj_u16(rrj_at(m, packed_id, 2));
     group = packed >> 5;
-    if (group >= 2 || rrj_s32(rrj_read32(m, actor + 480)) >= 131 || !(*(uint8_t *)rrj_at(m, actor + 509, 1) & 0x10))
+    if (group >= 2 || rrj_s32(rrj_read32(m, actor + 480)) >= 131 || !(r_u8(actor + 509) & 0x10))
         return;
     if (!group)
     {
@@ -10720,7 +10484,7 @@ uint32_t sub_8009FE90(RRJMemory *m, uint32_t actor)
     FUNCTION_MARKER(0x8009FE90, "RASHCDG.BIN");
     if (!actor || !rrj_u16(rrj_at(m, actor + 172, 2)))
         return 0;
-    if (!*(int16_t *)rrj_at(m, actor + 320, 2))
+    if (!r_s16(actor + 320))
     {
         (void)sub_8008C000(m, actor + 172, 3);
         return 0;
@@ -10747,7 +10511,7 @@ uint32_t sub_800A04B8(RRJMemory *m, uint32_t actor, uint32_t second, uint32_t th
     uint32_t secondary;
     uint32_t index;
     FUNCTION_MARKER(0x800A04B8, "RASHCDG.BIN");
-    if (!(*(uint8_t *)rrj_at(m, race + 4, 1) & 0x10))
+    if (!(r_u8(race + 4) & 0x10))
         return 0;
     primary = rrj_read32(m, 0x8005B38C);
     secondary = rrj_read32(m, 0x8005B21C);
@@ -10780,10 +10544,10 @@ uint32_t sub_8009B4C0(RRJMemory *m, uint32_t actor, uint32_t delta, uint32_t for
     FUNCTION_MARKER(0x8009B4C0, "RASHCDG.BIN");
     if (!actor)
         return 0;
-    flags = *(uint8_t *)rrj_at(m, actor + 509, 1);
+    flags = r_u8(actor + 509);
     if (rrj_u16(rrj_at(m, actor + 362, 2)) == 1)
     {
-        *(uint8_t *)rrj_at(m, actor + 509, 1) = flags & 0xBC;
+        w_u8(actor + 509, flags & 0xBC);
         return flags & 0xBC;
     }
     if (flags & 0x40)
@@ -10801,7 +10565,7 @@ uint32_t sub_8009B4C0(RRJMemory *m, uint32_t actor, uint32_t delta, uint32_t for
         rrj_write32(m, actor + 484, 0x26666);
         rrj_write32(m, actor + 504, 0xFFFF0000);
         flags = (flags & 0xFC) | 0x40;
-        *(uint8_t *)rrj_at(m, actor + 509, 1) = flags;
+        w_u8(actor + 509, flags);
     }
     if (flags & 2)
     {
@@ -10810,23 +10574,23 @@ uint32_t sub_8009B4C0(RRJMemory *m, uint32_t actor, uint32_t delta, uint32_t for
             rrj_write32(m, actor + 504, 0);
         return distance;
     }
-    if (force || (flags & 4) || !*(int16_t *)rrj_at(m, rrj_read32(m, actor + 340), 2) || *(int16_t *)rrj_at(m, rrj_read32(m, actor + 340), 2) == *(int16_t *)rrj_at(m, rrj_read32(m, actor + 336) + 10, 2) - 1)
+    if (force || (flags & 4) || !r_s16(rrj_read32(m, actor + 340)) || r_s16(rrj_read32(m, actor + 340)) == r_s16(rrj_read32(m, actor + 336) + 10) - 1)
     {
         if (rrj_u16(rrj_at(m, actor + 362, 2)))
         {
-            *(uint8_t *)rrj_at(m, actor + 509, 1) = flags & 0xFD;
+            w_u8(actor + 509, flags & 0xFD);
             return flags & 0xFD;
         }
         distance = sub_8003A5F4(m, actor + 360, nearest_out, 1);
         if (rrj_read32(m, nearest_out) != 0xFFFFFFFF && distance <= 0xEFFFF && rrj_s32(rrj_read32(m, actor + 480)) >= 132)
         {
             int32_t squared = rrj_s32((uint32_t)sub_8001FC90(rrj_s32(rrj_read32(m, actor + 480)), rrj_s32(rrj_read32(m, actor + 480))));
-            *(uint8_t *)rrj_at(m, actor + 509, 1) = flags | 0x81;
+            w_u8(actor + 509, flags | 0x81);
             rrj_write32(m, actor + 484, (uint32_t)-race_leaf_signed_ratio(squared, rrj_s32(2u * distance)));
         }
     }
     if (rrj_u16(rrj_at(m, actor + 362, 2)))
-        *(uint8_t *)rrj_at(m, actor + 509, 1) &= 0xFD;
+        xport_update_u8(actor + 509, XPORT_MEMORY_UPDATE_AND, 0xFD);
     return 0;
 }
 
@@ -10863,7 +10627,7 @@ uint32_t sub_8009BA5C(RRJMemory *m, uint32_t actor)
 
 uint32_t sub_800A05D4(RRJMemory *m, uint32_t actor, RRJRaceLeafCall call)
 {
-    uint32_t index = *(uint8_t *)rrj_at(m, actor + 511, 1);
+    uint32_t index = r_u8(actor + 511);
     uint32_t target;
     int32_t delta;
     FUNCTION_MARKER(0x800A05D4, "RASHCDG.BIN");
@@ -10967,7 +10731,7 @@ uint32_t sub_8009B728(RRJMemory *m, uint32_t actor, uint32_t delta)
     int32_t path_delta;
     int16_t segment_value;
     FUNCTION_MARKER(0x8009B728, "RASHCDG.BIN");
-    if (*(uint8_t *)rrj_at(m, actor + 510, 1) & 1)
+    if (r_u8(actor + 510) & 1)
         return 0x80060000;
     timer = rrj_read32(m, 0x8005B2E0) + delta;
     rrj_write32(m, 0x8005B2E0, timer);
@@ -10978,16 +10742,16 @@ uint32_t sub_8009B728(RRJMemory *m, uint32_t actor, uint32_t delta)
     player_index = sub_800A04B0(m, actor, 0, 0);
     player = rrj_read32(m, 0x8005B268 + 4 * player_index);
     reference = 0x800CD898 + 1132 * player_index;
-    facing_dot = rrj_s32((uint32_t)sub_8001FC90(rrj_s32(rrj_read32(m, actor + 184) - rrj_read32(m, reference + 184)), (int32_t)*(int16_t *)rrj_at(m, reference + 444, 2) * 16));
-    facing_dot = rrj_s32((uint32_t)facing_dot + (uint32_t)sub_8001FC90(rrj_s32(rrj_read32(m, actor + 188) - rrj_read32(m, reference + 188)), (int32_t)*(int16_t *)rrj_at(m, reference + 446, 2) * 16));
-    facing_dot = rrj_s32((uint32_t)facing_dot + (uint32_t)sub_8001FC90(rrj_s32(rrj_read32(m, actor + 192) - rrj_read32(m, reference + 192)), (int32_t)*(int16_t *)rrj_at(m, reference + 448, 2) * 16));
-    if (facing_dot >= 0 && rrj_s32(rrj_read32(m, actor + 480)) >= 132 && !(rrj_read32(m, actor + 360) >> 16) && rrj_read32(m, actor + 360) == rrj_read32(m, player + 360) && !(*(uint8_t *)rrj_at(m, actor + 509, 1) & 0x13))
+    facing_dot = rrj_s32((uint32_t)sub_8001FC90(rrj_s32(rrj_read32(m, actor + 184) - rrj_read32(m, reference + 184)), (int32_t)r_s16(reference + 444) * 16));
+    facing_dot = rrj_s32((uint32_t)facing_dot + (uint32_t)sub_8001FC90(rrj_s32(rrj_read32(m, actor + 188) - rrj_read32(m, reference + 188)), (int32_t)r_s16(reference + 446) * 16));
+    facing_dot = rrj_s32((uint32_t)facing_dot + (uint32_t)sub_8001FC90(rrj_s32(rrj_read32(m, actor + 192) - rrj_read32(m, reference + 192)), (int32_t)r_s16(reference + 448) * 16));
+    if (facing_dot >= 0 && rrj_s32(rrj_read32(m, actor + 480)) >= 132 && !(rrj_read32(m, actor + 360) >> 16) && rrj_read32(m, actor + 360) == rrj_read32(m, player + 360) && !(r_u8(actor + 509) & 0x13))
     {
         path_delta = rrj_s32(rrj_read32(m, actor + 368) - rrj_read32(m, player + 368));
         if (leaf_abs32(path_delta) >= 0x280000 && leaf_abs32(path_delta) <= 0x500000 && rrj_read32(m, actor + 372))
         {
             uint32_t segment = rrj_read32(m, actor + 372);
-            segment_value = *(int16_t *)rrj_at(m, segment + (rrj_s32(rrj_read32(m, actor + 364)) > 0 ? 140 : 12), 2);
+            segment_value = r_s16(segment + (rrj_s32(rrj_read32(m, actor + 364)) > 0 ? 140 : 12));
             if (segment_value >= 2 && sub_8003A5F4(m, actor + 360, nearest_out, 1) > 0x640000)
             {
                 uint32_t nearest = sub_8009BA5C(m, actor);
@@ -10995,7 +10759,7 @@ uint32_t sub_8009B728(RRJMemory *m, uint32_t actor, uint32_t delta)
                 {
                     if ((sub_8001FC58(m) & 0x64) < 0x28)
                     {
-                        uint8_t state = *(uint8_t *)rrj_at(m, actor + 508, 1);
+                        uint8_t state = r_u8(actor + 508);
                         if (segment_value >= 3)
                         {
                             if (state == 2)
@@ -11007,8 +10771,8 @@ uint32_t sub_8009B728(RRJMemory *m, uint32_t actor, uint32_t delta)
                         {
                             state ^= 3;
                         }
-                        *(uint8_t *)rrj_at(m, actor + 508, 1) = state;
-                        *(uint8_t *)rrj_at(m, actor + 510, 1) |= 3;
+                        w_u8(actor + 508, state);
+                        xport_update_u8(actor + 510, XPORT_MEMORY_UPDATE_OR, 3);
                     }
                 }
             }
@@ -11041,12 +10805,12 @@ uint32_t sub_800BE7D8(RRJMemory *m, uint32_t actor)
             selected = candidate;
         }
     }
-    flags = *(uint8_t *)rrj_at(m, actor + 509, 1);
+    flags = r_u8(actor + 509);
     if (selected == 224)
     {
         if (flags & 0x30)
             rrj_write32(m, actor + 484, 0x26666);
-        *(uint8_t *)rrj_at(m, actor + 509, 1) = flags & 0xCF;
+        w_u8(actor + 509, flags & 0xCF);
         return 0;
     }
     {
@@ -11075,9 +10839,9 @@ uint32_t sub_800BE7D8(RRJMemory *m, uint32_t actor)
         if (!(flags & 0x10))
         {
             flags |= 0x80;
-            *(uint8_t *)rrj_at(m, actor + 509, 1) = flags;
+            w_u8(actor + 509, flags);
         }
-        *(uint8_t *)rrj_at(m, actor + 509, 1) = flags | 0x10;
+        w_u8(actor + 509, flags | 0x10);
         return record;
     }
 }
@@ -11101,12 +10865,12 @@ uint32_t sub_8009A298(RRJMemory *m, uint32_t delta, RRJRaceLeafCall call)
         if (!actor || !rrj_u16(rrj_at(m, actor + 172, 2)) || !sub_8009FE90(m, actor))
             goto next_actor;
         rrj_put16(rrj_at(m, actor + 320, 2), (uint16_t)sub_80039F68(m, actor + 172));
-        if (!*(int16_t *)rrj_at(m, actor + 320, 2))
+        if (!r_s16(actor + 320))
             goto detach_actor;
         rrj_write32(m, actor + 468, rrj_read32(m, actor + 184));
         rrj_write32(m, actor + 472, rrj_read32(m, actor + 188));
         rrj_write32(m, actor + 476, rrj_read32(m, actor + 192));
-        if ((*(uint8_t *)rrj_at(m, rrj_read32(m, 0x8005B2F8) + 4, 1) & 1) && !rrj_read32(m, actor + 180))
+        if ((r_u8(rrj_read32(m, 0x8005B2F8) + 4) & 1) && !rrj_read32(m, actor + 180))
         {
             player_controlled = 1;
             if (sub_800A05D4(m, actor, call))
@@ -11115,7 +10879,7 @@ uint32_t sub_8009A298(RRJMemory *m, uint32_t delta, RRJRaceLeafCall call)
                 rrj_write32(m, actor + 480, 0);
             }
         }
-        if ((uint32_t)(*(uint8_t *)rrj_at(m, rrj_read32(m, 0x8005B2F8) + 57, 1) - 1) < 2)
+        if ((uint32_t)(r_u8(rrj_read32(m, 0x8005B2F8) + 57) - 1) < 2)
         {
             uint32_t kind = rrj_read32(m, actor + 180);
             if (kind && kind != 15)
@@ -11151,7 +10915,7 @@ uint32_t sub_8009A298(RRJMemory *m, uint32_t delta, RRJRaceLeafCall call)
                 rrj_write32(m, actor + 484, 0);
                 rrj_write32(m, actor + 480, 0);
             }
-            else if (!player_controlled && (*(uint8_t *)rrj_at(m, actor + 509, 1) & 8) && speed > 585944)
+            else if (!player_controlled && (r_u8(actor + 509) & 8) && speed > 585944)
             {
                 rrj_write32(m, actor + 480, 585944);
                 rrj_write32(m, actor + 484, 0);
@@ -11164,7 +10928,7 @@ uint32_t sub_8009A298(RRJMemory *m, uint32_t delta, RRJRaceLeafCall call)
                     int32_t divisor = rrj_s32(rrj_read32(m, 0x800530F0 + 4 * rrj_read32(m, race + 60)));
                     int32_t target = race_leaf_signed_ratio(10223616, divisor);
                     uint32_t primary = rrj_read32(m, 0x8005B38C);
-                    uint32_t other_index = (*(uint8_t *)rrj_at(m, rrj_read32(m, primary + 1084) + 1, 1) & 15) != 2;
+                    uint32_t other_index = (r_u8(rrj_read32(m, primary + 1084) + 1) & 15) != 2;
                     uint32_t other = rrj_read32(m, 0x8005B268 + 4 * other_index);
                     if (other)
                     {
@@ -11207,19 +10971,19 @@ uint32_t sub_8009A298(RRJMemory *m, uint32_t delta, RRJRaceLeafCall call)
                 movement_flags |= 2;
                 for (index = 0; index < 3; ++index)
                 {
-                    rrj_put16(rrj_at(m, actor + 444 + 2 * index, 2), (uint16_t)-*(int16_t *)rrj_at(m, actor + 444 + 2 * index, 2));
-                    rrj_put16(rrj_at(m, actor + 432 + 2 * index, 2), (uint16_t)-*(int16_t *)rrj_at(m, actor + 432 + 2 * index, 2));
-                    rrj_put16(rrj_at(m, actor + 450 + 2 * index, 2), (uint16_t)-*(int16_t *)rrj_at(m, actor + 450 + 2 * index, 2));
+                    rrj_put16(rrj_at(m, actor + 444 + 2 * index, 2), (uint16_t)-r_s16(actor + 444 + 2 * index));
+                    rrj_put16(rrj_at(m, actor + 432 + 2 * index, 2), (uint16_t)-r_s16(actor + 432 + 2 * index));
+                    rrj_put16(rrj_at(m, actor + 450 + 2 * index, 2), (uint16_t)-r_s16(actor + 450 + 2 * index));
                 }
             }
             for (index = 0; index < 3; ++index)
-                rrj_put16(rrj_at(m, actor + 438 + 2 * index, 2), (uint16_t)-*(int16_t *)rrj_at(m, new_piece + 8 + 2 * index, 2));
+                rrj_put16(rrj_at(m, actor + 438 + 2 * index, 2), (uint16_t)-r_s16(new_piece + 8 + 2 * index));
             {
-                uint32_t angle = sub_80020018(m, (uint32_t)((int32_t)*(int16_t *)rrj_at(m, actor + 444, 2) * 16), (uint32_t)((int32_t)*(int16_t *)rrj_at(m, actor + 448, 2) * 16));
+                uint32_t angle = sub_80020018(m, (uint32_t)((int32_t)r_s16(actor + 444) * 16), (uint32_t)((int32_t)r_s16(actor + 448) * 16));
                 uint32_t table = 0x8005624C + 4 * (angle & 0xFFF);
                 rrj_write32(m, actor + 292, angle);
-                rrj_write32(m, actor + 296, (uint32_t)((int32_t)*(int16_t *)rrj_at(m, table + 2, 2) * 16));
-                rrj_write32(m, actor + 300, (uint32_t)((int32_t)*(int16_t *)rrj_at(m, table, 2) * 16));
+                rrj_write32(m, actor + 296, (uint32_t)((int32_t)r_s16(table + 2) * 16));
+                rrj_write32(m, actor + 300, (uint32_t)((int32_t)r_s16(table) * 16));
             }
         }
         if (!sub_8009FE90(m, actor))
@@ -11240,13 +11004,13 @@ uint32_t sub_8009A298(RRJMemory *m, uint32_t delta, RRJRaceLeafCall call)
             int32_t third = sub_8009E768(m, actor);
             int32_t target = rrj_s32((uint32_t)(first >> 31) + (uint32_t)second) ^ (third >> 31);
             int32_t lateral = rrj_s32(rrj_read32(m, actor + 344));
-            if (*(int8_t *)rrj_at(m, actor + 508, 1) < 0)
+            if (r_s8(actor + 508) < 0)
                 target = -target;
             lateral = rrj_s32(leaf_abs32(lateral));
             if (target != lateral)
             {
                 int32_t speed = rrj_s32(rrj_read32(m, actor + 480));
-                int32_t divisor = ((*(uint8_t *)rrj_at(m, actor + 509, 1) & 0x10) && speed >= 132) ? 327680 : 655360;
+                int32_t divisor = ((r_u8(actor + 509) & 0x10) && speed >= 132) ? 327680 : 655360;
                 int32_t rate = race_leaf_signed_ratio(speed, divisor);
                 int32_t step = rrj_s32((uint32_t)sub_8001FC90(rrj_s32(delta), rate));
                 uint32_t difference = leaf_abs32(rrj_s32((uint32_t)target - (uint32_t)lateral));
@@ -11255,11 +11019,11 @@ uint32_t sub_8009A298(RRJMemory *m, uint32_t delta, RRJRaceLeafCall call)
                 lateral = lateral >= target ? rrj_s32((uint32_t)lateral - (uint32_t)step) : rrj_s32((uint32_t)lateral + (uint32_t)step);
                 rrj_write32(m, actor + 344, (uint32_t)lateral);
                 movement_flags |= 2;
-                if ((*(uint8_t *)rrj_at(m, actor + 510, 1) & 2) && leaf_abs32(step) >= 4097)
+                if ((r_u8(actor + 510) & 2) && leaf_abs32(step) >= 4097)
                     movement_flags |= 4;
             }
             if (!(movement_flags & 4))
-                *(uint8_t *)rrj_at(m, actor + 510, 1) &= 0xFD;
+                xport_update_u8(actor + 510, XPORT_MEMORY_UPDATE_AND, 0xFD);
             if ((movement_flags & 2) || old_path != rrj_u16(rrj_at(m, actor + 362, 2)))
             {
                 int32_t adjusted = rrj_s32(leaf_abs32(rrj_s32(rrj_read32(m, actor + 344))));
@@ -11267,14 +11031,14 @@ uint32_t sub_8009A298(RRJMemory *m, uint32_t delta, RRJRaceLeafCall call)
                     adjusted = -adjusted;
                 rrj_write32(m, actor + 344, (uint32_t)adjusted);
             }
-            if (*(int8_t *)rrj_at(m, actor + 508, 1) < 0)
+            if (r_s8(actor + 508) < 0)
                 rrj_write32(m, actor + 344, 0u - rrj_read32(m, actor + 344));
         }
         (void)sub_8002EAD8(m, scratch, new_piece + 2, rrj_read32(m, actor + 344), actor + 184);
         movement_flags |= sub_8009FCDC(m, actor, call);
         {
             uint32_t contact = sub_800BE7D8(m, actor);
-            if (contact && (*(uint8_t *)rrj_at(m, actor + 509, 1) & 0x10))
+            if (contact && (r_u8(actor + 509) & 0x10))
             {
                 if (!(movement_flags & 1))
                     sub_8009F9EC(m, actor, contact);
@@ -11284,11 +11048,11 @@ uint32_t sub_8009A298(RRJMemory *m, uint32_t delta, RRJRaceLeafCall call)
         }
         {
             int32_t threshold = rrj_s32((0x141DDDu << player_controlled) >> 1);
-            if (rrj_s32(rrj_read32(m, actor + 480)) < threshold && !(*(uint8_t *)rrj_at(m, actor + 509, 1) & 0x11))
+            if (rrj_s32(rrj_read32(m, actor + 480)) < threshold && !(r_u8(actor + 509) & 0x11))
                 rrj_write32(m, actor + 484, 0x26666);
         }
         (void)sub_8009B4C0(m, actor, delta, old_piece != new_piece);
-        *(uint8_t *)rrj_at(m, actor + 509, 1) &= 0x7F;
+        xport_update_u8(actor + 509, XPORT_MEMORY_UPDATE_AND, 0x7F);
         (void)sub_8008BA18(m, actor);
         (void)sub_8009B728(m, actor, delta);
         goto next_actor;
@@ -11352,12 +11116,12 @@ uint32_t sub_80074E6C(RRJMemory *m, uint32_t actor, uint32_t delta, RRJRaceLeafC
     {
         if (controls & 4)
         {
-            int8_t count = *(int8_t *)rrj_at(m, actor + 848, 1);
+            int8_t count = r_s8(actor + 848);
             if (count > 0 && (controls & 8))
             {
                 rrj_write32(m, actor + 704, 0);
                 rrj_write32(m, actor + 564, rrj_read32(m, actor + 564) | 0x200);
-                *(uint8_t *)rrj_at(m, actor + 848, 1) = (uint8_t)(count - 1);
+                w_u8(actor + 848, (uint8_t)(count - 1));
                 if (leaf_call(m, call, 0x80027028, actor, 0, 0, 0))
                     (void)leaf_call(m, call, 0x80027540, actor, 0, 0, 0);
                 if (leaf_call(m, call, 0x80027028, actor, 1, 0, 0))
@@ -11414,11 +11178,11 @@ uint32_t sub_8007E868(RRJMemory *m, uint32_t vector, int32_t limit, int32_t mini
         if (target < (int16_t)minimum)
             target = (int16_t)minimum;
     }
-    if (*(int16_t *)rrj_at(m, vector + 2, 2) == (int16_t)target)
-        return (uint32_t)(uint16_t)*(int16_t *)rrj_at(m, vector + 2, 2);
-    x = (int32_t)*(int16_t *)rrj_at(m, vector, 2) << 4;
+    if (r_s16(vector + 2) == (int16_t)target)
+        return (uint32_t)(uint16_t)r_s16(vector + 2);
+    x = (int32_t)r_s16(vector) << 4;
     y = (int16_t)target << 4;
-    z = (int32_t)*(int16_t *)rrj_at(m, vector + 4, 2) << 4;
+    z = (int32_t)r_s16(vector + 4) << 4;
     rrj_put16(rrj_at(m, vector + 2, 2), (uint16_t)target);
     length = (int32_t)sub_8001FC90(x, x) + (int32_t)sub_8001FC90(z, z);
     if (length < 6)
@@ -11441,7 +11205,7 @@ uint32_t sub_8008EE60(RRJMemory *m, uint32_t actor)
     uint32_t body = rrj_read32(m, actor + 596);
     uint32_t record = rrj_read32(m, config + 4) + 12 * rrj_read32(m, config + 12);
     uint32_t table = rrj_read32(m, rrj_read32(m, config + 40) + 4);
-    uint32_t item = rrj_read32(m, table + 4 * *(uint8_t *)rrj_at(m, record, 1));
+    uint32_t item = rrj_read32(m, table + 4 * r_u8(record));
     int32_t divisor = (int16_t)(rrj_u16(rrj_at(m, item + 16, 2)) - 1);
     int32_t fraction = (int32_t)((rrj_read32(m, config + 32) << 16) / rrj_read32(m, config + 24));
     int32_t longitudinal = (int32_t)sub_8001FC90(-71683, (int32_t)(rrj_read32(m, config + 16) << 16) + fraction) / divisor;
@@ -11450,9 +11214,9 @@ uint32_t sub_8008EE60(RRJMemory *m, uint32_t actor)
     for (axis = 0; axis < 3; ++axis)
     {
         int32_t position = rrj_s32(rrj_read32(m, body + 184 + 4 * axis));
-        position += (int32_t)sub_8001FC90(32768, (int32_t)*(int16_t *)rrj_at(m, body + 432 + 2 * axis, 2) << 4);
-        position += (int32_t)sub_8001FC90(-60417, (int32_t)*(int16_t *)rrj_at(m, body + 438 + 2 * axis, 2) << 4);
-        position += (int32_t)sub_8001FC90(longitudinal, (int32_t)*(int16_t *)rrj_at(m, body + 444 + 2 * axis, 2) << 4);
+        position += (int32_t)sub_8001FC90(32768, (int32_t)r_s16(body + 432 + 2 * axis) << 4);
+        position += (int32_t)sub_8001FC90(-60417, (int32_t)r_s16(body + 438 + 2 * axis) << 4);
+        position += (int32_t)sub_8001FC90(longitudinal, (int32_t)r_s16(body + 444 + 2 * axis) << 4);
         rrj_write32(m, actor + 184 + 4 * axis, (uint32_t)position);
     }
     for (i = 0; i < 9; ++i)
@@ -11539,7 +11303,7 @@ uint32_t sub_80073D74(RRJMemory *m, uint32_t actor, RRJRaceLeafCall call)
     uint32_t result;
     if (!yaw || speed <= 32768)
     {
-        int32_t prior = *(int16_t *)rrj_at(m, actor + 826, 2);
+        int32_t prior = r_s16(actor + 826);
         rrj_write32(m, actor + 488, 0);
         result = (uint32_t)(prior / 2);
     }
@@ -11572,7 +11336,7 @@ uint32_t sub_80073D74(RRJMemory *m, uint32_t actor, RRJRaceLeafCall call)
         }
         else
             rrj_write32(m, actor + 488, (uint32_t)steering);
-        if (*(int8_t *)rrj_at(m, actor + 8, 1) >= 2)
+        if (r_s8(actor + 8) >= 2)
             return 0;
         steering = race_leaf_signed_ratio(steering, speed);
         steering = (int32_t)(((int64_t)steering * rrj_s32(rrj_read32(m, specification + 4))) >> 16);
@@ -11602,7 +11366,7 @@ uint32_t sub_8008BD2C(RRJMemory *m, uint32_t actor)
     uint32_t i;
     uint32_t j;
     int32_t middle;
-    if (*(int8_t *)rrj_at(m, actor + 547, 1) != 1)
+    if (r_s8(actor + 547) != 1)
         return sub_8008BA18(m, actor);
     for (i = 0; i < 3; ++i)
         center[i] = rrj_s32(rrj_read32(m, actor + 184 + 4 * i)) + rrj_s32(rrj_read32(m, actor + 244 + 4 * i));
@@ -11626,7 +11390,7 @@ uint32_t sub_8008BD2C(RRJMemory *m, uint32_t actor)
     for (i = 0; i < 8; ++i)
         for (j = 0; j < 3; ++j)
             rrj_write32(m, actor + 196 + 12 * i + 4 * j, (uint32_t)(center[j] + corners[i][j]));
-    *(uint8_t *)rrj_at(m, actor + 547, 1) = 2;
+    w_u8(actor + 547, 2);
     return 2;
 }
 
@@ -11651,7 +11415,7 @@ uint32_t sub_8009246C(RRJMemory *m, uint32_t actor)
     else
     {
         found = 0;
-        *(uint8_t *)rrj_at(m, actor + 534, 1) = rrj_read32(m, actor + 372) ? *(uint8_t *)rrj_at(m, actor + 394, 1) : 1;
+        w_u8(actor + 534, rrj_read32(m, actor + 372) ? r_u8(actor + 394) : 1);
         rrj_write32(m, actor + 536, 0);
     }
     if (found <= 0)
@@ -11662,10 +11426,10 @@ uint32_t sub_8009246C(RRJMemory *m, uint32_t actor)
     }
     if (found >= 0)
     {
-        if (*(int16_t *)rrj_at(m, normal + 2, 2) < -614)
+        if (r_s16(normal + 2) < -614)
         {
             for (i = 0; i < 3; ++i)
-                rrj_put16(rrj_at(m, actor + 522 + 2 * i, 2), (uint16_t)-*(int16_t *)rrj_at(m, normal + 2 * i, 2));
+                rrj_put16(rrj_at(m, actor + 522 + 2 * i, 2), (uint16_t)-r_s16(normal + 2 * i));
             use_surface_position = 1;
         }
     }
@@ -11682,7 +11446,7 @@ uint32_t sub_8009246C(RRJMemory *m, uint32_t actor)
     for (i = 0; i < 3; ++i)
     {
         int32_t difference = rrj_s32(rrj_read32(m, position + 4 * i)) - rrj_s32(rrj_read32(m, actor + 184 + 4 * i));
-        int32_t component = (int32_t)*(int16_t *)rrj_at(m, actor + 522 + 2 * i, 2) << 4;
+        int32_t component = (int32_t)r_s16(actor + 522 + 2 * i) << 4;
         dot += (int32_t)(((int64_t)difference * component) >> 16);
     }
     if (!inverted)
@@ -11695,7 +11459,7 @@ static void race_mount_parameters(RRJMemory *m, uint32_t actor, int32_t *divisor
     uint32_t config = rrj_read32(m, actor + 540);
     uint32_t record = rrj_read32(m, config + 4) + 12 * rrj_read32(m, config + 12);
     uint32_t table = rrj_read32(m, rrj_read32(m, config + 40) + 4);
-    uint32_t item = rrj_read32(m, table + 4 * *(uint8_t *)rrj_at(m, record, 1));
+    uint32_t item = rrj_read32(m, table + 4 * r_u8(record));
     *divisor = (int16_t)(rrj_u16(rrj_at(m, item + 16, 2)) - 1);
     *travel = (int32_t)(rrj_read32(m, config + 16) << 16) + (int32_t)((rrj_read32(m, config + 32) << 16) / rrj_read32(m, config + 24));
 }
@@ -11713,9 +11477,9 @@ static void race_place_from_basis(RRJMemory *m, uint32_t actor, uint32_t origin,
     for (axis = 0; axis < 3; ++axis)
     {
         int32_t value = rrj_s32(rrj_read32(m, origin + 4 * axis));
-        value += (int32_t)sub_8001FC90(first, (int32_t)*(int16_t *)rrj_at(m, basis + 2 * axis, 2) << 4);
-        value += (int32_t)sub_8001FC90(second, (int32_t)*(int16_t *)rrj_at(m, basis + 6 + 2 * axis, 2) << 4);
-        value += (int32_t)sub_8001FC90(third, (int32_t)*(int16_t *)rrj_at(m, basis + 12 + 2 * axis, 2) << 4);
+        value += (int32_t)sub_8001FC90(first, (int32_t)r_s16(basis + 2 * axis) << 4);
+        value += (int32_t)sub_8001FC90(second, (int32_t)r_s16(basis + 6 + 2 * axis) << 4);
+        value += (int32_t)sub_8001FC90(third, (int32_t)r_s16(basis + 12 + 2 * axis) << 4);
         rrj_write32(m, actor + 184 + 4 * axis, (uint32_t)value);
     }
 }
@@ -11743,7 +11507,7 @@ uint32_t sub_8008E044(RRJMemory *m, uint32_t actor, uint32_t size_out)
     uint32_t i;
     uint32_t result;
     race_mount_parameters(m, actor, &divisor, &travel);
-    if (*(uint8_t *)rrj_at(m, actor + 572, 1) & 0x20)
+    if (r_u8(actor + 572) & 0x20)
     {
         first = -77594 - (mirrored ? 65536 : 0);
         second = -59814;
@@ -11756,7 +11520,7 @@ uint32_t sub_8008E044(RRJMemory *m, uint32_t actor, uint32_t size_out)
         int32_t sine;
         body = rrj_read32(m, actor + 596);
         angle = leaf_abs32((int32_t)(((int64_t)652 * rrj_s32(rrj_read32(m, body + 652))) >> 16)) & 0xFFF;
-        sine = (int32_t)*(int16_t *)rrj_at(m, 0x8005624E + 4 * angle, 2) << 4;
+        sine = (int32_t)r_s16(0x8005624E + 4 * angle) << 4;
         first = -72862 - (int32_t)sub_8001FC90(65536 - sine, 117964);
         second = -70405;
         third = -18821;
@@ -11772,11 +11536,11 @@ uint32_t sub_8008E044(RRJMemory *m, uint32_t actor, uint32_t size_out)
     {
         for (i = 0; i < 3; ++i)
         {
-            rrj_put16(rrj_at(m, actor + 438 + 2 * i, 2), (uint16_t)-*(int16_t *)rrj_at(m, actor + 438 + 2 * i, 2));
-            rrj_put16(rrj_at(m, actor + 432 + 2 * i, 2), (uint16_t)-*(int16_t *)rrj_at(m, actor + 432 + 2 * i, 2));
+            rrj_put16(rrj_at(m, actor + 438 + 2 * i, 2), (uint16_t)-r_s16(actor + 438 + 2 * i));
+            rrj_put16(rrj_at(m, actor + 432 + 2 * i, 2), (uint16_t)-r_s16(actor + 432 + 2 * i));
         }
     }
-    scale = (*(uint8_t *)rrj_at(m, actor + 572, 1) & 0x20) ? -786432 + (mirrored ? 1572864 : 0) : -655360 + (mirrored ? 1310720 : 0);
+    scale = (r_u8(actor + 572) & 0x20) ? -786432 + (mirrored ? 1572864 : 0) : -655360 + (mirrored ? 1310720 : 0);
     (void)sub_8002EE50(m, (uint32_t)scale, body + 516, vector);
     for (i = 0; i < 3; ++i)
         rrj_write32(m, vector + 4 * i, rrj_read32(m, vector + 4 * i) + rrj_read32(m, body + 456 + 4 * i));
@@ -11817,7 +11581,7 @@ uint32_t sub_8008E50C(RRJMemory *m, uint32_t actor)
     uint32_t i;
     uint32_t speed;
     race_mount_parameters(m, actor, &divisor, &travel);
-    if (*(uint8_t *)rrj_at(m, actor + 572, 1) & 0x20)
+    if (r_u8(actor + 572) & 0x20)
     {
         first = 36929;
         second = -135030;
@@ -11849,7 +11613,7 @@ uint32_t sub_8008E50C(RRJMemory *m, uint32_t actor)
     }
     race_place_from_basis(m, actor, origin, basis, first, second, third);
     for (i = 0; i < 3; ++i)
-        rrj_put16(rrj_at(m, actor + 450 + 2 * i, 2), (uint16_t)-*(int16_t *)rrj_at(m, actor + 438 + 2 * i, 2));
+        rrj_put16(rrj_at(m, actor + 450 + 2 * i, 2), (uint16_t)-r_s16(actor + 438 + 2 * i));
     speed = rrj_read32(m, body + 480);
     if (rrj_s32(speed) <= 327679)
         speed = 327680;
@@ -11869,7 +11633,7 @@ uint32_t sub_8008E818(RRJMemory *m, uint32_t actor, uint32_t size_out)
     uint32_t result;
     uint32_t i;
     race_mount_parameters(m, actor, &divisor, &travel);
-    if (*(uint8_t *)rrj_at(m, actor + 572, 1) & 0x20)
+    if (r_u8(actor + 572) & 0x20)
     {
         first = 36536 + (int32_t)sub_8001FC90(23429 - 36536, travel) / divisor;
         second = -65536 + (int32_t)sub_8001FC90(-90885 + 65536, travel) / divisor;
@@ -11890,7 +11654,7 @@ uint32_t sub_8008E818(RRJMemory *m, uint32_t actor, uint32_t size_out)
     race_copy_halfwords(m, actor + 432, body + 432, 3);
     race_copy_halfwords(m, actor + 438, body + 444, 3);
     for (i = 0; i < 3; ++i)
-        rrj_put16(rrj_at(m, actor + 450 + 2 * i, 2), (uint16_t)-*(int16_t *)rrj_at(m, actor + 438 + 2 * i, 2));
+        rrj_put16(rrj_at(m, actor + 450 + 2 * i, 2), (uint16_t)-r_s16(actor + 438 + 2 * i));
     if (size_out)
     {
         rrj_write32(m, size_out, rrj_read32(m, actor + 312));
@@ -11915,7 +11679,7 @@ uint32_t sub_8008EB88(RRJMemory *m, uint32_t actor, uint32_t size_out)
     int32_t speed;
     uint32_t i;
     race_mount_parameters(m, actor, &divisor, &travel);
-    if (*(uint8_t *)rrj_at(m, actor + 572, 1) & 0x20)
+    if (r_u8(actor + 572) & 0x20)
     {
         first = 36739;
         second = -72207 + (int32_t)sub_8001FC90(-85314 + 72207, travel) / divisor;
@@ -11936,7 +11700,7 @@ uint32_t sub_8008EB88(RRJMemory *m, uint32_t actor, uint32_t size_out)
     if (speed <= 0)
     {
         for (i = 0; i < 3; ++i)
-            rrj_put16(rrj_at(m, actor + 450 + 2 * i, 2), (uint16_t)-*(int16_t *)rrj_at(m, actor + 450 + 2 * i, 2));
+            rrj_put16(rrj_at(m, actor + 450 + 2 * i, 2), (uint16_t)-r_s16(actor + 450 + 2 * i));
         speed = 327680 - rrj_s32(rrj_read32(m, body + 480));
     }
     rrj_write32(m, actor + 480, (uint32_t)speed);
@@ -11958,7 +11722,7 @@ static void race_negate_vector16(RRJMemory *m, uint32_t vector)
 {
     uint32_t i;
     for (i = 0; i < 3; ++i)
-        rrj_put16(rrj_at(m, vector + 2 * i, 2), (uint16_t)-*(int16_t *)rrj_at(m, vector + 2 * i, 2));
+        rrj_put16(rrj_at(m, vector + 2 * i, 2), (uint16_t)-r_s16(vector + 2 * i));
 }
 
 static void race_outer_product16(RRJMemory *m, uint32_t diagonal_address, uint32_t direction_address, uint32_t output)
@@ -11969,8 +11733,8 @@ static void race_outer_product16(RRJMemory *m, uint32_t diagonal_address, uint32
     uint32_t i;
     for (i = 0; i < 3; ++i)
     {
-        diagonal[i] = *(int16_t *)rrj_at(m, diagonal_address + 2 * i, 2);
-        direction[i] = *(int16_t *)rrj_at(m, direction_address + 2 * i, 2);
+        diagonal[i] = r_s16(diagonal_address + 2 * i);
+        direction[i] = r_s16(direction_address + 2 * i);
     }
     leaf_direction_op_local(diagonal, direction, result);
     for (i = 0; i < 3; ++i)
@@ -11986,7 +11750,7 @@ static void race_select_launch_direction(RRJMemory *m, uint32_t actor, uint32_t 
 static void race_tilt_launch_direction(RRJMemory *m, uint32_t actor)
 {
     int32_t x = rrj_u16(rrj_at(m, actor + 450, 2));
-    int32_t z = *(int16_t *)rrj_at(m, actor + 454, 2);
+    int32_t z = r_s16(actor + 454);
     x += (357 * z) >> 12;
     rrj_put16(rrj_at(m, actor + 450, 2), (uint16_t)x);
     z -= (357 * (int16_t)x) >> 12;
@@ -12016,7 +11780,7 @@ static void race_mark_player_event(RRJMemory *m, uint32_t actor, uint32_t body, 
 static int32_t race_trig_scaled(RRJMemory *m, uint32_t angle, uint32_t cosine)
 {
     uint32_t address = 0x8005624C + 4 * (angle & 0xFFF) + (cosine ? 2 : 0);
-    return 4 * (int32_t)*(int16_t *)rrj_at(m, address, 2);
+    return 4 * (int32_t)r_s16(address);
 }
 
 static void race_rotate_mount_pair(RRJMemory *m, uint32_t actor, int32_t angle, uint32_t second_plane)
@@ -12030,7 +11794,7 @@ static void race_rotate_mount_pair(RRJMemory *m, uint32_t actor, int32_t angle, 
     uint32_t i;
     (void)sub_8005C338(m, rrj_read32(m, actor + 540), input_address);
     for (i = 0; i < 4; ++i)
-        input[i] = *(int16_t *)rrj_at(m, input_address + 2 * i, 2);
+        input[i] = r_s16(input_address + 2 * i);
     sine = race_trig_scaled(m, (uint32_t)(angle / 2), 0);
     cosine = race_trig_scaled(m, (uint32_t)(angle / 2), 1);
     if (!second_plane)
@@ -12054,7 +11818,7 @@ static void race_rotate_mount_pair(RRJMemory *m, uint32_t actor, int32_t angle, 
 
 uint32_t sub_80091468(RRJMemory *m, uint32_t actor, RRJRaceLeafCall call)
 {
-    uint32_t attached = (*(uint8_t *)rrj_at(m, actor + 572, 1) >> 5) & 1;
+    uint32_t attached = (r_u8(actor + 572) >> 5) & 1;
     uint32_t body = attached ? rrj_read32(m, rrj_read32(m, actor + 596) + 856) : rrj_read32(m, actor + 596);
     uint32_t mirrored;
     uint32_t options = 1;
@@ -12118,8 +11882,8 @@ uint32_t sub_80091468(RRJMemory *m, uint32_t actor, RRJRaceLeafCall call)
             race_select_launch_direction(m, actor, body);
             if (attached)
                 race_tilt_launch_direction(m, actor);
-            angle = (int32_t)sub_8001FF3C(m, (uint32_t)((int32_t)*(int16_t *)rrj_at(m, actor + 452, 2) << 4));
-            (void)sub_8007E868(m, actor + 450, value, (uint32_t)*(int16_t *)rrj_at(m, 0x8005624E + 4 * ((1137 - angle) & 0xFFF), 2), 406454);
+            angle = (int32_t)sub_8001FF3C(m, (uint32_t)((int32_t)r_s16(actor + 452) << 4));
+            (void)sub_8007E868(m, actor + 450, value, (uint32_t)r_s16(0x8005624E + 4 * ((1137 - angle) & 0xFFF)), 406454);
             (void)sub_8002EE50(m, rrj_read32(m, actor + 480), actor + 450, actor + 456);
             (void)sub_8001A760(m, rrj_u16(rrj_at(m, body + 172, 2)), 1, call);
             if (!attached)
@@ -12153,8 +11917,8 @@ uint32_t sub_80091468(RRJMemory *m, uint32_t actor, RRJRaceLeafCall call)
             }
             else
             {
-                angle = (int32_t)sub_8001FF3C(m, (uint32_t)((int32_t)*(int16_t *)rrj_at(m, actor + 452, 2) << 4));
-                (void)sub_8007E868(m, actor + 450, rrj_read32(m, actor + 480), (uint32_t)*(int16_t *)rrj_at(m, 0x8005624E + 4 * ((1137 - angle) & 0xFFF), 2), 406454);
+                angle = (int32_t)sub_8001FF3C(m, (uint32_t)((int32_t)r_s16(actor + 452) << 4));
+                (void)sub_8007E868(m, actor + 450, rrj_read32(m, actor + 480), (uint32_t)r_s16(0x8005624E + 4 * ((1137 - angle) & 0xFFF)), 406454);
                 second_rotation = (int32_t)sub_8001FF3C(m, sub_8002E698(m, actor + 444, actor + 450)) - 1024;
             }
             race_copy_vector16(m, actor + 438, body + 522);
@@ -12164,7 +11928,7 @@ uint32_t sub_80091468(RRJMemory *m, uint32_t actor, RRJRaceLeafCall call)
             race_outer_product16(m, actor + 432, actor + 438, actor + 444);
             (void)sub_8002EE50(m, rrj_read32(m, actor + 480), actor + 450, actor + 456);
             value = rrj_read32(m, body + 852);
-            if (*(uint8_t *)rrj_at(m, value + 572, 1) & 0x10)
+            if (r_u8(value + 572) & 0x10)
             {
                 uint32_t candidate = attached ? rrj_u16(rrj_at(m, value + 544, 2)) : rrj_u16(rrj_at(m, rrj_read32(m, rrj_read32(m, body + 856) + 852) + 544, 2));
                 if (rrj_u16(rrj_at(m, 0x800541D4 + 8 * candidate + 2, 2)) == 6)
@@ -12205,7 +11969,7 @@ uint32_t sub_80091468(RRJMemory *m, uint32_t actor, RRJRaceLeafCall call)
             (void)sub_8002EE50(m, (uint32_t)speed, actor + 450, actor + 456);
             rrj_put16(rrj_at(m, actor + 432, 2), rrj_u16(rrj_at(m, actor + 448, 2)));
             rrj_put16(rrj_at(m, actor + 434, 2), 0);
-            rrj_put16(rrj_at(m, actor + 436, 2), (uint16_t)-*(int16_t *)rrj_at(m, actor + 444, 2));
+            rrj_put16(rrj_at(m, actor + 436, 2), (uint16_t)-r_s16(actor + 444));
             if (!sub_8002E468(m, actor + 432))
                 (void)sub_8008CF74(m, actor);
             race_outer_product16(m, actor + 444, actor + 432, actor + 438);
@@ -12260,7 +12024,7 @@ uint32_t sub_80091468(RRJMemory *m, uint32_t actor, RRJRaceLeafCall call)
     (void)sub_800C4550(m, event & 0xFFFF, actor, options | 0x800u | (duration << 16));
     (void)sub_8009246C(m, actor);
     (void)sub_8008BD2C(m, actor);
-    *(uint8_t *)rrj_at(m, actor + 535, 1) = 0;
+    w_u8(actor + 535, 0);
     value = (rrj_read32(m, actor + 552) | 1u) & 0xFFD8FFFFu;
     rrj_write32(m, actor + 552, value);
     return value;
@@ -12284,8 +12048,8 @@ uint32_t sub_80090D84(RRJMemory *m, uint32_t actor, RRJRaceLeafCall call, RRJRev
     if (rrj_read32(m, actor + 604) >= 2)
         goto finish;
     body = rrj_read32(m, actor + 596);
-    attached = (*(uint8_t *)rrj_at(m, actor + 572, 1) >> 5) & 1;
-    *(uint8_t *)rrj_at(m, rrj_read32(m, body + 1084) + 15, 1) = 0;
+    attached = (r_u8(actor + 572) >> 5) & 1;
+    w_u8(rrj_read32(m, body + 1084) + 15, 0);
     flags = rrj_read32(m, body + 568);
     if (!(flags & 0x7FF))
     {
@@ -12365,7 +12129,7 @@ uint32_t sub_80090D84(RRJMemory *m, uint32_t actor, RRJRaceLeafCall call, RRJRev
     rrj_write32(m, actor + 476, rrj_read32(m, actor + 192));
     (void)sub_800BCD10(m, body);
     value = rrj_read32(m, body + 1084);
-    race_send_body_event(m, body, (uint16_t)((0u - (uint32_t)(rrj_read32(m, value + 40) || *(uint8_t *)rrj_at(m, value + 39, 1) >= 0xF8)) & 0xFFFE) + 4, 1);
+    race_send_body_event(m, body, (uint16_t)((0u - (uint32_t)(rrj_read32(m, value + 40) || r_u8(value + 39) >= 0xF8)) & 0xFFFE) + 4, 1);
     value = rrj_read32(m, body + 564);
     rrj_write32(m, body + 924, 0);
     rrj_write32(m, body + 916, 0);
@@ -12381,7 +12145,7 @@ uint32_t sub_80090D84(RRJMemory *m, uint32_t actor, RRJRaceLeafCall call, RRJRev
     if (rrj_read32(m, actor + 552) & 0x10000)
         (void)sub_80091468(m, actor, call);
     value = rrj_read32(m, 0x8005B2F8);
-    if ((*(uint8_t *)rrj_at(m, value + 4, 1) & 1) && (*(uint8_t *)rrj_at(m, rrj_read32(m, body + 1084) + 1, 1) & 0xF) != 2 && *(uint8_t *)rrj_at(m, value + 4, 1) != 33)
+    if ((r_u8(value + 4) & 1) && (r_u8(rrj_read32(m, body + 1084) + 1) & 0xF) != 2 && r_u8(value + 4) != 33)
     {
         uint32_t count = rrj_read32(m, value + 48);
         uint32_t i;
@@ -12389,16 +12153,16 @@ uint32_t sub_80090D84(RRJMemory *m, uint32_t actor, RRJRaceLeafCall call, RRJRev
         {
             uint32_t other = rrj_read32(m, 0x8005B268 + 4 * i);
             uint32_t state = rrj_read32(m, other + 1084);
-            if ((*(uint8_t *)rrj_at(m, state + 1, 1) & 0xF) == 2 && rrj_read32(m, 0x8005B1F8) >= *(uint8_t *)rrj_at(m, rrj_read32(m, body + 1084) + 39, 1))
+            if ((r_u8(state + 1) & 0xF) == 2 && rrj_read32(m, 0x8005B1F8) >= r_u8(rrj_read32(m, body + 1084) + 39))
             {
-                uint32_t x = leaf_abs32((int32_t)*(int16_t *)rrj_at(m, other + 186, 2) - *(int16_t *)rrj_at(m, body + 186, 2));
-                uint32_t z = leaf_abs32((int32_t)*(int16_t *)rrj_at(m, other + 194, 2) - *(int16_t *)rrj_at(m, body + 194, 2));
+                uint32_t x = leaf_abs32((int32_t)r_s16(other + 186) - r_s16(body + 186));
+                uint32_t z = leaf_abs32((int32_t)r_s16(other + 194) - r_s16(body + 194));
                 uint32_t major = x < z ? z : x;
                 uint32_t minor = x < z ? x : z;
                 uint32_t diagonal = minor + (minor >> 1);
                 uint32_t distance = major - (major >> 5) - (major >> 7) + (diagonal >> 2) + (diagonal >> 6);
                 uint32_t threshold_index = rrj_read32(m, value + 60);
-                int32_t threshold = *(int16_t *)rrj_at(m, 0x8005309E + 4 * threshold_index, 2);
+                int32_t threshold = r_s16(0x8005309E + 4 * threshold_index);
                 if (rrj_s32(rrj_read32(m, other + 480)) > 585944 && rrj_s32(distance) < threshold)
                     (void)sub_80096F30(m, other, body, 9, call);
             }
@@ -12432,7 +12196,7 @@ uint32_t sub_80072994(RRJMemory *m, uint32_t actor, RRJRaceLeafCall call, RRJRev
     uint32_t value;
     rrj_write32(m, actor + 932, 0);
     rrj_write32(m, actor + 564, rrj_read32(m, actor + 564) & 0xC0018200u);
-    if (*(uint8_t *)rrj_at(m, linked + 572, 1) & 0x10)
+    if (r_u8(linked + 572) & 0x10)
         race_resolve_launch_state(m, rrj_read32(m, rrj_read32(m, actor + 856) + 852), call, reverb);
     race_resolve_launch_state(m, linked, call, reverb);
     flags = rrj_read32(m, actor + 568) & 0xFFFC7F1Fu;
@@ -12488,7 +12252,7 @@ uint32_t sub_80071BCC(RRJMemory *m, uint32_t actor, RRJRaceLeafCall call, RRJRev
 {
     uint32_t list;
     uint32_t flags;
-    if (!*(int16_t *)rrj_at(m, actor + 320, 2))
+    if (!r_s16(actor + 320))
         list = 0x8005B270;
     else
     {
@@ -12576,8 +12340,8 @@ uint32_t sub_80072FB4(RRJMemory *m, uint32_t actor)
         distance = 0;
         for (i = 0; i < 3; ++i)
         {
-            forward += (int32_t)sub_8001FC90(delta[i], (int32_t)*(int16_t *)rrj_at(m, actor + 814 + 2 * i, 2) << 4);
-            direction += (int32_t)sub_8001FC90(delta[i], (int32_t)*(int16_t *)rrj_at(m, actor + 450 + 2 * i, 2) << 4);
+            forward += (int32_t)sub_8001FC90(delta[i], (int32_t)r_s16(actor + 814 + 2 * i) << 4);
+            direction += (int32_t)sub_8001FC90(delta[i], (int32_t)r_s16(actor + 450 + 2 * i) << 4);
             distance += (int32_t)sub_8001FC90(delta[i], delta[i]);
         }
         distance >>= 1;
@@ -12729,7 +12493,7 @@ static int32_t race_phase_cosine(RRJMemory *m, int32_t scale, int32_t phase)
 {
     int32_t angle = (int32_t)sub_8001FC90(scale, phase);
     uint32_t index = (((uint32_t)(163 * angle) >> 13) & 0x1FFE) + 1;
-    return (int32_t)*(int16_t *)rrj_at(m, 0x8005624C + 2 * index, 2) << 4;
+    return (int32_t)r_s16(0x8005624C + 2 * index) << 4;
 }
 
 uint32_t sub_80074570(RRJMemory *m, uint32_t actor, uint32_t use_linked, int32_t correction, int32_t delta, RRJRaceLeafCall call)
@@ -12812,8 +12576,8 @@ uint32_t sub_80074570(RRJMemory *m, uint32_t actor, uint32_t use_linked, int32_t
             }
         }
         (void)sub_80073D74(m, actor, call);
-        result = (uint32_t)*(int16_t *)rrj_at(m, specification + 446, 2);
-        if (*(int16_t *)rrj_at(m, specification + 446, 2))
+        result = (uint32_t)r_s16(specification + 446);
+        if (r_s16(specification + 446))
             rrj_write32(m, actor + 488, 0);
         if (use_linked)
         {
@@ -12873,7 +12637,7 @@ uint32_t sub_80074570(RRJMemory *m, uint32_t actor, uint32_t use_linked, int32_t
             }
             if (flags & 0x400000)
                 rrj_write32(m, actor + 924, 327680);
-            else if (integrated != target && leaf_abs32(target) >= 26215 && !(*(uint8_t *)rrj_at(m, rrj_read32(m, actor + 1084), 1) & 1))
+            else if (integrated != target && leaf_abs32(target) >= 26215 && !(r_u8(rrj_read32(m, actor + 1084)) & 1))
             {
                 int32_t ratio = (int32_t)leaf_abs32(race_leaf_signed_ratio(target - previous, delta));
                 int32_t minimum = rrj_s32(rrj_read32(m, specification + 356));
@@ -12906,7 +12670,7 @@ void sub_80074C84(RRJMemory *m, uint32_t list, int32_t delta, RRJRaceLeafCall ca
         uint32_t actor = link - 1088;
         uint32_t specification = rrj_read32(m, actor + 852);
         int32_t correction = 0;
-        if (*(uint8_t *)rrj_at(m, specification + 572, 1) & 0x10)
+        if (r_u8(specification + 572) & 0x10)
             correction = (int32_t)sub_80072C7C(m, actor, (uint32_t)delta);
         if (rrj_read32(m, actor + 560) & 0x80000)
         {
@@ -12934,7 +12698,7 @@ void sub_80073874(RRJMemory *m, uint32_t list, int32_t delta, RRJRaceLeafCall ca
         uint32_t mirrored = (flags >> 27) & 1;
         uint32_t physics_active = (rrj_read32(m, actor + 568) & 0x600) != 0;
         uint32_t race = rrj_read32(m, 0x8005B2F8);
-        uint32_t player = *(uint16_t *)rrj_at(m, actor + 172, 2);
+        uint32_t player = r_u16(actor + 172);
         flags &= ~0x100000u;
         rrj_write32(m, actor + 560, flags);
         if (player < rrj_read32(m, race + 48) && !mirrored)
@@ -12945,7 +12709,7 @@ void sub_80073874(RRJMemory *m, uint32_t list, int32_t delta, RRJRaceLeafCall ca
                 flags |= 0x100000u;
                 rrj_write32(m, actor + 560, flags);
             }
-            if ((*(uint8_t *)rrj_at(m, rrj_read32(m, actor + 852) + 572, 1) & 0x10) && rrj_read32(m, race + 52) >= 2)
+            if ((r_u8(rrj_read32(m, actor + 852) + 572) & 0x10) && rrj_read32(m, race + 52) >= 2)
             {
                 uint32_t index = 3 * (player + (rrj_read32(m, race + 48) < 2 ? 1 : 2));
                 uint32_t linked = rrj_read32(m, actor + 856);
@@ -13023,7 +12787,7 @@ void sub_80073874(RRJMemory *m, uint32_t list, int32_t delta, RRJRaceLeafCall ca
                 rrj_write32(m, actor + 636, (uint32_t)race_half_toward_zero(rrj_s32(rrj_read32(m, actor + 636))));
                 rrj_write32(m, actor + 672, (uint32_t)race_half_toward_zero(rrj_s32(rrj_read32(m, actor + 672))));
                 rrj_write32(m, actor + 652, rrj_read32(m, actor + 668));
-                rrj_put16(rrj_at(m, actor + 826, 2), (uint16_t)race_half_toward_zero((int16_t)*(uint16_t *)rrj_at(m, actor + 826, 2)));
+                rrj_put16(rrj_at(m, actor + 826, 2), (uint16_t)race_half_toward_zero((int16_t)r_u16(actor + 826)));
                 rrj_write32(m, actor + 676, (uint32_t)race_half_toward_zero(rrj_s32(rrj_read32(m, actor + 676))));
                 rrj_write32(m, actor + 616, (uint32_t)race_half_toward_zero(rrj_s32(rrj_read32(m, actor + 616))));
                 if (linked)
@@ -13064,14 +12828,14 @@ static void race_root_prepare_pool(RRJMemory *m, int32_t delta, RRJRaceLeafCall 
             if (state & 0x200)
                 rrj_write32(m, actor + 924, 2u * rrj_read32(m, rrj_read32(m, actor + 556) + 224));
         }
-        if (*(uint16_t *)rrj_at(m, actor + 944, 2))
+        if (r_u16(actor + 944))
         {
-            int16_t timer = *(int16_t *)rrj_at(m, actor + 944, 2);
+            int16_t timer = r_s16(actor + 944);
             int32_t step = (int32_t)sub_8001FC90((uint32_t)delta, rrj_read32(m, actor + 904));
             int32_t phase = rrj_s32(rrj_read32(m, actor + 908)) + (timer < 0 ? -step : step);
             int32_t weight = race_clamp(phase, 0, 65536);
-            uint8_t sequence = *(uint8_t *)rrj_at(m, actor + 946, 1);
-            uint16_t kind = *(uint16_t *)rrj_at(m, actor + 956 + 8 * ((uint8_t)(sequence - 1)), 2);
+            uint8_t sequence = r_u8(actor + 946);
+            uint16_t kind = r_u16(actor + 956 + 8 * ((uint8_t)(sequence - 1)));
             rrj_write32(m, actor + 908, (uint32_t)weight);
             rrj_write32(m, actor + 880, rrj_read32(m, actor + 880) + (uint32_t)race_mul(rrj_s32(rrj_read32(m, actor + 892)), weight));
             rrj_write32(m, actor + 884, rrj_read32(m, actor + 884) + (uint32_t)race_mul(rrj_s32(rrj_read32(m, actor + 896)), weight));
@@ -13081,7 +12845,7 @@ static void race_root_prepare_pool(RRJMemory *m, int32_t delta, RRJRaceLeafCall 
                 timer = 0;
             if (!timer)
             {
-                uint32_t terminal = kind == 3 || (kind == 4 && *(int16_t *)rrj_at(m, actor + 944, 2) == 1) || (kind >= 5 && kind < 18);
+                uint32_t terminal = kind == 3 || (kind == 4 && r_s16(actor + 944) == 1) || (kind >= 5 && kind < 18);
                 if (terminal)
                     timer = 1;
                 else
@@ -13157,7 +12921,7 @@ static void race_root_prepare_riders(RRJMemory *m)
                 rrj_write32(m, actor + 568, state | 0x880);
         }
         {
-            int32_t grip = rrj_s32(rrj_read32(m, 0x800D38E0 + 4 * (int8_t)*(uint8_t *)rrj_at(m, actor + 534, 1)));
+            int32_t grip = rrj_s32(rrj_read32(m, 0x800D38E0 + 4 * (int8_t)r_u8(actor + 534)));
             int32_t force = -race_mul(grip, rrj_s32(rrj_read32(m, actor + 580)));
             int32_t longitudinal = 0;
             int32_t transverse = 0;
@@ -13229,7 +12993,7 @@ static void race_root_controls(RRJMemory *m, int32_t delta, RRJRaceLeafCall call
             {
                 if (assisted)
                 {
-                    int32_t scale = rrj_s32(rrj_read32(m, 0x800CE540 + 8 * *(uint16_t *)rrj_at(m, actor + 172, 2)));
+                    int32_t scale = rrj_s32(rrj_read32(m, 0x800CE540 + 8 * r_u16(actor + 172)));
                     int32_t source = scale < 0 ? rrj_s32(rrj_read32(m, actor + 592)) : rrj_s32(rrj_read32(m, actor + 600));
                     command = -race_mul(source, scale);
                 }
@@ -13294,7 +13058,7 @@ static void race_root_controls(RRJMemory *m, int32_t delta, RRJRaceLeafCall call
                     flags &= ~0x40u;
                     if (flags & 0x10)
                     {
-                        int32_t limit = (int32_t)sub_8007EF60(m, specification, rrj_s32(rrj_read32(m, actor + 736)), rrj_s32(rrj_read32(m, actor + 652)), rrj_s32(rrj_read32(m, 0x800D38E0 + 4 * ((int8_t)*(uint8_t *)rrj_at(m, actor + 534, 1) + 16))));
+                        int32_t limit = (int32_t)sub_8007EF60(m, specification, rrj_s32(rrj_read32(m, actor + 736)), rrj_s32(rrj_read32(m, actor + 652)), rrj_s32(rrj_read32(m, 0x800D38E0 + 4 * ((int8_t)r_u8(actor + 534) + 16))));
                         if (throttle > limit)
                             throttle = limit;
                         flags &= ~0x10u;
@@ -13403,7 +13167,7 @@ static void race_root_physics(RRJMemory *m, int32_t delta)
         int32_t brake = rrj_s32(rrj_read32(m, actor + 596));
         int32_t maximum = rrj_s32(rrj_read32(m, actor + 592));
         int32_t braking_maximum = rrj_s32(rrj_read32(m, actor + 600));
-        int32_t grip = rrj_s32(rrj_read32(m, 0x800D38E0 + 4 * ((int8_t)*(uint8_t *)rrj_at(m, actor + 534, 1) + 16)));
+        int32_t grip = rrj_s32(rrj_read32(m, 0x800D38E0 + 4 * ((int8_t)r_u8(actor + 534) + 16)));
         int32_t projection = race_mul(grip, rrj_s32(rrj_read32(m, actor + 736)));
         int32_t lateral = rrj_s32(rrj_read32(m, actor + 652));
         int32_t slip;
@@ -13444,7 +13208,7 @@ static void race_root_physics(RRJMemory *m, int32_t delta)
             else if (rrj_read32(m, actor + 576))
             {
                 uint32_t index = (((uint32_t)(163 * rrj_s32(rrj_read32(m, actor + 636))) >> 13) & 0x1FFE) + 1;
-                int32_t cosine = (int32_t)*(int16_t *)rrj_at(m, 0x8005624C + 2 * index, 2) << 4;
+                int32_t cosine = (int32_t)r_s16(0x8005624C + 2 * index) << 4;
                 int32_t raw = race_mul(throttle - brake + rrj_s32(rrj_read32(m, actor + 752)), race_mul(cosine, rrj_s32(rrj_read32(m, specification + 16))));
                 if (raw < 0)
                     traction = race_leaf_signed_ratio(raw, rrj_s32(rrj_read32(m, actor + 748)));
@@ -13482,7 +13246,7 @@ static void race_root_physics(RRJMemory *m, int32_t delta)
             rrj_write32(m, actor + 684, 0);
             if ((heading >= current && current < adjusted) || (heading < current && adjusted < current))
             {
-                uint32_t packed = ((uint32_t)(uint16_t)(-12153 - *(int16_t *)rrj_at(m, actor + 736, 2))) | (((643207u - rrj_read32(m, actor + 736)) >> 16) << 16);
+                uint32_t packed = ((uint32_t)(uint16_t)(-12153 - r_s16(actor + 736))) | (((643207u - rrj_read32(m, actor + 736)) >> 16) << 16);
                 rrj_write32(m, actor + 680, heading >= current ? packed : 0u - packed);
             }
             else
@@ -13534,7 +13298,7 @@ static void race_root_physics(RRJMemory *m, int32_t delta)
             uint32_t mode = (flags >> 11) & 1;
             if (suspension >= 0 && (traction > 65535 || mode || (rrj_read32(m, actor + 564) & 0x20)))
             {
-                int32_t pitch = *(int16_t *)rrj_at(m, actor + 530, 2);
+                int32_t pitch = r_s16(actor + 530);
                 target_roll = rrj_s32(rrj_read32(m, specification + (mode ? 268 : 264)));
                 if (pitch < 3548)
                 {
@@ -13557,7 +13321,7 @@ static void race_root_physics(RRJMemory *m, int32_t delta)
             }
             else if (traction <= -65536 && !suspension && !(rrj_read32(m, actor + 564) & 0x40) && (int32_t)leaf_abs32(lateral) < 17157 && rrj_s32(rrj_read32(m, actor + 576)) < rrj_s32(rrj_read32(m, specification + 304)))
             {
-                int32_t pitch = *(int16_t *)rrj_at(m, actor + 530, 2);
+                int32_t pitch = r_s16(actor + 530);
                 if (pitch < 3548)
                     target_roll = pitch >= -2047 ? -race_mul(3431 - rrj_s32(rrj_read32(m, specification + 272)), race_mul(47976, 56754 - 16 * pitch)) - rrj_s32(rrj_read32(m, specification + 272)) : 0;
                 else
@@ -13595,7 +13359,7 @@ static void race_root_physics(RRJMemory *m, int32_t delta)
                 else if ((state & 0x1000) && !(state & 0x400))
                 {
                     rrj_write32(m, actor + 484, 0);
-                    *(uint8_t *)rrj_at(m, actor + 849, 1) = 0;
+                    w_u8(actor + 849, 0);
                     speed = 0;
                 }
                 rrj_write32(m, actor + 576, (uint32_t)speed);
@@ -13767,7 +13531,7 @@ static void race_root_external(RRJMemory *m, int32_t delta, RRJRaceLeafCall call
     stride = rrj_read32(m, 0x800CE4D4);
     while (count-- >= 0)
     {
-        if (*(uint16_t *)rrj_at(m, actor + 320, 2))
+        if (r_u16(actor + 320))
         {
             uint32_t linked = rrj_read32(m, actor + 856);
             rrj_write32(m, actor + 468, rrj_read32(m, actor + 184));
@@ -13813,7 +13577,7 @@ static void race_root_external(RRJMemory *m, int32_t delta, RRJRaceLeafCall call
     actor = rrj_read32(m, 0x800CE4D0);
     while (count-- >= 0)
     {
-        if (*(uint16_t *)rrj_at(m, actor + 320, 2))
+        if (r_u16(actor + 320))
         {
             args[0] = actor;
             args[1] = (uint32_t)delta;
@@ -13861,7 +13625,7 @@ uint32_t sub_80075EE0(RRJMemory *m, int32_t delta, RRJRaceLeafCall call, RRJReve
 uint32_t sub_8008F138(RRJMemory *m, uint32_t actor, int32_t delta, RRJRaceLeafCall call)
 {
     uint32_t size = 0;
-    uint32_t result = (uint32_t)(int32_t)*(int16_t *)rrj_at(m, actor + 320, 2);
+    uint32_t result = (uint32_t)(int32_t)r_s16(actor + 320);
     if (!result)
         return result;
     rrj_write32(m, actor + 468, rrj_read32(m, actor + 184));
@@ -13869,7 +13633,7 @@ uint32_t sub_8008F138(RRJMemory *m, uint32_t actor, int32_t delta, RRJRaceLeafCa
     rrj_write32(m, actor + 476, rrj_read32(m, actor + 192));
     if (rrj_read32(m, actor + 604) == 2)
     {
-        uint16_t kind = *(uint16_t *)rrj_at(m, actor + 544, 2);
+        uint16_t kind = r_u16(actor + 544);
         if (kind == 38)
             (void)sub_8008EE60(m, actor);
         else if (kind == 39 || kind == 89)
@@ -13891,7 +13655,7 @@ uint32_t sub_8008F138(RRJMemory *m, uint32_t actor, int32_t delta, RRJRaceLeafCa
         rrj_write32(m, actor + 248, 0);
         rrj_write32(m, actor + 252, 0);
         rrj_write32(m, actor + 552, rrj_read32(m, actor + 552) | 0xC0000000u);
-        *(uint8_t *)rrj_at(m, actor + 547, 1) = 1;
+        w_u8(actor + 547, 1);
         (void)leaf_call(m, call, 0x8003FA18, 9, actor + 432, actor + 256, 0);
         (void)sub_8008DF74(m, actor);
     }
@@ -13917,8 +13681,8 @@ uint32_t sub_8008F138(RRJMemory *m, uint32_t actor, int32_t delta, RRJRaceLeafCa
         }
         {
             uint32_t source = rrj_read32(m, actor + 596);
-            int8_t sequence = *(int8_t *)rrj_at(m, source + 946, 1);
-            uint32_t active = sub_800374D4(m, actor, 1) == 1 || (flags & 0x40000000) || (*(uint16_t *)rrj_at(m, source + 954 + 8 * sequence, 2) & 0x8000);
+            int8_t sequence = r_s8(source + 946);
+            uint32_t active = sub_800374D4(m, actor, 1) == 1 || (flags & 0x40000000) || (r_u16(source + 954 + 8 * sequence) & 0x8000);
             if (active)
             {
                 (void)sub_8009246C(m, actor);
@@ -13930,10 +13694,10 @@ uint32_t sub_8008F138(RRJMemory *m, uint32_t actor, int32_t delta, RRJRaceLeafCa
     (void)sub_8008BD2C(m, actor);
     if (size)
         rrj_write32(m, actor + 312, size);
-    result = sub_80020018(m, (uint32_t)((int32_t)*(int16_t *)rrj_at(m, actor + 450, 2) << 4), (uint32_t)((int32_t)*(int16_t *)rrj_at(m, actor + 454, 2) << 4));
+    result = sub_80020018(m, (uint32_t)((int32_t)r_s16(actor + 450) << 4), (uint32_t)((int32_t)r_s16(actor + 454) << 4));
     rrj_write32(m, actor + 292, result);
-    rrj_write32(m, actor + 296, (uint32_t)((int32_t)*(int16_t *)rrj_at(m, 0x8005624C + 4 * (result & 0xFFF) + 2, 2) << 4));
-    result = (uint32_t)((int32_t)*(int16_t *)rrj_at(m, 0x8005624C + 4 * (result & 0xFFF), 2) << 4);
+    rrj_write32(m, actor + 296, (uint32_t)((int32_t)r_s16(0x8005624C + 4 * (result & 0xFFF) + 2) << 4));
+    result = (uint32_t)((int32_t)r_s16(0x8005624C + 4 * (result & 0xFFF)) << 4);
     rrj_write32(m, actor + 300, result);
     return result;
 }
@@ -13948,7 +13712,7 @@ uint32_t sub_8008F068(RRJMemory *m, int32_t delta, RRJRaceLeafCall call)
         uint32_t specification = rrj_read32(m, actor + 852);
         if (rrj_read32(m, specification + 604) >= 2)
             (void)sub_8008F138(m, specification, delta, call);
-        if (*(uint8_t *)rrj_at(m, specification + 572, 1) & 0x10)
+        if (r_u8(specification + 572) & 0x10)
         {
             uint32_t linked = rrj_read32(m, actor + 856);
             specification = rrj_read32(m, linked + 852);
@@ -13967,9 +13731,9 @@ uint32_t sub_800A2898(RRJMemory *m, int32_t delta, RRJRaceLeafCall call)
     uint32_t stride = rrj_read32(m, 0x800CE514);
     while (count-- >= 0)
     {
-        if (*(uint16_t *)rrj_at(m, actor + 172, 2))
+        if (r_u16(actor + 172))
         {
-            if (*(uint16_t *)rrj_at(m, actor + 320, 2) && rrj_s32(rrj_read32(m, actor + 480)) > 0)
+            if (r_u16(actor + 320) && rrj_s32(rrj_read32(m, actor + 480)) > 0)
             {
                 uint32_t alternate = (rrj_read32(m, actor + 592) >> 1) & 1;
                 uint32_t position = actor + 504 + ((0u - alternate) & 0x4C);
@@ -14025,9 +13789,9 @@ uint32_t sub_800CB304(RRJMemory *m, int32_t delta, RRJRaceLeafCall call)
     uint32_t stride = rrj_read32(m, 0x800CE4F4);
     while (count-- >= 0)
     {
-        if (*(uint16_t *)rrj_at(m, actor + 172, 2))
+        if (r_u16(actor + 172))
         {
-            if (*(uint16_t *)rrj_at(m, actor + 320, 2))
+            if (r_u16(actor + 320))
             {
                 uint32_t flags = rrj_read32(m, actor + 552);
                 rrj_write32(m, actor + 468, rrj_read32(m, actor + 184));
@@ -14062,17 +13826,17 @@ uint32_t sub_800CB304(RRJMemory *m, int32_t delta, RRJRaceLeafCall call)
                         }
                     }
                 }
-                else if (!*(uint8_t *)rrj_at(m, actor + 553, 1))
+                else if (!r_u8(actor + 553))
                 {
                     const uint32_t args[8] = {actor, (uint32_t)delta, 0, 0, 0, 0, 0, 0};
                     (void)leaf_call8(m, call, 0x800CAA44, args);
                 }
                 (void)sub_8008BD2C(m, actor);
                 {
-                    uint32_t angle = sub_80020018(m, (uint32_t)((int32_t)*(int16_t *)rrj_at(m, actor + 444, 2) << 4), (uint32_t)((int32_t)*(int16_t *)rrj_at(m, actor + 448, 2) << 4));
+                    uint32_t angle = sub_80020018(m, (uint32_t)((int32_t)r_s16(actor + 444) << 4), (uint32_t)((int32_t)r_s16(actor + 448) << 4));
                     rrj_write32(m, actor + 292, angle);
-                    rrj_write32(m, actor + 296, (uint32_t)((int32_t)*(int16_t *)rrj_at(m, 0x8005624C + 4 * (angle & 0xFFF) + 2, 2) << 4));
-                    rrj_write32(m, actor + 300, (uint32_t)((int32_t)*(int16_t *)rrj_at(m, 0x8005624C + 4 * (angle & 0xFFF), 2) << 4));
+                    rrj_write32(m, actor + 296, (uint32_t)((int32_t)r_s16(0x8005624C + 4 * (angle & 0xFFF) + 2) << 4));
+                    rrj_write32(m, actor + 300, (uint32_t)((int32_t)r_s16(0x8005624C + 4 * (angle & 0xFFF)) << 4));
                 }
             }
             rrj_put16(rrj_at(m, actor + 320, 2), (uint16_t)sub_80039F68(m, actor + 172));
@@ -14107,9 +13871,9 @@ static uint32_t race_ca_step(RRJMemory *m, uint32_t actor, int32_t *step)
 
 static void race_negate_short_vector(RRJMemory *m, uint32_t vector)
 {
-    rrj_put16(rrj_at(m, vector, 2), (uint16_t)-(int16_t)*(uint16_t *)rrj_at(m, vector, 2));
-    rrj_put16(rrj_at(m, vector + 2, 2), (uint16_t)-(int16_t)*(uint16_t *)rrj_at(m, vector + 2, 2));
-    rrj_put16(rrj_at(m, vector + 4, 2), (uint16_t)-(int16_t)*(uint16_t *)rrj_at(m, vector + 4, 2));
+    rrj_put16(rrj_at(m, vector, 2), (uint16_t)-(int16_t)r_u16(vector));
+    rrj_put16(rrj_at(m, vector + 2, 2), (uint16_t)-(int16_t)r_u16(vector + 2));
+    rrj_put16(rrj_at(m, vector + 4, 2), (uint16_t)-(int16_t)r_u16(vector + 4));
 }
 
 static void race_ca_reflect(RRJMemory *m, uint32_t actor)
@@ -14117,14 +13881,14 @@ static void race_ca_reflect(RRJMemory *m, uint32_t actor)
     race_negate_short_vector(m, actor + 450);
     rrj_write32(m, actor + 560, 0);
     rrj_put16(rrj_at(m, actor + 434, 2), 0);
-    rrj_put16(rrj_at(m, actor + 444, 2), *(uint16_t *)rrj_at(m, actor + 450, 2));
-    rrj_put16(rrj_at(m, actor + 446, 2), *(uint16_t *)rrj_at(m, actor + 452, 2));
-    rrj_put16(rrj_at(m, actor + 448, 2), *(uint16_t *)rrj_at(m, actor + 454, 2));
-    rrj_put16(rrj_at(m, actor + 432, 2), *(uint16_t *)rrj_at(m, actor + 454, 2));
-    rrj_put16(rrj_at(m, actor + 436, 2), (uint16_t)-(int16_t)*(uint16_t *)rrj_at(m, actor + 450, 2));
+    rrj_put16(rrj_at(m, actor + 444, 2), r_u16(actor + 450));
+    rrj_put16(rrj_at(m, actor + 446, 2), r_u16(actor + 452));
+    rrj_put16(rrj_at(m, actor + 448, 2), r_u16(actor + 454));
+    rrj_put16(rrj_at(m, actor + 432, 2), r_u16(actor + 454));
+    rrj_put16(rrj_at(m, actor + 436, 2), (uint16_t)-(int16_t)r_u16(actor + 450));
     {
-        uint8_t state = *(uint8_t *)rrj_at(m, actor + 565, 1);
-        *(uint8_t *)rrj_at(m, actor + 565, 1) = (uint8_t)(((state & 2) ? 0 : 2) | (state & 0xFD));
+        uint8_t state = r_u8(actor + 565);
+        w_u8(actor + 565, (uint8_t)(((state & 2) ? 0 : 2) | (state & 0xFD)));
     }
 }
 
@@ -14132,17 +13896,17 @@ uint32_t sub_800CA564(RRJMemory *m, uint32_t actor, int32_t delta)
 {
     int32_t step = (int32_t)sub_8001FC90((uint32_t)delta, rrj_read32(m, actor + 480));
     uint32_t piece = rrj_read32(m, actor + 340);
-    if (!(*(uint8_t *)rrj_at(m, actor + 565, 1) & 4))
+    if (!(r_u8(actor + 565) & 4))
     {
         rrj_put16(rrj_at(m, actor + 438, 2), 0);
         rrj_put16(rrj_at(m, actor + 440, 2), 4096);
         rrj_put16(rrj_at(m, actor + 442, 2), 0);
         race_copy_halfwords(m, actor + 444, piece + 2, 3);
-        if (!*(uint8_t *)rrj_at(m, actor + 564, 1) && rrj_s32(rrj_read32(m, actor + 344)) > 0)
+        if (!r_u8(actor + 564) && rrj_s32(rrj_read32(m, actor + 344)) > 0)
             race_negate_short_vector(m, actor + 444);
         race_outer_product16(m, actor + 438, actor + 444, actor + 432);
         race_copy_halfwords(m, actor + 450, actor + 444, 3);
-        *(uint8_t *)rrj_at(m, actor + 565, 1) |= 4;
+        xport_update_u8(actor + 565, XPORT_MEMORY_UPDATE_OR, 4);
         rrj_write32(m, actor + 556, rrj_read32(m, actor + 412) - rrj_read32(m, actor + 344));
     }
     if (race_ca_step(m, actor, &step))
@@ -14169,17 +13933,17 @@ uint32_t sub_800CA7C4(RRJMemory *m, uint32_t actor, int32_t delta)
     int32_t step = (int32_t)sub_8001FC90((uint32_t)delta, rrj_read32(m, actor + 480));
     int32_t old_side = rrj_s32(rrj_read32(m, actor + 344));
     uint32_t piece = rrj_read32(m, actor + 340);
-    if (!(*(uint8_t *)rrj_at(m, actor + 565, 1) & 4))
+    if (!(r_u8(actor + 565) & 4))
     {
         rrj_put16(rrj_at(m, actor + 438, 2), 0);
         rrj_put16(rrj_at(m, actor + 440, 2), 4096);
         rrj_put16(rrj_at(m, actor + 442, 2), 0);
         race_copy_halfwords(m, actor + 444, piece + 14, 3);
         rrj_put16(rrj_at(m, actor + 434, 2), 0);
-        *(uint8_t *)rrj_at(m, actor + 565, 1) |= 4;
+        xport_update_u8(actor + 565, XPORT_MEMORY_UPDATE_OR, 4);
         race_negate_short_vector(m, actor + 444);
-        rrj_put16(rrj_at(m, actor + 432, 2), *(uint16_t *)rrj_at(m, actor + 448, 2));
-        rrj_put16(rrj_at(m, actor + 436, 2), (uint16_t)-(int16_t)*(uint16_t *)rrj_at(m, actor + 444, 2));
+        rrj_put16(rrj_at(m, actor + 432, 2), r_u16(actor + 448));
+        rrj_put16(rrj_at(m, actor + 436, 2), (uint16_t)-(int16_t)r_u16(actor + 444));
         race_copy_halfwords(m, actor + 450, actor + 444, 3);
         rrj_put16(rrj_at(m, actor + 434, 2), 0);
     }
@@ -14202,22 +13966,22 @@ uint32_t sub_800CA7C4(RRJMemory *m, uint32_t actor, int32_t delta)
     (void)sub_8002EAD8(m, actor + 184, piece + 2, (uint32_t)(old_side - rrj_s32(rrj_read32(m, actor + 344))), actor + 184);
     rrj_write32(m, actor + 344, (uint32_t)old_side);
     race_copy_halfwords(m, actor + 450, piece + 14, 3);
-    if (!(*(uint8_t *)rrj_at(m, actor + 565, 1) & 2))
+    if (!(r_u8(actor + 565) & 2))
         race_negate_short_vector(m, actor + 450);
     rrj_put16(rrj_at(m, actor + 434, 2), 0);
     race_copy_halfwords(m, actor + 444, actor + 450, 3);
-    rrj_put16(rrj_at(m, actor + 432, 2), *(uint16_t *)rrj_at(m, actor + 454, 2));
-    rrj_put16(rrj_at(m, actor + 436, 2), (uint16_t)-(int16_t)*(uint16_t *)rrj_at(m, actor + 450, 2));
-    return (uint32_t)(int32_t)*(int16_t *)rrj_at(m, actor + 436, 2);
+    rrj_put16(rrj_at(m, actor + 432, 2), r_u16(actor + 454));
+    rrj_put16(rrj_at(m, actor + 436, 2), (uint16_t)-(int16_t)r_u16(actor + 450));
+    return (uint32_t)(int32_t)r_s16(actor + 436);
 }
 
 uint32_t sub_800CAA44(RRJMemory *m, uint32_t actor, int32_t delta)
 {
-    if (*(uint8_t *)rrj_at(m, actor + 565, 1) & 1)
+    if (r_u8(actor + 565) & 1)
         return 1;
-    if (*(uint8_t *)rrj_at(m, actor + 564, 1) == 1)
+    if (r_u8(actor + 564) == 1)
         return sub_800CA564(m, actor, delta);
-    if (*(uint8_t *)rrj_at(m, actor + 564, 1) == 2)
+    if (r_u8(actor + 564) == 2)
         return sub_800CA7C4(m, actor, delta);
     return 2;
 }
@@ -14229,7 +13993,7 @@ uint32_t sub_8009ACA4(RRJMemory *m)
     uint32_t stride = rrj_read32(m, 0x800CE524);
     while (count-- >= 0)
     {
-        uint16_t identity = *(uint16_t *)rrj_at(m, actor + 172, 2);
+        uint16_t identity = r_u16(actor + 172);
         if (identity && (identity >> 5) == 5)
         {
             uint32_t active = sub_80039F68(m, actor + 172);
@@ -14250,7 +14014,7 @@ void sub_8009F3D0(RRJMemory *m, uint32_t identity, uint32_t player)
         if (record && rrj_read32(m, record + 8) == rrj_read32(m, identity + 4))
         {
             uint32_t table = rrj_read32(m, rrj_read32(m, rrj_read32(m, record + 4) + 32) + 48);
-            rrj_put16(rrj_at(m, table + 88 * *(uint8_t *)rrj_at(m, identity + 2, 1) + 4, 2), 0);
+            rrj_put16(rrj_at(m, table + 88 * r_u8(identity + 2) + 4, 2), 0);
         }
     }
 }
@@ -14286,7 +14050,7 @@ uint32_t sub_8008DE18(RRJMemory *m, uint32_t player, uint32_t group, uint32_t or
     else
     {
         int32_t next;
-        while ((next = (int16_t)*(uint16_t *)rrj_at(m, table + 8 * tail + 2, 2)) != -1)
+        while ((next = (int16_t)r_u16(table + 8 * tail + 2)) != -1)
             tail = next;
         rrj_put16(rrj_at(m, table + 8 * tail + 2, 2), (uint16_t)ordinal);
     }
@@ -14297,8 +14061,8 @@ uint32_t sub_8008DE18(RRJMemory *m, uint32_t player, uint32_t group, uint32_t or
 uint32_t sub_8008DD20(RRJMemory *m, uint32_t player, uint32_t object, uint32_t ordinal)
 {
     uint32_t record = 0x800CD898 + 1132 * player;
-    int32_t first = (int16_t)*(uint16_t *)rrj_at(m, record + 186, 2) - (int16_t)*(uint16_t *)rrj_at(m, object + 14, 2);
-    int32_t second = (int16_t)*(uint16_t *)rrj_at(m, record + 194, 2) - (int16_t)*(uint16_t *)rrj_at(m, object + 22, 2);
+    int32_t first = (int16_t)r_u16(record + 186) - (int16_t)r_u16(object + 14);
+    int32_t second = (int16_t)r_u16(record + 194) - (int16_t)r_u16(object + 22);
     int32_t large = (int32_t)leaf_abs32(first);
     int32_t small = (int32_t)leaf_abs32(second);
     int32_t distance;
@@ -14329,9 +14093,9 @@ uint32_t sub_8008D89C(RRJMemory *m)
         (void)sub_8008DCA0(m, player);
     while (count >= 0)
     {
-        if (*(uint16_t *)rrj_at(m, object, 2))
+        if (r_u16(object))
         {
-            uint8_t mask = *(uint8_t *)rrj_at(m, object + 3, 1);
+            uint8_t mask = r_u8(object + 3);
             if (mask & 1)
             {
                 rrj_write32(m, 0x800CD6B8, rrj_read32(m, 0x800CD6B8) + 1);
@@ -14359,7 +14123,7 @@ uint32_t sub_8009AB60(RRJMemory *m)
     uint32_t players = rrj_read32(m, rrj_read32(m, 0x8005B2F8) + 48);
     while (count-- >= 0)
     {
-        if (*(uint16_t *)rrj_at(m, identity, 2))
+        if (r_u16(identity))
         {
             uint32_t active = sub_80039F68(m, identity);
             uint32_t player;
@@ -14367,7 +14131,7 @@ uint32_t sub_8009AB60(RRJMemory *m)
             if (active << 16)
             {
                 for (player = 0; player < players; ++player)
-                    (void)sub_80013294(m, 6, *(uint16_t *)rrj_at(m, identity, 2), player);
+                    (void)sub_80013294(m, 6, r_u16(identity), player);
             }
             else
             {
@@ -14383,12 +14147,12 @@ uint32_t sub_8009AB60(RRJMemory *m)
 
 static uint8_t race_grid_packed(RRJMemory *m, uint8_t node)
 {
-    return *(uint8_t *)rrj_at(m, 0x800CCFA9u + 2u * node, 1);
+    return r_u8(0x800CCFA9u + 2u * node);
 }
 
 static uint8_t race_grid_next(RRJMemory *m, uint8_t node)
 {
-    return *(uint8_t *)rrj_at(m, 0x800CCFA8u + 2u * node, 1);
+    return r_u8(0x800CCFA8u + 2u * node);
 }
 
 static int race_grid_cell(RRJMemory *m, int32_t x, int32_t z, uint32_t players, uint32_t *cell)
@@ -14414,7 +14178,7 @@ static uint8_t race_grid_after_identity(RRJMemory *m, int32_t x, int32_t z, uint
     uint8_t node;
     if (!race_grid_cell(m, x, z, players, &cell))
         return 0x80;
-    node = *(uint8_t *)rrj_at(m, 0x800CD0B0u + cell, 1);
+    node = r_u8(0x800CD0B0u + cell);
     while (node != 0x80 && race_grid_packed(m, node) != identity)
         node = race_grid_next(m, node);
     return race_grid_next(m, node);
@@ -14493,8 +14257,8 @@ static void race_grid_insert_objects(RRJMemory *m, uint32_t players, uint32_t *n
             int active = 0;
             if (kind == 6)
             {
-                packed = (uint8_t)*(uint16_t *)rrj_at(m, object, 2);
-                active = packed && *(int16_t *)rrj_at(m, object + 148, 2);
+                packed = (uint8_t)r_u16(object);
+                active = packed && r_s16(object + 148);
                 if (active)
                 {
                     if (rrj_read32(m, object + 8) == 1)
@@ -14510,8 +14274,8 @@ static void race_grid_insert_objects(RRJMemory *m, uint32_t players, uint32_t *n
             }
             else
             {
-                packed = (uint8_t)*(uint16_t *)rrj_at(m, object + 172, 2);
-                active = *(int16_t *)rrj_at(m, object + 320, 2) != 0;
+                packed = (uint8_t)r_u16(object + 172);
+                active = r_s16(object + 320) != 0;
                 if (kind == 1 && rrj_read32(m, object + 604) < 2)
                     active = 0;
                 if (active && kind == 0)
@@ -14531,12 +14295,12 @@ static void race_grid_insert_objects(RRJMemory *m, uint32_t players, uint32_t *n
                     uint32_t cell;
                     if (race_grid_cell(m, rrj_s32(rrj_read32(m, position)), rrj_s32(rrj_read32(m, position + 8)), players, &cell))
                     {
-                        uint8_t old = *(uint8_t *)rrj_at(m, 0x800CD0B0u + cell, 1);
+                        uint8_t old = r_u8(0x800CD0B0u + cell);
                         if (old == 0x80 || race_grid_packed(m, old) != packed)
                         {
-                            *(uint8_t *)rrj_at(m, 0x800CCFA8u + 2u * *node_count, 1) = old;
-                            *(uint8_t *)rrj_at(m, 0x800CCFA9u + 2u * *node_count, 1) = packed;
-                            *(uint8_t *)rrj_at(m, 0x800CD0B0u + cell, 1) = (uint8_t)(*node_count);
+                            w_u8(0x800CCFA8u + 2u * *node_count, old);
+                            w_u8(0x800CCFA9u + 2u * *node_count, packed);
+                            w_u8(0x800CD0B0u + cell, (uint8_t)(*node_count));
                             ++*node_count;
                         }
                     }
@@ -14564,12 +14328,12 @@ static void race_grid_player_pairs(RRJMemory *m, uint32_t players, RRJRaceLeafCa
         uint8_t nodes[4];
         uint8_t identity;
         uint32_t point;
-        if (!*(int16_t *)rrj_at(m, actor + 320, 2))
+        if (!r_s16(actor + 320))
         {
             actor += stride;
             continue;
         }
-        identity = (uint8_t)*(uint16_t *)rrj_at(m, actor + 172, 2);
+        identity = (uint8_t)r_u16(actor + 172);
         for (point = 0; point < 4; ++point)
         {
             uint32_t position = actor + 196 + 12u * point;
@@ -14588,9 +14352,9 @@ static void race_grid_player_pairs(RRJMemory *m, uint32_t players, RRJRaceLeafCa
                     uint32_t candidate_flags = rrj_read32(m, candidate + 568);
                     int actor_moving = (actor_flags & 0x1E0) && ((actor_flags & 0x200000) || leaf_abs32(rrj_s32(rrj_read32(m, actor + 652))) > 45752);
                     int candidate_moving = (candidate_flags & 0x1E0) && ((candidate_flags & 0x200000) || leaf_abs32(rrj_s32(rrj_read32(m, candidate + 652))) > 45752);
-                    if ((candidate_moving || !actor_moving) && *(uint16_t *)rrj_at(m, rrj_read32(m, actor + 852) + 544, 2))
+                    if ((candidate_moving || !actor_moving) && r_u16(rrj_read32(m, actor + 852) + 544))
                     {
-                        if ((actor_moving || !candidate_moving) && *(uint16_t *)rrj_at(m, rrj_read32(m, candidate + 852) + 544, 2))
+                        if ((actor_moving || !candidate_moving) && r_u16(rrj_read32(m, candidate + 852) + 544))
                             (void)leaf_call(m, call, 0x800AB7A0, actor, candidate, 0, 0);
                         else
                             (void)leaf_call(m, call, 0x800B09C4, actor, candidate + 172, 0, 0);
@@ -14613,7 +14377,7 @@ static void race_grid_dispatch_pair(RRJMemory *m, uint32_t pass, uint32_t actor,
     {
         if (kind == 1 || kind == 2)
         {
-            if ((uint32_t)(*(uint16_t *)rrj_at(m, candidate + 544, 2) - 60u) >= 4)
+            if ((uint32_t)(r_u16(candidate + 544) - 60u) >= 4)
                 (void)leaf_call(m, call, 0x800AD04C, actor, 0, 0, 0);
         }
         else if (kind == 3)
@@ -14621,7 +14385,7 @@ static void race_grid_dispatch_pair(RRJMemory *m, uint32_t pass, uint32_t actor,
         else if (kind == 4)
         {
             uint32_t header = rrj_read32(m, candidate);
-            if ((*(uint16_t *)rrj_at(m, header + 14, 2) & 2) && !(rrj_read32(m, candidate + 592) & 0x1A06))
+            if ((r_u16(header + 14) & 2) && !(rrj_read32(m, candidate + 592) & 0x1A06))
                 (void)leaf_call(m, call, 0x800AE794, actor, candidate + 172, packed_address, 0);
             else
                 (void)leaf_call(m, call, 0x800B09C4, actor, candidate + 172, 0, 0);
@@ -14684,7 +14448,7 @@ static void race_grid_actor_post(RRJMemory *m, uint32_t pass, uint32_t actor, RR
             {
                 uint32_t sound = (rrj_read32(m, actor + 564) & 14) ? 17 : 3;
                 sub_80017BA0(m, rrj_s32(rrj_read32(m, actor + 184)), rrj_s32(rrj_read32(m, actor + 192)), sound, 0);
-                if (*(uint16_t *)rrj_at(m, actor + 172, 2) < rrj_read32(m, rrj_read32(m, 0x8005B2F8) + 48) && rrj_read32(m, rrj_read32(m, actor + 852) + 604) < 2 && !rrj_read32(m, 0x8005B220))
+                if (r_u16(actor + 172) < rrj_read32(m, rrj_read32(m, 0x8005B2F8) + 48) && rrj_read32(m, rrj_read32(m, actor + 852) + 604) < 2 && !rrj_read32(m, 0x8005B220))
                 {
                     const uint32_t args[8] = {actor, 0, rrj_read32(m, actor + 480), 1464860, 1, 0, 0, 0};
                     (void)leaf_call8(m, call, 0x800B658C, args);
@@ -14706,9 +14470,9 @@ static void race_grid_actor_post(RRJMemory *m, uint32_t pass, uint32_t actor, RR
         if ((rrj_read32(m, actor + 592) & 3) == 2 && rrj_s32(sub_8002E698(m, actor + 522, actor + 450)) > 0)
         {
             uint32_t vector = 0x1F8003E0;
-            rrj_put16(rrj_at(m, vector, 2), (uint16_t)-(int16_t)*(uint16_t *)rrj_at(m, actor + 522, 2));
-            rrj_put16(rrj_at(m, vector + 2, 2), (uint16_t)-(int16_t)*(uint16_t *)rrj_at(m, actor + 524, 2));
-            rrj_put16(rrj_at(m, vector + 4, 2), (uint16_t)-(int16_t)*(uint16_t *)rrj_at(m, actor + 526, 2));
+            rrj_put16(rrj_at(m, vector, 2), (uint16_t)-(int16_t)r_u16(actor + 522));
+            rrj_put16(rrj_at(m, vector + 2, 2), (uint16_t)-(int16_t)r_u16(actor + 524));
+            rrj_put16(rrj_at(m, vector + 4, 2), (uint16_t)-(int16_t)r_u16(actor + 526));
             (void)leaf_call(m, call, 0x800B3344, actor, actor + 504, vector, 1);
         }
     }
@@ -14721,7 +14485,7 @@ uint32_t sub_800A4774(RRJMemory *m, int32_t delta, RRJRaceLeafCall call)
     uint32_t pass;
     FUNCTION_MARKER(0x800A4774, "RASHCDG.BIN");
     rrj_write32(m, 0x800CCE38, (uint32_t)delta);
-    memset(rrj_at(m, 0x800CD0B0, 1152), 0x80, 1152);
+    xport_guest_fill(0x800CD0B0, 0x80, 1152);
     rrj_write32(m, 0x800CCF98, rrj_read32(m, rrj_read32(m, 0x8005B38C) + 184) + 0xF0000);
     rrj_write32(m, 0x800CCFA0, rrj_read32(m, rrj_read32(m, 0x8005B38C) + 192) + 0xF0000);
     if (players >= 2)
@@ -14758,7 +14522,7 @@ uint32_t sub_800A4774(RRJMemory *m, int32_t delta, RRJRaceLeafCall call)
                 uint32_t point;
                 uint32_t radius;
                 int special;
-                if (!*(int16_t *)rrj_at(m, actor + 320, 2) || (pass && !*(uint16_t *)rrj_at(m, actor + 172, 2)) || (pass == 1 && rrj_read32(m, actor + 604) < 2))
+                if (!r_s16(actor + 320) || (pass && !r_u16(actor + 172)) || (pass == 1 && rrj_read32(m, actor + 604) < 2))
                 {
                     actor += stride;
                     continue;
@@ -14766,7 +14530,7 @@ uint32_t sub_800A4774(RRJMemory *m, int32_t delta, RRJRaceLeafCall call)
                 special = (rrj_read32(m, actor + 388) & 1) != 0;
                 if (!special && rrj_read32(m, actor + 372))
                 {
-                    if (*(int16_t *)rrj_at(m, actor + 392, 2) == 4)
+                    if (r_s16(actor + 392) == 4)
                     {
                         actor += stride;
                         continue;
@@ -14774,7 +14538,7 @@ uint32_t sub_800A4774(RRJMemory *m, int32_t delta, RRJRaceLeafCall call)
                     special = 1;
                 }
                 radius = rrj_read32(m, 0x800CCA8C + 4u * pass) + (special ? 0xA0000u : 0);
-                identity = (uint8_t)*(uint16_t *)rrj_at(m, actor + 172, 2);
+                identity = (uint8_t)r_u16(actor + 172);
                 for (point = 0; point < 4; ++point)
                 {
                     uint32_t position = actor + 196 + 12u * point;
@@ -14815,12 +14579,12 @@ static void race_collision_negate_normal(RRJMemory *m, uint32_t normal)
 {
     uint32_t axis;
     for (axis = 0; axis < 3; ++axis)
-        rrj_put16(rrj_at(m, normal + 2 * axis, 2), (uint16_t)-(int16_t)*(uint16_t *)rrj_at(m, normal + 2 * axis, 2));
+        rrj_put16(rrj_at(m, normal + 2 * axis, 2), (uint16_t)-(int16_t)r_u16(normal + 2 * axis));
 }
 
 static uint32_t race_collision_return(RRJMemory *m, const uint8_t saved[256], uint32_t result)
 {
-    memcpy(rrj_at(m, 0x1F800100, 256), saved, 256);
+    xport_guest_copy(xport_guest_ref(0x1F800100), xport_host_ref((void *)saved), 256);
     return result;
 }
 
@@ -14858,7 +14622,7 @@ uint32_t sub_800B3AD0(RRJMemory *m, uint32_t actor, uint32_t mode, RRJRaceLeafCa
     previous_material = rrj_read32(m, actor + 388) >> 20;
     rrj_write32(m, actor + 388, rrj_read32(m, actor + 388) & 0x000FFFEFu);
     model = rrj_read32(m, actor + 328);
-    if ((*(uint16_t *)rrj_at(m, actor + 172, 2) >> 5) == 4 && (*(uint16_t *)rrj_at(m, actor + 172, 2) & 31) >= 30)
+    if ((r_u16(actor + 172) >> 5) == 4 && (r_u16(actor + 172) & 31) >= 30)
     {
         special = 1;
         special_actor = actor;
@@ -14868,18 +14632,18 @@ uint32_t sub_800B3AD0(RRJMemory *m, uint32_t actor, uint32_t mode, RRJRaceLeafCa
         uint32_t direct_group = rrj_read32(m, actor + 496);
         if (direct_group)
         {
-            segment_count = *(uint8_t *)rrj_at(m, direct_group + 3, 1);
+            segment_count = r_u8(direct_group + 3);
             if (!segment_count)
                 return race_collision_return(m, saved, 0);
             if (!(rrj_read32(m, actor + 388) & 1) && rrj_read32(m, actor + 372))
             {
-                if (*(uint16_t *)rrj_at(m, actor + 392, 2) == 4)
+                if (r_u16(actor + 392) == 4)
                     return race_collision_return(m, saved, 0);
             }
             side_flags = 0;
             flags = 0x100;
             group_count = 1;
-            segment_start = (uint32_t)(int32_t)*(int16_t *)rrj_at(m, direct_group, 2);
+            segment_start = (uint32_t)(int32_t)r_s16(direct_group);
         }
         else
         {
@@ -14890,32 +14654,32 @@ uint32_t sub_800B3AD0(RRJMemory *m, uint32_t actor, uint32_t mode, RRJRaceLeafCa
                 return race_collision_return(m, saved, 0);
             if (travel >= 0)
             {
-                group_count = *(uint8_t *)rrj_at(m, selector + 3, 1);
+                group_count = r_u8(selector + 3);
                 if (!group_count)
                     return race_collision_return(m, saved, 0);
-                group_index = *(uint8_t *)rrj_at(m, selector + 2, 1);
-                if (rrj_s32(rrj_read32(m, actor + 424)) * (int32_t)*(int16_t *)rrj_at(m, actor + 420, 2) - 0x8000 < travel)
+                group_index = r_u8(selector + 2);
+                if (rrj_s32(rrj_read32(m, actor + 424)) * (int32_t)r_s16(actor + 420) - 0x8000 < travel)
                     flags = 0x80;
             }
             else
             {
-                group_count = *(uint8_t *)rrj_at(m, selector + 1, 1);
+                group_count = r_u8(selector + 1);
                 if (!group_count)
                     return race_collision_return(m, saved, 0);
-                group_index = *(uint8_t *)rrj_at(m, selector, 1);
-                if (rrj_s32(rrj_read32(m, actor + 424)) * (int32_t)*(int16_t *)rrj_at(m, actor + 408, 2) - 0x8000 < -travel)
+                group_index = r_u8(selector);
+                if (rrj_s32(rrj_read32(m, actor + 424)) * (int32_t)r_s16(actor + 408) - 0x8000 < -travel)
                     flags = 0x40;
             }
             entry = rrj_read32(m, model + 100) + 4 * group_index;
-            segment_count = *(uint8_t *)rrj_at(m, entry + 3, 1);
-            segment_start = (uint32_t)(int32_t)*(int16_t *)rrj_at(m, entry, 2);
+            segment_count = r_u8(entry + 3);
+            segment_start = (uint32_t)(int32_t)r_s16(entry);
             if (!mode && !special && !flags)
                 return race_collision_return(m, saved, 0);
         }
     }
 
     {
-        uint32_t type = *(uint16_t *)rrj_at(m, actor + 172, 2) >> 5;
+        uint32_t type = r_u16(actor + 172) >> 5;
         uint32_t linked_mode = type == 0;
         if (!type)
         {
@@ -14928,7 +14692,7 @@ uint32_t sub_800B3AD0(RRJMemory *m, uint32_t actor, uint32_t mode, RRJRaceLeafCa
             if (rrj_read32(m, actor + 856) && rrj_read32(m, actor + 1088) && !(rrj_read32(m, actor + 320) & 8))
             {
                 (void)leaf_call(m, call, 0x800A8C78, actor, 1310720, 1835008, 0);
-                rrj_put16(rrj_at(m, rrj_read32(m, actor + 856) + 320, 2), *(uint16_t *)rrj_at(m, actor + 320, 2));
+                rrj_put16(rrj_at(m, rrj_read32(m, actor + 856) + 320, 2), r_u16(actor + 320));
             }
             if (rrj_s32(rrj_read32(m, actor + 636)) < 0)
                 side_flags |= 2;
@@ -14948,8 +14712,8 @@ uint32_t sub_800B3AD0(RRJMemory *m, uint32_t actor, uint32_t mode, RRJRaceLeafCa
             if (outer_index)
             {
                 uint32_t entry = rrj_read32(m, model + 100) + 4 * group_index;
-                uint32_t next_count = *(uint8_t *)rrj_at(m, entry + 3, 1);
-                segment_start = (uint32_t)(int32_t)*(int16_t *)rrj_at(m, entry, 2);
+                uint32_t next_count = r_u8(entry + 3);
+                segment_start = (uint32_t)(int32_t)r_s16(entry);
                 segment_count = next_count;
                 if (special && rrj_read32(m, special_actor + 768))
                     return race_collision_return(m, saved, 1);
@@ -14987,11 +14751,11 @@ uint32_t sub_800B3AD0(RRJMemory *m, uint32_t actor, uint32_t mode, RRJRaceLeafCa
                 int32_t first_projection;
                 int32_t second_projection;
 
-                if ((*(uint16_t *)rrj_at(m, surface + 2, 2) & 15) == 0 || (*(uint16_t *)rrj_at(m, surface + 2, 2) & 15) >= 9)
+                if ((r_u16(surface + 2) & 15) == 0 || (r_u16(surface + 2) & 15) >= 9)
                     rrj_put16(rrj_at(m, surface + 2, 2), 1026);
                 if (special)
                 {
-                    if (!(*(uint16_t *)rrj_at(m, surface + 2, 2) & 0x100))
+                    if (!(r_u16(surface + 2) & 0x100))
                         goto reject_surface;
                     if (rrj_read32(m, special_actor + 768))
                     {
@@ -15010,7 +14774,7 @@ uint32_t sub_800B3AD0(RRJMemory *m, uint32_t actor, uint32_t mode, RRJRaceLeafCa
                             selected = last_surface - step;
                             flags &= ~0x400u;
                         }
-                        else if (surface_index < segment_count - 1 && (*(uint16_t *)rrj_at(m, surface + step + 2, 2) & 0x100))
+                        else if (surface_index < segment_count - 1 && (r_u16(surface + step + 2) & 0x100))
                         {
                             int32_t current_dot;
                             int32_t next_dot;
@@ -15031,7 +14795,7 @@ uint32_t sub_800B3AD0(RRJMemory *m, uint32_t actor, uint32_t mode, RRJRaceLeafCa
                             else
                                 flags |= 0x10000;
                         }
-                        if (!(flags & 0x400) && surface_index && (*(uint16_t *)rrj_at(m, surface - step + 2, 2) & 0x100))
+                        if (!(flags & 0x400) && surface_index && (r_u16(surface - step + 2) & 0x100))
                         {
                             int32_t previous_dot = rrj_s32(sub_8002E698(m, edge_cursor, surface - step + 32));
                             int32_t actor_dot = rrj_s32(sub_8002E698(m, edge_cursor, actor_normal));
@@ -15048,11 +14812,11 @@ uint32_t sub_800B3AD0(RRJMemory *m, uint32_t actor, uint32_t mode, RRJRaceLeafCa
                     selected = surface;
 
                 contact_flags = flags & ~0x200u;
-                material = *(uint16_t *)rrj_at(m, selected + 2, 2);
+                material = r_u16(selected + 2);
                 if ((int16_t)material != (int16_t)previous_flags)
                     contact_flags |= 0x200;
                 rrj_write32(m, normal, rrj_read32(m, selected + 32));
-                rrj_put16(rrj_at(m, normal + 4, 2), *(uint16_t *)rrj_at(m, selected + 36, 2));
+                rrj_put16(rrj_at(m, normal + 4, 2), r_u16(selected + 36));
                 rrj_write32(m, edge_a, rrj_read32(m, selected + 8));
                 rrj_write32(m, edge_a + 4, rrj_read32(m, selected + 12));
                 rrj_write32(m, edge_a + 8, rrj_read32(m, selected + 16));
@@ -15061,7 +14825,7 @@ uint32_t sub_800B3AD0(RRJMemory *m, uint32_t actor, uint32_t mode, RRJRaceLeafCa
                 rrj_write32(m, edge_b + 8, rrj_read32(m, selected + 28));
                 previous_flags = (uint16_t)material;
                 surface_offset = rrj_s32(rrj_read32(m, selected + 4));
-                if (leaf_abs32((int16_t)*(uint16_t *)rrj_at(m, normal + 2, 2)) >= 65)
+                if (leaf_abs32((int16_t)r_u16(normal + 2)) >= 65)
                 {
                     rrj_put16(rrj_at(m, normal + 2, 2), 0);
                     (void)sub_8002E468(m, normal);
@@ -15070,7 +14834,7 @@ uint32_t sub_800B3AD0(RRJMemory *m, uint32_t actor, uint32_t mode, RRJRaceLeafCa
 
                 if ((flags & 0x200) && (material & 15) == 5 && (mode || special))
                 {
-                    if ((previous_material & 15) == 5 || special || *(int16_t *)rrj_at(m, actor + 452, 2) < 0)
+                    if ((previous_material & 15) == 5 || special || r_s16(actor + 452) < 0)
                     {
                         flags |= 0x10;
                         rrj_write32(m, normal, 0x10000000);
@@ -15084,9 +14848,9 @@ uint32_t sub_800B3AD0(RRJMemory *m, uint32_t actor, uint32_t mode, RRJRaceLeafCa
                     }
                     else if (rrj_s32(rrj_read32(m, actor + 188)) < rrj_s32(rrj_read32(m, rrj_read32(m, actor + 340) + 24) - (uint32_t)surface_offset + 0x10000))
                     {
-                        rrj_put16(rrj_at(m, normal, 2), *(uint16_t *)rrj_at(m, actor + 354, 2));
-                        rrj_put16(rrj_at(m, normal + 2, 2), *(uint16_t *)rrj_at(m, actor + 356, 2));
-                        rrj_put16(rrj_at(m, normal + 4, 2), *(uint16_t *)rrj_at(m, actor + 358, 2));
+                        rrj_put16(rrj_at(m, normal, 2), r_u16(actor + 354));
+                        rrj_put16(rrj_at(m, normal + 2, 2), r_u16(actor + 356));
+                        rrj_put16(rrj_at(m, normal + 4, 2), r_u16(actor + 358));
                         flags |= 8;
                         ++segment_count;
                         if (rrj_s32(rrj_read32(m, actor + 364)) > 0)
@@ -15145,7 +14909,7 @@ uint32_t sub_800B3AD0(RRJMemory *m, uint32_t actor, uint32_t mode, RRJRaceLeafCa
 
                 if (material & 0x400)
                 {
-                    if ((*(uint16_t *)rrj_at(m, actor + 172, 2) >> 5) == 1 && (material & 0xA00) == 0 && rrj_read32(m, actor + 604) == 4)
+                    if ((r_u16(actor + 172) >> 5) == 1 && (material & 0xA00) == 0 && rrj_read32(m, actor + 604) == 4)
                         goto reject_surface;
                     flags |= sub_800B6AAC(m, actor + 468, normal, edge_a) >> 31;
                     if ((material & 15) == 1 && (flags & 1))
@@ -15157,8 +14921,8 @@ uint32_t sub_800B3AD0(RRJMemory *m, uint32_t actor, uint32_t mode, RRJRaceLeafCa
                 if (!special && !(flags & 0x18) && !(material & 0x800))
                 {
                     uint32_t game = rrj_read32(m, 0x8005B2F8);
-                    uint32_t actor_type = *(uint16_t *)rrj_at(m, actor + 172, 2) >> 5;
-                    int test = (actor_type < 2 && (uint32_t)(*(uint16_t *)rrj_at(m, actor + 172, 2) & 31) < rrj_read32(m, game + 48));
+                    uint32_t actor_type = r_u16(actor + 172) >> 5;
+                    int test = (actor_type < 2 && (uint32_t)(r_u16(actor + 172) & 31) < rrj_read32(m, game + 48));
                     if (!test)
                         test = leaf_call(m, call, 0x800A8C78, actor, 1310720, 1835008, 0) != 0;
                     if (test)
@@ -15172,7 +14936,7 @@ uint32_t sub_800B3AD0(RRJMemory *m, uint32_t actor, uint32_t mode, RRJRaceLeafCa
                                 motion_distance = 0x20000;
                             if (linked_mode)
                             {
-                                int32_t cross = (int32_t)*(int16_t *)rrj_at(m, actor + 454, 2) * (int16_t)*(uint16_t *)rrj_at(m, normal, 2) >= (int32_t)*(int16_t *)rrj_at(m, actor + 450, 2) * (int16_t)*(uint16_t *)rrj_at(m, normal + 4, 2);
+                                int32_t cross = (int32_t)r_s16(actor + 454) * (int16_t)r_u16(normal) >= (int32_t)r_s16(actor + 450) * (int16_t)r_u16(normal + 4);
                                 side_flags |= 4 * (cross ^ (flags & 1)) | (absolute <= 37485);
                             }
                         }
@@ -15271,9 +15035,9 @@ uint32_t sub_800B3AD0(RRJMemory *m, uint32_t actor, uint32_t mode, RRJRaceLeafCa
                         wheel = sub_800B6F40(m, actor + 196, normal, edge_a, scratch + 120, scratch + 124);
                         if (rrj_read32(m, scratch + 124) == 8)
                         {
-                            uint32_t identity = *(uint16_t *)rrj_at(m, actor + 172, 2);
+                            uint32_t identity = r_u16(actor + 172);
                             uint32_t player_count = rrj_read32(m, rrj_read32(m, 0x8005B2F8) + 48);
-                            if ((material & 0x800) && !(identity < player_count || ((*(uint16_t *)rrj_at(m, actor + 852 + 172, 2) >> 5) == 1 && (identity & 31) < player_count && (rrj_read32(m, actor + 552) & 0x80000))))
+                            if ((material & 0x800) && !(identity < player_count || ((r_u16(actor + 852 + 172) >> 5) == 1 && (identity & 31) < player_count && (rrj_read32(m, actor + 552) & 0x80000))))
                                 wheel = 8;
                             if (threshold < rrj_s32(rrj_read32(m, scratch + 120)))
                                 wheel = 8;
@@ -15310,14 +15074,14 @@ uint32_t sub_800B3AD0(RRJMemory *m, uint32_t actor, uint32_t mode, RRJRaceLeafCa
                     uint32_t index;
                     if (flags & 0x10)
                     {
-                        tangent_x = (int32_t)*(int16_t *)rrj_at(m, selected + 32, 2) << 4;
-                        tangent_z = (int32_t)*(int16_t *)rrj_at(m, selected + 36, 2) << 4;
+                        tangent_x = (int32_t)r_s16(selected + 32) << 4;
+                        tangent_z = (int32_t)r_s16(selected + 36) << 4;
                     }
                     else
                     {
-                        tangent_x = (int32_t)*(int16_t *)rrj_at(m, normal + 4, 2) << 4;
-                        tangent_z = -(int32_t)*(int16_t *)rrj_at(m, normal, 2) << 4;
-                        if (leaf_abs32((int16_t)*(uint16_t *)rrj_at(m, normal + 2, 2)) >= 65)
+                        tangent_x = (int32_t)r_s16(normal + 4) << 4;
+                        tangent_z = -(int32_t)r_s16(normal) << 4;
+                        if (leaf_abs32((int16_t)r_u16(normal + 2)) >= 65)
                         {
                             int32_t length = (int32_t)sub_8001FC90(tangent_x, tangent_x) + (int32_t)sub_8001FC90(tangent_z, tangent_z);
                             int32_t root = rrj_s32(sub_8004CF74(m, (uint32_t)length));
@@ -15330,7 +15094,7 @@ uint32_t sub_800B3AD0(RRJMemory *m, uint32_t actor, uint32_t mode, RRJRaceLeafCa
                     second_dot = (int32_t)sub_8001FC90(tangent_x, rrj_s32(rrj_read32(m, edge_a + 12) - rrj_read32(m, edge_b))) + (int32_t)sub_8001FC90(tangent_z, rrj_s32(rrj_read32(m, edge_a + 20) - rrj_read32(m, edge_b + 8)));
                     tangent_ratio = first_dot;
                     if (material & 0x400)
-                        front_limit = ((int16_t)*(uint16_t *)rrj_at(m, actor + 482, 2) / 16) * rrj_s32(rrj_read32(m, actor + 304)) + 2048;
+                        front_limit = ((int16_t)r_u16(actor + 482) / 16) * rrj_s32(rrj_read32(m, actor + 304)) + 2048;
                     if (special && (flags & 0x10000))
                     {
                         side_limit = rrj_s32(sub_800B6AAC(m, edge_b, (flags & 0x400) ? edge_cursor : last_surface + 32, (flags & 0x400) ? surface + 8 : last_surface + 8));
@@ -15350,14 +15114,14 @@ uint32_t sub_800B3AD0(RRJMemory *m, uint32_t actor, uint32_t mode, RRJRaceLeafCa
                     if ((material & 15) == 1 || (mode && (material & 0x400)))
                     {
                         int32_t height = rrj_s32(rrj_read32(m, edge_a + 4));
-                        if ((*(uint16_t *)rrj_at(m, actor + 172, 2) >> 5) < 3)
+                        if ((r_u16(actor + 172) >> 5) < 3)
                             height = rrj_s32(rrj_read32(m, actor + 508));
-                        if ((material & 15) == 1 && *(uint16_t *)rrj_at(m, selected + 38, 2))
+                        if ((material & 15) == 1 && r_u16(selected + 38))
                         {
                             int32_t a = (int32_t)leaf_abs32(first_dot);
                             int32_t b = (int32_t)leaf_abs32(second_dot);
                             tangent_ratio = (a + b) ? (int32_t)sub_80010028((uint32_t)a, (uint32_t)(a + b)) : 0;
-                            surface_offset = *(uint16_t *)rrj_at(m, selected + 38, 2) == 1 ? 0x10000 - tangent_ratio : tangent_ratio;
+                            surface_offset = r_u16(selected + 38) == 1 ? 0x10000 - tangent_ratio : tangent_ratio;
                         }
                         for (index = 0; index < 8; ++index)
                             if (height - surface_offset < rrj_s32(rrj_read32(m, actor + 200 + 12 * index)))
@@ -15365,7 +15129,7 @@ uint32_t sub_800B3AD0(RRJMemory *m, uint32_t actor, uint32_t mode, RRJRaceLeafCa
                         if (index >= 8)
                         {
                             int reject = 1;
-                            uint32_t identity = *(uint16_t *)rrj_at(m, actor + 172, 2);
+                            uint32_t identity = r_u16(actor + 172);
                             uint32_t player_count = rrj_read32(m, rrj_read32(m, 0x8005B2F8) + 48);
                             if ((identity >> 5) < 2 && (identity & 31) < player_count && (material & 0x200) && sub_800B6F40(m, actor + 196, normal, edge_a, 0, scratch + 124) != 8)
                             {
@@ -15375,7 +15139,7 @@ uint32_t sub_800B3AD0(RRJMemory *m, uint32_t actor, uint32_t mode, RRJRaceLeafCa
                                     if (rrj_read32(m, scratch + 124) == 8)
                                     {
                                         uint32_t owner = linked_mode ? rrj_read32(m, actor + 852) : actor;
-                                        uint32_t owner_identity = linked_mode ? *(uint16_t *)rrj_at(m, actor + 172, 2) : *(uint16_t *)rrj_at(m, rrj_read32(m, actor + 596) + 172, 2);
+                                        uint32_t owner_identity = linked_mode ? r_u16(actor + 172) : r_u16(rrj_read32(m, actor + 596) + 172);
                                         uint32_t record = 0x800CD898 + 1132 * owner_identity;
                                         rrj_write32(m, record + 788, 0xFFFF0000);
                                         rrj_write32(m, record + 548, rrj_read32(m, record + 548) | 0x40000);
@@ -15406,10 +15170,10 @@ uint32_t sub_800B3AD0(RRJMemory *m, uint32_t actor, uint32_t mode, RRJRaceLeafCa
                     {
                         if ((flags & 5) == 5)
                             race_collision_negate_normal(m, normal);
-                        if ((*(uint16_t *)rrj_at(m, actor + 172, 2) >> 5) != 1 && !(flags & 4))
+                        if ((r_u16(actor + 172) >> 5) != 1 && !(flags & 4))
                             contact_distance += 0x2000;
                         if ((material & 0x400) && !(flags & 1))
-                            contact_distance += ((int16_t)*(uint16_t *)rrj_at(m, actor + 482, 2) / 16) << 13;
+                            contact_distance += ((int16_t)r_u16(actor + 482) / 16) << 13;
                         (void)sub_8002EE50(m, (uint32_t)contact_distance, normal, response);
                     }
 
@@ -15428,10 +15192,10 @@ uint32_t sub_800B3AD0(RRJMemory *m, uint32_t actor, uint32_t mode, RRJRaceLeafCa
                         {
                             uint32_t count = rrj_read32(m, 0x800CCF68);
                             uint32_t record = 0x800CCE48 + 36 * count;
-                            rrj_put16(rrj_at(m, record, 2), *(uint16_t *)rrj_at(m, owner + 172, 2));
-                            rrj_put16(rrj_at(m, record + 2, 2), *(uint16_t *)rrj_at(m, selected, 2));
+                            rrj_put16(rrj_at(m, record, 2), r_u16(owner + 172));
+                            rrj_put16(rrj_at(m, record + 2, 2), r_u16(selected));
                             rrj_write32(m, record + 4, rrj_read32(m, normal));
-                            rrj_put16(rrj_at(m, record + 8, 2), *(uint16_t *)rrj_at(m, normal + 4, 2));
+                            rrj_put16(rrj_at(m, record + 8, 2), r_u16(normal + 4));
                             rrj_put16(rrj_at(m, record + 10, 2), (uint16_t)material);
                             rrj_write32(m, record + 12, selected);
                             rrj_write32(m, record + 16, rrj_read32(m, response));
@@ -15452,7 +15216,7 @@ uint32_t sub_800B3AD0(RRJMemory *m, uint32_t actor, uint32_t mode, RRJRaceLeafCa
                         if (flags & 0x20000)
                         {
                             int32_t chosen = tangent_ratio;
-                            int32_t cross = (int32_t)*(int16_t *)rrj_at(m, surface - step + 32, 2) * (int16_t)(tangent_x >> 4) / 4 + (int32_t)*(int16_t *)rrj_at(m, surface - step + 36, 2) * (int16_t)(tangent_z >> 4) / 4;
+                            int32_t cross = (int32_t)r_s16(surface - step + 32) * (int16_t)(tangent_x >> 4) / 4 + (int32_t)r_s16(surface - step + 36) * (int16_t)(tangent_z >> 4) / 4;
                             int32_t segment = (int32_t)sub_8001FC90(rrj_s32(rrj_read32(m, edge_b) - rrj_read32(m, edge_a)), tangent_x) + (int32_t)sub_8001FC90(rrj_s32(rrj_read32(m, edge_b + 8) - rrj_read32(m, edge_a + 8)), tangent_z);
                             int32_t impulse;
                             if ((cross ^ segment) >= 0)
@@ -15469,7 +15233,7 @@ uint32_t sub_800B3AD0(RRJMemory *m, uint32_t actor, uint32_t mode, RRJRaceLeafCa
                     }
                     else
                     {
-                        uint32_t identity = *(uint16_t *)rrj_at(m, actor + 172, 2);
+                        uint32_t identity = r_u16(actor + 172);
                         uint32_t actor_type = identity >> 5;
                         (void)leaf_call(m, call, 0x800A8DF0, actor, response, 1, 0);
                         if (actor_type == 2)
@@ -15542,15 +15306,15 @@ uint32_t sub_800A8FE8(RRJMemory *m, uint32_t actor)
     length = rrj_s32(sub_8002F0F4(m, vector));
     if (length < 132)
     {
-        memcpy(rrj_at(m, vector, sizeof(saved)), saved, sizeof(saved));
+        xport_guest_copy(xport_guest_ref(vector), xport_host_ref((void *)saved), sizeof(saved));
         return 0;
     }
     flags = rrj_read32(m, actor + 568);
     if (!(flags & 0x02000000))
     {
-        rrj_put16(rrj_at(m, actor + 864, 2), *(uint16_t *)rrj_at(m, actor + 450, 2));
-        rrj_put16(rrj_at(m, actor + 866, 2), *(uint16_t *)rrj_at(m, actor + 452, 2));
-        rrj_put16(rrj_at(m, actor + 868, 2), *(uint16_t *)rrj_at(m, actor + 454, 2));
+        rrj_put16(rrj_at(m, actor + 864, 2), r_u16(actor + 450));
+        rrj_put16(rrj_at(m, actor + 866, 2), r_u16(actor + 452));
+        rrj_put16(rrj_at(m, actor + 868, 2), r_u16(actor + 454));
         rrj_write32(m, actor + 860, rrj_read32(m, actor + 480));
         rrj_write32(m, actor + 568, flags | 0x02000000);
     }
@@ -15571,7 +15335,7 @@ uint32_t sub_800A8FE8(RRJMemory *m, uint32_t actor)
     }
     (void)sub_8002EED8(m, (uint32_t)reciprocal, vector, actor + 450);
     linked = rrj_read32(m, actor + 856);
-    memcpy(rrj_at(m, vector, sizeof(saved)), saved, sizeof(saved));
+    xport_guest_copy(xport_guest_ref(vector), xport_host_ref((void *)saved), sizeof(saved));
     if (linked && rrj_read32(m, actor + 1088))
     {
         rrj_write32(m, actor + 568, rrj_read32(m, actor + 568) | 0x01000000);
@@ -15582,7 +15346,7 @@ uint32_t sub_800A8FE8(RRJMemory *m, uint32_t actor)
 
 uint32_t sub_800A8C78(RRJMemory *m, uint32_t actor, int32_t lateral_limit, int32_t distance_limit)
 {
-    uint16_t state = *(uint16_t *)rrj_at(m, actor + 320, 2);
+    uint16_t state = r_u16(actor + 320);
     uint32_t player_count;
     uint32_t index;
     uint32_t result = 0;
@@ -15672,7 +15436,7 @@ uint32_t sub_80079B20(RRJMemory *m, uint32_t list, int32_t delta, RRJRaceLeafCal
     {
         uint32_t actor = node - 1088;
         uint32_t specification = rrj_read32(m, actor + 556);
-        int32_t gear = *(int8_t *)rrj_at(m, actor + 849, 1);
+        int32_t gear = r_s8(actor + 849);
         int32_t ratio = rrj_s32(rrj_read32(m, specification + 20 + 4 * gear));
         uint32_t state = rrj_read32(m, actor + 564);
         uint32_t flags = rrj_read32(m, actor + 560);
@@ -15733,10 +15497,10 @@ uint32_t sub_80079B20(RRJMemory *m, uint32_t list, int32_t delta, RRJRaceLeafCal
                 rrj_write32(m, actor + 480, rrj_read32(m, actor + 576));
             }
         }
-        if (*(int8_t *)rrj_at(m, actor + 8, 1) < 2)
+        if (r_s8(actor + 8) < 2)
         {
-            int32_t target = rrj_s32(sub_8001FF3C(m, (uint32_t)((int32_t)*(int16_t *)rrj_at(m, actor + 530, 2) << 4)));
-            int32_t current = *(int16_t *)rrj_at(m, actor + 842, 2);
+            int32_t target = rrj_s32(sub_8001FF3C(m, (uint32_t)((int32_t)r_s16(actor + 530) << 4)));
+            int32_t current = r_s16(actor + 842);
             int32_t change = (int32_t)sub_8001FC90((target - current) << 16, 0x79999);
             change = (int32_t)sub_8001FC90(change, delta) >> 16;
             rrj_put16(rrj_at(m, actor + 842, 2), (uint16_t)(current + change));
@@ -15817,8 +15581,8 @@ uint32_t sub_8007AC04(RRJMemory *m, uint32_t list)
         if (rrj_read32(m, actor + 676))
         {
             uint32_t index = ((uint32_t)(163u * rrj_read32(m, actor + 676)) >> 14) & 0xFFF;
-            sine = (int32_t)*(int16_t *)rrj_at(m, 0x8005624C + 4 * index, 2) << 4;
-            cosine = (int32_t)*(int16_t *)rrj_at(m, 0x8005624E + 4 * index, 2) << 4;
+            sine = (int32_t)r_s16(0x8005624C + 4 * index) << 4;
+            cosine = (int32_t)r_s16(0x8005624E + 4 * index) << 4;
         }
         state = rrj_read32(m, actor + 564);
         flags = rrj_read32(m, actor + 568);
@@ -15846,9 +15610,9 @@ uint32_t sub_8007AC04(RRJMemory *m, uint32_t list)
                 }
             }
         }
-        rrj_write32(m, actor + 732, (uint32_t)(157 * (int32_t)*(int16_t *)rrj_at(m, actor + 518, 2)));
-        rrj_write32(m, actor + 736, (uint32_t)(157 * (int32_t)*(int16_t *)rrj_at(m, actor + 524, 2)));
-        rrj_write32(m, actor + 740, (uint32_t)(157 * (int32_t)*(int16_t *)rrj_at(m, actor + 530, 2)));
+        rrj_write32(m, actor + 732, (uint32_t)(157 * (int32_t)r_s16(actor + 518)));
+        rrj_write32(m, actor + 736, (uint32_t)(157 * (int32_t)r_s16(actor + 524)));
+        rrj_write32(m, actor + 740, (uint32_t)(157 * (int32_t)r_s16(actor + 530)));
         longitudinal = rrj_s32(rrj_read32(m, actor + 740));
         if (rrj_read32(m, actor + 676))
         {
@@ -15906,13 +15670,13 @@ uint32_t sub_8007AC04(RRJMemory *m, uint32_t list)
             if (first < second)
                 lateral = rrj_s32(mask & (uint32_t)second);
         }
-        if (*(uint16_t *)rrj_at(m, actor + 172, 2) >= rrj_read32(m, rrj_read32(m, 0x8005B2F8) + 48) || rrj_read32(m, 0x8005B220))
+        if (r_u16(actor + 172) >= rrj_read32(m, rrj_read32(m, 0x8005B2F8) + 48) || rrj_read32(m, 0x8005B220))
         {
             int32_t target = lateral - heading;
             int32_t filtered;
             if (flags & 0x7FF)
                 filtered = (rrj_s32(rrj_read32(m, actor + 648)) + 3 * target) / 4;
-            else if (!rrj_read32(m, actor + 660) && *(int16_t *)rrj_at(m, actor + 944, 2))
+            else if (!rrj_read32(m, actor + 660) && r_s16(actor + 944))
                 filtered = (3 * rrj_s32(rrj_read32(m, actor + 648)) + target) / 4;
             else
                 filtered = (rrj_s32(rrj_read32(m, actor + 648)) + target) / 2;
@@ -15938,13 +15702,13 @@ uint32_t sub_8007AC04(RRJMemory *m, uint32_t list)
             if (pitch > 0)
                 scale = -scale;
             scale = (3 * scale) / 4;
-            first = rrj_s32((uint32_t)sub_8001FC90(scale, (int32_t)*(int16_t *)rrj_at(m, 0x8005624C + 4 * index, 2) << 4));
-            second = rrj_s32((uint32_t)sub_8001FC90(scale, 0x10000 - ((int32_t)*(int16_t *)rrj_at(m, 0x8005624E + 4 * index, 2) << 4)));
+            first = rrj_s32((uint32_t)sub_8001FC90(scale, (int32_t)r_s16(0x8005624C + 4 * index) << 4));
+            second = rrj_s32((uint32_t)sub_8001FC90(scale, 0x10000 - ((int32_t)r_s16(0x8005624E + 4 * index) << 4)));
             for (i = 0; i < 3; ++i)
             {
                 int32_t position = rrj_s32(rrj_read32(m, actor + 504 + 4 * i));
-                position += (int32_t)(((int64_t)((int32_t)*(int16_t *)rrj_at(m, actor + 438 + 2 * i, 2) << 4) * first) >> 16);
-                position += (int32_t)(((int64_t)((int32_t)*(int16_t *)rrj_at(m, actor + 528 + 2 * i, 2) << 4) * second) >> 16);
+                position += (int32_t)(((int64_t)((int32_t)r_s16(actor + 438 + 2 * i) << 4) * first) >> 16);
+                position += (int32_t)(((int64_t)((int32_t)r_s16(actor + 528 + 2 * i) << 4) * second) >> 16);
                 rrj_write32(m, actor + 184 + 4 * i, (uint32_t)position);
             }
         }
@@ -15970,17 +15734,17 @@ uint32_t sub_80095724(RRJMemory *m, uint32_t actor, uint32_t delta, RRJRaceLeafC
     FUNCTION_MARKER(0x80095724, "RASHCDG.BIN");
     if (!actor)
         return 0;
-    if (*(int16_t *)rrj_at(m, actor + 320, 2))
+    if (r_s16(actor + 320))
     {
         if (!rrj_read32(m, 0x800CCA80))
             rrj_write32(m, 0x800CCA80, 1);
         return rrj_read32(m, 0x800CCA80);
     }
     rrj_write32(m, actor + 568, rrj_read32(m, actor + 568) & ~0x800u);
-    if (*(int16_t *)rrj_at(m, 0x800D6182, 2) == -1)
+    if (r_s16(0x800D6182) == -1)
         return 0;
     descriptor = rrj_read32(m, actor + 1084);
-    if (((*(uint8_t *)rrj_at(m, descriptor + 1, 1) & 15) == 2 && !(*(uint8_t *)rrj_at(m, actor + 928, 1) & 0x10)) || (*(uint8_t *)rrj_at(m, descriptor, 1) & 0x10) || rrj_read32(m, descriptor + 40) || rrj_read32(m, rrj_read32(m, actor + 852) + 604) >= 3)
+    if (((r_u8(descriptor + 1) & 15) == 2 && !(r_u8(actor + 928) & 0x10)) || (r_u8(descriptor) & 0x10) || rrj_read32(m, descriptor + 40) || rrj_read32(m, rrj_read32(m, actor + 852) + 604) >= 3)
         return 0;
     target = sub_80095BF8(m, actor, delta);
     rrj_write32(m, actor + 924, target);
@@ -16012,14 +15776,14 @@ uint32_t sub_8007B840(RRJMemory *m, int32_t delta, RRJRaceLeafCall call)
         uint32_t flags = rrj_read32(m, actor + 568);
         if (flags & 0x02000000)
         {
-            rrj_put16(rrj_at(m, actor + 450, 2), *(uint16_t *)rrj_at(m, actor + 864, 2));
-            rrj_put16(rrj_at(m, actor + 452, 2), *(uint16_t *)rrj_at(m, actor + 866, 2));
-            rrj_put16(rrj_at(m, actor + 454, 2), *(uint16_t *)rrj_at(m, actor + 868, 2));
+            rrj_put16(rrj_at(m, actor + 450, 2), r_u16(actor + 864));
+            rrj_put16(rrj_at(m, actor + 452, 2), r_u16(actor + 866));
+            rrj_put16(rrj_at(m, actor + 454, 2), r_u16(actor + 868));
             rrj_write32(m, actor + 480, rrj_read32(m, actor + 860));
         }
         if (flags & 0x08001800)
             (void)leaf_call(m, call, 0x80071BCC, actor, (uint32_t)delta, 0, 0);
-        if (*(uint16_t *)rrj_at(m, actor + 320, 2))
+        if (r_u16(actor + 320))
         {
             uint32_t state = rrj_read32(m, actor + 564);
             if ((state & 0x18000) == 0x8000)
@@ -16064,13 +15828,13 @@ uint32_t sub_8007B840(RRJMemory *m, int32_t delta, RRJRaceLeafCall call)
         uint32_t body = rrj_read32(m, actor + 852);
         if (rrj_read32(m, actor + 568) & 0x08001800)
             (void)leaf_call(m, call, 0x80071BCC, actor, (uint32_t)delta, 0, 0);
-        if (rrj_read32(m, body + 604) >= 2 && *(uint16_t *)rrj_at(m, body + 320, 2))
+        if (rrj_read32(m, body + 604) >= 2 && r_u16(body + 320))
             (void)leaf_call(m, call, 0x8008F404, actor, (uint32_t)delta, 0, 0);
-        if (*(uint8_t *)rrj_at(m, body + 572, 1) & 0x10)
+        if (r_u8(body + 572) & 0x10)
         {
             uint32_t linked = rrj_read32(m, actor + 856);
             uint32_t linked_body = rrj_read32(m, linked + 852);
-            if (rrj_read32(m, linked_body + 604) >= 2 && *(uint16_t *)rrj_at(m, linked_body + 320, 2))
+            if (rrj_read32(m, linked_body + 604) >= 2 && r_u16(linked_body + 320))
                 (void)leaf_call(m, call, 0x8008F404, linked, (uint32_t)delta, 0, 0);
         }
         actor += rrj_read32(m, 0x800CE4D4);

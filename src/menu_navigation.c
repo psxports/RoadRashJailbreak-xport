@@ -17,16 +17,16 @@ static int selectable(RRJMemory *memory, uint32_t entry, uint32_t mode)
     if (type != 12 && type != 13 && type != 17)
         return 0;
     flags = rrj_read32(memory, entry);
-    if ((flags & 0x40000000) && (*(uint8_t *)rrj_at(memory, 0x800D70E1, 1) >> 4) != 8)
+    if ((flags & 0x40000000) && (r_u8(0x800D70E1) >> 4) != 8)
         return 0;
     if (flags & 0x02000000)
     {
-        uint32_t bits = *(uint8_t *)rrj_at(memory, 0x8009C5E6, 1);
+        uint32_t bits = r_u8(0x8009C5E6);
         int32_t player = bits < 128 ? (int32_t)bits : (int32_t)bits - 256;
         if (rrj_read32(memory, 0x800D742C + (uint32_t)player * 24) != 1)
             return 0;
     }
-    if ((flags & 0x10000000) && !*(uint8_t *)rrj_at(memory, 0x800D80F3, 1))
+    if ((flags & 0x10000000) && !r_u8(0x800D80F3))
         return 0;
     if ((flags & 0x08000000) && mode != 4)
         return 0;

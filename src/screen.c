@@ -14,11 +14,11 @@ uint32_t sub_8001BF1C(RRJMemory *m, uint32_t enabled, uint32_t red, uint32_t gre
     if (context)
         for (i = 0; i < 2; ++i)
         {
-            uint8_t *p = rrj_at(m, context + 40 + 112 * i, 4);
-            p[0] = (uint8_t)enabled;
-            p[1] = (uint8_t)red;
-            p[2] = (uint8_t)green;
-            p[3] = (uint8_t)blue;
+            uint32_t address = context + 40 + 112 * i;
+            w_u8(address, enabled);
+            w_u8(address + 1, red);
+            w_u8(address + 2, green);
+            w_u8(address + 3, blue);
         }
     return 0;
 }
@@ -52,14 +52,14 @@ uint32_t sub_8001BE08(RRJMemory *m, uint32_t x, uint32_t y, uint32_t width, uint
         h = rrj_read32(m, context + 12);
         w = rrj_read32(m, context + 8);
         env(m, 0x8004CD04, draw + 92, 0, 256 * i, w, h);
-        *(uint8_t *)rrj_at(m, attr - 5, 1) = 1;
-        *(uint8_t *)rrj_at(m, attr - 4, 1) = 0;
+        w_u8(attr - 5, 1);
+        w_u8(attr - 4, 0);
         rrj_put16(rrj_at(m, attr + 79, 2), (uint16_t)height);
         rrj_put16(rrj_at(m, attr + 75, 2), (uint16_t)y);
-        *(uint8_t *)rrj_at(m, attr - 3, 1) = 0;
-        *(uint8_t *)rrj_at(m, attr - 2, 1) = 0;
-        *(uint8_t *)rrj_at(m, attr - 1, 1) = 0;
-        *(uint8_t *)rrj_at(m, attr, 1) = 0;
+        w_u8(attr - 3, 0);
+        w_u8(attr - 2, 0);
+        w_u8(attr - 1, 0);
+        w_u8(attr, 0);
     }
     return 0;
 }

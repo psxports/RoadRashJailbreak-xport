@@ -1,4 +1,5 @@
 #include "race_leaf_batch_007.h"
+#include "race_pause.h"
 #include "xport.h"
 
 uint32_t sub_800150EC(RRJMemory *m, RRJRaceLeafCall call)
@@ -93,8 +94,7 @@ uint32_t sub_80031CD4(RRJMemory *m, uint32_t object, RRJRaceLeafCall call)
     return index;
 }
 
-uint32_t sub_80030894(RRJMemory *m, uint32_t index, uint32_t mode,
-                      uint32_t value, RRJRaceLeafCall call)
+uint32_t sub_80030894(RRJMemory *m, uint32_t index, uint32_t mode, uint32_t value, RRJRaceLeafCall call)
 {
     uint32_t context = rrj_read32(m, 0x8005ACBCu);
     uint32_t object = context + 44u + 36u * index;
@@ -162,9 +162,7 @@ uint32_t sub_80090270(RRJMemory *m)
         uint32_t state = rrj_read32(m, 0x8005B2F8u);
         uint32_t type = rrj_read32(m, object + 1084u);
 
-        if ((int16_t)rrj_u16(rrj_at(m, object + 320u, 2)) == 0 &&
-            rrj_u16(rrj_at(m, object + 172u, 2)) >= rrj_read32(m, state + 48u) &&
-            (*(uint8_t *)rrj_at(m, type + 1u, 1) & 15u) != 2u)
+        if ((int16_t)rrj_u16(rrj_at(m, object + 320u, 2)) == 0 && rrj_u16(rrj_at(m, object + 172u, 2)) >= rrj_read32(m, state + 48u) && (r_u8(type + 1u) & 15u) != 2u)
             ++eligible;
         --remaining;
         object += rrj_read32(m, 0x800CE4D4u);
@@ -179,23 +177,21 @@ uint32_t sub_80090270(RRJMemory *m)
         uint32_t state = rrj_read32(m, 0x8005B2F8u);
         uint32_t type = rrj_read32(m, object + 1084u);
 
-        if ((*(uint8_t *)rrj_at(m, type + 1u, 1) & 15u) != 2u ||
-            rrj_u16(rrj_at(m, object + 172u, 2)) < rrj_read32(m, state + 48u))
+        if ((r_u8(type + 1u) & 15u) != 2u || rrj_u16(rrj_at(m, object + 172u, 2)) < rrj_read32(m, state + 48u))
         {
             if ((int16_t)rrj_u16(rrj_at(m, object + 320u, 2)) != 0)
             {
-                int32_t rank = (int32_t)*(uint8_t *)rrj_at(m, type + 39u, 1) -
-                               (int32_t)eligible - 1;
+                int32_t rank = (int32_t)r_u8(type + 39u) - (int32_t)eligible - 1;
                 uint16_t value;
 
                 if (rank < 0)
                     rank = 0;
                 value = rank / 2 ? (uint16_t)(4 * (rank / 2)) : 1u;
                 rrj_put16(rrj_at(m, object + 960u, 2), value);
-                if (*(uint8_t *)rrj_at(m, rrj_read32(m, object + 852u) + 572u, 1) & 0x10u)
+                if (r_u8(rrj_read32(m, object + 852u) + 572u) & 0x10u)
                 {
                     uint32_t linked = rrj_read32(m, object + 856u);
-                    uint32_t slot = (uint32_t)(int32_t)(int8_t)*(uint8_t *)rrj_at(m, linked + 946u, 1);
+                    uint32_t slot = (uint32_t)(int32_t)(int8_t)r_u8(linked + 946u);
 
                     rrj_put16(rrj_at(m, linked + 952u + slot * 8u, 2), value);
                 }
@@ -210,4 +206,100 @@ uint32_t sub_80090270(RRJMemory *m)
         object += result;
     }
     return result;
+}
+
+uint32_t sub_8003775C(RRJMemory *m, uint32_t actor, uint32_t record, uint32_t delta)
+{
+    uint32_t candidates[24] = {0};
+    uint32_t directions[3] = {0};
+    uint32_t current;
+    uint32_t direction;
+    uint32_t magnitude;
+    uint32_t covered;
+    uint32_t progress = 0;
+
+    FUNCTION_MARKER(0x8003775C, "SLUS_010.53");
+    if (!record)
+        return 0;
+    current = rrj_read32(m, record + 12u);
+    if (!delta)
+        return current;
+    if (actor)
+        direction = rrj_read32(m, actor + 192u);
+    else
+        direction = (int32_t)delta > 0 ? 1u : 0xFFFFFFFFu;
+    if ((int32_t)direction > 0)
+        covered = rrj_read32(m, current + 32u) - rrj_read32(m, record + 20u);
+    else
+        covered = rrj_read32(m, record + 20u);
+    magnitude = (delta + (uint32_t)((int32_t)delta >> 31)) ^ (uint32_t)((int32_t)delta >> 31);
+    directions[0] = direction;
+    if ((int32_t)covered >= (int32_t)magnitude)
+    {
+        progress = rrj_read32(m, record + 20u);
+        progress = (int32_t)direction > 0 ? progress + magnitude : progress - magnitude;
+    }
+    else
+    {
+        uint32_t segment = (uint32_t)(int32_t)(int16_t)rrj_u16(rrj_at(m, current, 2));
+        uint32_t last = (uint32_t)(int32_t)(int16_t)rrj_u16(rrj_at(m, rrj_read32(m, record + 8u) + 10u, 2));
+
+        if (segment == 0 || segment == last - 1u)
+        {
+            uint32_t state[8];
+            uint32_t count;
+            uint32_t i;
+
+            for (i = 0; i < 8; ++i)
+                state[i] = rrj_read32(m, record + 4u * i);
+            count = rrj_traverse_track_local(m, actor, state, candidates, directions, 3, (int32_t)direction <= 0);
+            current = rrj_commit_track_local(m, actor, candidates, directions, count, state, &direction, NULL, NULL);
+            for (i = 0; i < 8; ++i)
+                rrj_write32(m, record + 4u * i, state[i]);
+        }
+        else
+        {
+            current = (int32_t)direction > 0 ? current + 52u : current - 52u;
+            rrj_write32(m, record + 12u, current);
+        }
+        while ((int32_t)covered < (int32_t)magnitude)
+        {
+            uint32_t length = rrj_read32(m, current + 32u);
+            uint32_t remaining = magnitude - covered;
+
+            if ((int32_t)length >= (int32_t)remaining)
+            {
+                progress = remaining;
+                if ((int32_t)direction <= 0)
+                    progress = length - remaining;
+                covered = magnitude;
+                continue;
+            }
+            covered += length;
+            segment = (uint32_t)(int32_t)(int16_t)rrj_u16(rrj_at(m, rrj_read32(m, record + 12u), 2));
+            last = (uint32_t)(int32_t)(int16_t)rrj_u16(rrj_at(m, rrj_read32(m, record + 8u) + 10u, 2));
+            if (segment == 0 || segment == last - 1u)
+            {
+                uint32_t state[8];
+                uint32_t count;
+                uint32_t i;
+
+                if (sub_800394F0(m, record, direction))
+                    break;
+                for (i = 0; i < 8; ++i)
+                    state[i] = rrj_read32(m, record + 4u * i);
+                count = rrj_traverse_track_local(m, actor, state, candidates, directions, 3, (int32_t)direction <= 0);
+                current = rrj_commit_track_local(m, actor, candidates, directions, count, state, &direction, NULL, NULL);
+                for (i = 0; i < 8; ++i)
+                    rrj_write32(m, record + 4u * i, state[i]);
+            }
+            else
+            {
+                current = (int32_t)direction > 0 ? current + 52u : current - 52u;
+                rrj_write32(m, record + 12u, current);
+            }
+        }
+    }
+    rrj_write32(m, record + 20u, progress);
+    return current;
 }

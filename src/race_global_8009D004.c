@@ -5,7 +5,7 @@
 
 static uint8_t passing_byte(RRJMemory *m, uint32_t address)
 {
-    return *(uint8_t *)rrj_at(m, address, 1);
+    return r_u8(address);
 }
 
 static uint32_t passing_mode(RRJMemory *m, uint32_t state)
@@ -25,9 +25,7 @@ static int32_t passing_abs(int32_t value)
     return rrj_s32(((uint32_t)value + sign) ^ sign);
 }
 
-static int32_t passing_direction(RRJMemory *m, uint32_t actor,
-                                 uint32_t route, int32_t movement,
-                                 uint32_t late, uint32_t state)
+static int32_t passing_direction(RRJMemory *m, uint32_t actor, uint32_t route, int32_t movement, uint32_t late, uint32_t state)
 {
     uint32_t current = rrj_read32(m, actor + 360);
     uint32_t record = rrj_read32(m, actor + 428);
@@ -68,8 +66,7 @@ static int32_t passing_direction(RRJMemory *m, uint32_t actor,
     return direction;
 }
 
-uint32_t sub_8009D004(RRJMemory *m, uint32_t delta, uint32_t step,
-                      uint32_t enabled, RRJRaceLeafCall call)
+uint32_t sub_8009D004(RRJMemory *m, uint32_t delta, uint32_t step, uint32_t enabled, RRJRaceLeafCall call)
 {
     const uint32_t route_state = 0x1F800280u;
     const uint32_t specification = 0x1F8002A0u;
@@ -95,25 +92,18 @@ uint32_t sub_8009D004(RRJMemory *m, uint32_t delta, uint32_t step,
 
         active[index] = 1;
         (void)sub_8009F44C(m, (uint32_t)index);
-        if (!sub_8008CDF4(m, 3) ||
-            !sub_8008DBA8(m, (uint32_t)index) ||
-            rrj_read32(m, descriptor + 40) ||
-            (passing_byte(m, descriptor) & 0x40u))
+        if (!sub_8008CDF4(m, 3) || !sub_8008DBA8(m, (uint32_t)index) || rrj_read32(m, descriptor + 40) || (passing_byte(m, descriptor) & 0x40u))
             active[index] = 0;
     }
-    if ((count == 2 && !active[0] && !active[1]) ||
-        (count == 1 && !active[0]))
+    if ((count == 2 && !active[0] && !active[1]) || (count == 1 && !active[0]))
         return 0;
 
-    rrj_write32(m, 0x8005B210u,
-                rrj_read32(m, 0x8005B210u) + delta);
+    rrj_write32(m, 0x8005B210u, rrj_read32(m, 0x8005B210u) + delta);
     mode = passing_mode(m, state);
     scale = rrj_read32(m, 0x80052FACu + 4u * mode);
-    if (rrj_s32((300u * scale) >> 16) >=
-        rrj_s32(rrj_read32(m, state + 16)))
+    if (rrj_s32((300u * scale) >> 16) >= rrj_s32(rrj_read32(m, state + 16)))
         return 0;
-    late = rrj_s32((600u * scale) >> 16) >=
-           rrj_s32(rrj_read32(m, state + 16));
+    late = rrj_s32((600u * scale) >> 16) >= rrj_s32(rrj_read32(m, state + 16));
     (void)sub_8009FF24(m, active);
 
     for (index = 0; index < count && index < 2; ++index)
@@ -127,8 +117,7 @@ uint32_t sub_8009D004(RRJMemory *m, uint32_t delta, uint32_t step,
         if (!active[index])
             continue;
         actor = rrj_read32(m, 0x8005B268u + 4u * (uint32_t)index);
-        if ((rrj_read32(m, 0x800D871Cu + 4u * (uint32_t)index) << 16) >=
-            rrj_read32(m, 0x8005B210u))
+        if ((rrj_read32(m, 0x800D871Cu + 4u * (uint32_t)index) << 16) >= rrj_read32(m, 0x8005B210u))
             continue;
         kind = active[index];
         movement = rrj_s32(step << 16);
@@ -139,56 +128,42 @@ uint32_t sub_8009D004(RRJMemory *m, uint32_t delta, uint32_t step,
             int32_t probability;
 
             if (speed > 1318365)
-                probability = (int16_t)rrj_u16(
-                    rrj_at(m, 0x800D8734u, 2));
+                probability = (int16_t)rrj_u16(rrj_at(m, 0x800D8734u, 2));
             else if (passing_byte(m, state + 4) == 44)
                 probability = 90;
             else if (speed > 327680)
-                probability = (int16_t)rrj_u16(
-                    rrj_at(m, 0x800D8736u, 2));
+                probability = (int16_t)rrj_u16(rrj_at(m, 0x800D8736u, 2));
             else
-                probability = (int16_t)rrj_u16(
-                    rrj_at(m, 0x800D8738u, 2));
+                probability = (int16_t)rrj_u16(rrj_at(m, 0x800D8738u, 2));
             if (probability > 100)
                 probability = 100;
-            if (100 - probability > 0 &&
-                (uint32_t)(100 - probability) >= random)
+            if (100 - probability > 0 && (uint32_t)(100 - probability) >= random)
                 movement = (int32_t)(0u - (uint32_t)movement);
         }
         else if (kind == 3)
             movement = (int32_t)(0u - (uint32_t)movement);
         if (movement < 0)
-            movement = (int32_t)(0u -
-                                 (rrj_read32(m, 0x800D8730u) << 16));
+            movement = (int32_t)(0u - (rrj_read32(m, 0x800D8730u) << 16));
 
         (void)sub_80012C1C(m, actor + 360, route_state, movement);
         route = rrj_read32(m, route_state);
         if (route >> 16)
             continue;
-        if ((passing_byte(m, state + 4) & 0x10u) &&
-            (route == 11u || route == 12u || route == 20u || route == 26u))
+        if ((passing_byte(m, state + 4) & 0x10u) && (route == 11u || route == 12u || route == 20u || route == 26u))
             continue;
         direction = passing_direction(m, actor, route, movement, late, state);
         if ((rrj_read32(m, actor + 360) >> 16) && late)
             continue;
 
-        rrj_write32(m, specification + 8,
-                    (uint32_t)(int32_t)(int16_t)(uint16_t)route);
-        rrj_write32(m, specification + 36,
-                    rrj_read32(m, route_state + 8));
+        rrj_write32(m, specification + 8, (uint32_t)(int32_t)(int16_t)(uint16_t)route);
+        rrj_write32(m, specification + 36, rrj_read32(m, route_state + 8));
         rrj_put16(rrj_at(m, specification + 2, 2), 0xFFFFu);
-        rrj_put16(rrj_at(m, specification + 60, 2),
-                  (uint16_t)direction);
+        rrj_put16(rrj_at(m, specification + 60, 2), (uint16_t)direction);
         rrj_put16(rrj_at(m, specification + 64, 2), 4);
         conflict = sub_8009F578(m, specification);
-        if ((route != rrj_read32(m, actor + 360) ||
-             passing_abs(rrj_s32(rrj_read32(m, actor + 368) -
-                                 rrj_read32(m, route_state + 8))) >
-                 0x00780000) &&
-            conflict != 1)
+        if ((route != rrj_read32(m, actor + 360) || passing_abs(rrj_s32(rrj_read32(m, actor + 368) - rrj_read32(m, route_state + 8))) > 0x00780000) && conflict != 1)
         {
-            uint32_t spawned = sub_8009AD48(
-                m, specification, actor, call);
+            uint32_t spawned = sub_8009AD48(m, specification, actor, call);
 
             if (sub_8009FE90(m, spawned))
                 reset = 1;
@@ -202,6 +177,5 @@ uint32_t sub_8009D004(RRJMemory *m, uint32_t delta, uint32_t step,
 uint32_t sub_8009CFF4(RRJMemory *m, uint32_t delta, RRJRaceLeafCall call)
 {
     FUNCTION_MARKER(0x8009CFF4, "RASHCDG.BIN");
-    return sub_8009D004(m, delta, rrj_read32(m, 0x800D872Cu),
-                        rrj_read32(m, 0x8005ACC4u), call);
+    return sub_8009D004(m, delta, rrj_read32(m, 0x800D872Cu), rrj_read32(m, 0x8005ACC4u), call);
 }

@@ -30,6 +30,14 @@ static int32_t race_audio_clamp127(int32_t value)
 
 static uint16_t race_audio_spu_registers[0x100];
 
+#if defined(LOCKSTEP_DEBUG)
+sint32 rrj_audio_checkpoint_io(FILE *file, sint32 load)
+{
+    return file && (load ? fread(race_audio_spu_registers, sizeof(race_audio_spu_registers), 1, file) == 1 :
+                   fwrite(race_audio_spu_registers, sizeof(race_audio_spu_registers), 1, file) == 1);
+}
+#endif
+
 static uint16_t race_audio_read_half(RRJMemory *m, uint32_t address)
 {
     uint32_t physical = address & 0x1FFFFFFFu;
@@ -73,7 +81,7 @@ uint32_t sub_80019990(RRJMemory *m, RRJRaceLeafCall call, RRJVoiceSetupCall setu
                 rrj_write32(m, record + 96, rrj_read32(m, record + 100));
             else
                 rrj_write32(m, record + 96, modulation);
-            if (*(uint8_t *)rrj_at(m, record + 4, 1))
+            if (r_u8(record + 4))
             {
                 uint32_t event = 0x1F800350u;
                 uint32_t owner = rrj_read32(m, record);
@@ -433,7 +441,7 @@ uint32_t sub_800167A4(RRJMemory *m, uint32_t player_index, RRJReverbCall reverb)
     int32_t pan;
 
     FUNCTION_MARKER(0x800167A4, "SLUS_010.53");
-    result = *(uint8_t *)rrj_at(m, record + 4, 1);
+    result = r_u8(record + 4);
     if (result)
         return result;
     actor = rrj_read32(m, record);
@@ -474,7 +482,7 @@ uint32_t sub_800167A4(RRJMemory *m, uint32_t player_index, RRJReverbCall reverb)
     rrj_write32(m, record + 84, UINT32_MAX);
     rrj_write32(m, record + 88, UINT32_MAX);
     rrj_write32(m, record + 92, 0);
-    *(uint8_t *)rrj_at(m, record + 4, 1) = 1;
+    w_u8(record + 4, 1);
     rrj_write32(m, record + 52, rrj_read32(m, record + 48));
     rrj_write32(m, record + 100, rrj_read32(m, record + 96));
     rrj_write32(m, record + 112, (uint32_t)level);
@@ -533,7 +541,7 @@ uint32_t sub_8001B244(RRJMemory *m, uint32_t mode, RRJReverbCall reverb)
 uint32_t sub_80027778(RRJMemory *m, uint32_t actor, uint32_t kind, uint32_t duration, uint32_t marker)
 {
     uint32_t context = rrj_read32(m, 0x8005B2F8u);
-    uint32_t split = (*(uint8_t *)rrj_at(m, context + 4, 1) >> 4) & 1u;
+    uint32_t split = (r_u8(context + 4) >> 4) & 1u;
     uint32_t limit = 20u >> split;
     uint32_t flags = rrj_read32(m, actor + 36);
     int32_t index;
@@ -554,19 +562,19 @@ uint32_t sub_80027778(RRJMemory *m, uint32_t actor, uint32_t kind, uint32_t dura
     rrj_write32(m, record + 52, duration);
     rrj_write32(m, record, (rrj_read32(m, record) & 0xFFC0003Fu) | 0x5C0u | ((kind & 0xFFu) << 14));
     rrj_write32(m, 0x8005B360u, frame);
-    *(uint8_t *)rrj_at(m, record + 60, 1) = (uint8_t)marker;
+    w_u8(record + 60, (uint8_t)marker);
     flags = (flags & 0xFF87FFFFu) | (((((flags >> 19) & 15u) + 1u) & 15u) << 19);
     rrj_write32(m, actor + 36, flags);
     (void)sub_800289E8(m, actor, 0x80053670u + 12u * kind, record + 20);
-    *(uint8_t *)rrj_at(m, record + 108, 1) = 0;
-    *(uint8_t *)rrj_at(m, record + 109, 1) = 1;
+    w_u8(record + 108, 0);
+    w_u8(record + 109, 1);
     rrj_write32(m, record + 96, 300u >> split);
     rrj_write32(m, record + 48, frame);
     rrj_write32(m, record + 100, frame);
     for (i = 0; i < 4; ++i)
-        *(uint8_t *)rrj_at(m, record + 104 + i, 1) = (uint8_t)(7u + i);
+        w_u8(record + 104 + i, (uint8_t)(7u + i));
     (void)sub_800270F0(m, record);
-    *(uint8_t *)rrj_at(m, record + 61, 1) = kind != 1u;
+    w_u8(record + 61, kind != 1u);
     rrj_write32(m, record + 64, 3);
     rrj_write32(m, record + 36, 0);
     rrj_write32(m, record + 40, 0);
@@ -625,7 +633,7 @@ uint32_t sub_80027974(RRJMemory *m, uint32_t actor, uint32_t unused, uint32_t ki
     rrj_write32(m, record + 52, (uint32_t)duration);
     rrj_write32(m, record + 48, frame);
     (void)sub_8002705C(m, record, (uint32_t)height);
-    *(uint8_t *)rrj_at(m, record + 61, 1) = 1;
+    w_u8(record + 61, 1);
     rrj_write32(m, record + 36, 0);
     rrj_write32(m, record + 40, 0);
     rrj_write32(m, record + 44, 0);
@@ -666,7 +674,7 @@ uint32_t sub_80027258(RRJMemory *m, uint32_t actor, uint32_t kind)
     rrj_write32(m, record + 36, 0);
     rrj_write32(m, record + 40, 0);
     rrj_write32(m, record + 44, 0);
-    *(uint8_t *)rrj_at(m, record + 61, 1) = 0;
+    w_u8(record + 61, 0);
     rrj_put16(rrj_at(m, record + 62, 2), 30);
     return sub_800271CC(m, actor, (uint32_t)index);
 }
@@ -735,7 +743,7 @@ uint32_t sub_800169D0(RRJMemory *m, uint32_t player_index, RRJReverbCall reverb)
     effect = 0;
     if (state < 2u)
     {
-        int32_t value = (int32_t)sub_8001FC90(rrj_s32(rrj_read32(m, actor + 588)), rrj_s32(rrj_read32(m, 0x800D6BD8u + 4u * (uint32_t)(int8_t)*(uint8_t *)rrj_at(m, actor + 849, 1)))) >> 9;
+        int32_t value = (int32_t)sub_8001FC90(rrj_s32(rrj_read32(m, actor + 588)), rrj_s32(rrj_read32(m, 0x800D6BD8u + 4u * (uint32_t)(int8_t)r_u8(actor + 849)))) >> 9;
 
         effect = value < 127 ? value : 127;
     }
@@ -772,7 +780,7 @@ uint32_t sub_800169D0(RRJMemory *m, uint32_t player_index, RRJReverbCall reverb)
             (void)sub_8001F7EC(m, rrj_read32(m, record + 24), reverb);
             rrj_write32(m, record + 24, 0);
         }
-        if ((uint32_t)(*(uint8_t *)rrj_at(m, actor + 534, 1) - 1u) >= 2u)
+        if ((uint32_t)(r_u8(actor + 534) - 1u) >= 2u)
         {
             engine += (101 * (int32_t)(sub_80043F00(m, 0xF2000002u) & 0xFFu)) >> 8;
             effect += (11 * (int32_t)(sub_80043F00(m, 0xF2000002u) & 0xFFu)) >> 8;
@@ -797,7 +805,7 @@ uint32_t sub_800169D0(RRJMemory *m, uint32_t player_index, RRJReverbCall reverb)
         mode = 2;
     (void)sub_8001F874(m, (int32_t)(mode << 7), rrj_read32(m, record + 28));
     previous_gear = rrj_s32(rrj_read32(m, record + 108));
-    gear = (int8_t)*(uint8_t *)rrj_at(m, actor + 849, 1);
+    gear = (int8_t)r_u8(actor + 849);
     if (previous_gear < gear)
         engine += 512;
     else if (previous_gear > gear)
@@ -811,7 +819,7 @@ uint32_t sub_800169D0(RRJMemory *m, uint32_t player_index, RRJReverbCall reverb)
     limit = rrj_s32(rrj_read32(m, table));
     if (engine > limit)
         engine = limit;
-    if (!*(uint8_t *)rrj_at(m, record + 4, 1))
+    if (!r_u8(record + 4))
         return sub_800167A4(m, player_index, reverb);
     rrj_write32(m, record + 52, (uint32_t)engine);
     rrj_write32(m, record + 100, (uint32_t)effect);
@@ -832,7 +840,7 @@ uint32_t sub_80016E4C(RRJMemory *m, uint32_t player_index, RRJRaceLeafCall call,
     int32_t primary_sample = -1;
     int32_t secondary_sample = -1;
     int32_t active = rrj_s32(rrj_read32(m, record + 124));
-    uint32_t unusual = (uint32_t)(*(uint8_t *)rrj_at(m, actor + 534, 1) - 1u) >= 2u;
+    uint32_t unusual = (uint32_t)(r_u8(actor + 534) - 1u) >= 2u;
     int32_t level;
     int32_t pan = rrj_s32(rrj_read32(m, record + 116));
     uint32_t handle;
@@ -863,14 +871,14 @@ uint32_t sub_80016E4C(RRJMemory *m, uint32_t player_index, RRJRaceLeafCall call,
         if (active & 2)
         {
             int32_t speed = rrj_s32(rrj_read32(m, body + 480));
-            int32_t alternate = (rrj_read32(m, actor + 388) & 1u) || (int8_t)*(uint8_t *)rrj_at(m, actor + 534, 1) >= 3;
+            int32_t alternate = (rrj_read32(m, actor + 388) & 1u) || (int8_t)r_u8(actor + 534) >= 3;
 
             secondary_volume = speed > 0x7FFFF ? 127 : speed >> 12;
             secondary_sample = 19 + alternate;
             if ((rrj_read32(m, body + 552) & 0x40000000u) && race_audio_abs32(rrj_s32(rrj_read32(m, body + 188)) - rrj_s32(rrj_read32(m, body + 508))) >= 0x4000)
                 secondary_sample = -1;
             if (rrj_s32(rrj_read32(m, record + 88)) < 0 && secondary_sample >= 0)
-                (void)sub_80017BA0(m, rrj_s32(rrj_read32(m, body + 184)), rrj_s32(rrj_read32(m, body + 192)), *(uint8_t *)rrj_at(m, actor + 534, 1) == 4 ? 102 : 55, 0);
+                (void)sub_80017BA0(m, rrj_s32(rrj_read32(m, body + 184)), rrj_s32(rrj_read32(m, body + 192)), r_u8(actor + 534) == 4 ? 102 : 55, 0);
             if (speed <= 0x7FFF)
             {
                 secondary_sample = -1;
@@ -1051,7 +1059,7 @@ uint32_t sub_800184AC(RRJMemory *m, uint32_t player_index, RRJRaceLeafCall call,
         {
             uint16_t id = rrj_u16(rrj_at(m, extra + 280u * i + 172, 2));
 
-            if (id && *(uint8_t *)rrj_at(m, extra + 280u * i + 8, 1) != 9)
+            if (id && r_u8(extra + 280u * i + 8) != 9)
             {
                 rrj_put16(rrj_at(m, candidates + 2u * count, 2), id);
                 ++count;
@@ -1087,11 +1095,11 @@ uint32_t sub_800184AC(RRJMemory *m, uint32_t player_index, RRJRaceLeafCall call,
         mixed = low + (low >> 1);
         metric = high - (high >> 5) - (high >> 7) + (mixed >> 2) + (mixed >> 6);
         distance[i] = metric;
-        if ((*(uint8_t *)rrj_at(m, rrj_read32(m, 0x8005B2F8u) + 4, 1) & 1u) && *(uint8_t *)rrj_at(m, rrj_read32(m, 0x8005B2F8u) + 4, 1) != 33)
+        if ((r_u8(rrj_read32(m, 0x8005B2F8u) + 4) & 1u) && r_u8(rrj_read32(m, 0x8005B2F8u) + 4) != 33)
         {
             uint32_t local = rrj_read32(m, 0x8005B268u + 4u * player_index);
 
-            if ((*(uint8_t *)rrj_at(m, rrj_read32(m, local + 1084) + 1, 1) & 15u) == 2u && rrj_u16(rrj_at(m, candidate + 172, 2)) == *(uint8_t *)rrj_at(m, rrj_read32(m, 0x8005B2F8u) + 6, 1) && race_audio_abs32(rrj_s32(rrj_read32(m, candidate + 324)) - rrj_s32(rrj_read32(m, local + 324))) <= 204799)
+            if ((r_u8(rrj_read32(m, local + 1084) + 1) & 15u) == 2u && rrj_u16(rrj_at(m, candidate + 172, 2)) == r_u8(rrj_read32(m, 0x8005B2F8u) + 6) && race_audio_abs32(rrj_s32(rrj_read32(m, candidate + 324)) - rrj_s32(rrj_read32(m, local + 324))) <= 204799)
                 (void)sub_8001B244(m, 3, reverb);
         }
         for (j = 0; j < capacity; ++j)
@@ -1183,7 +1191,7 @@ uint32_t sub_80018FAC(RRJMemory *m, RRJRaceLeafCall call, RRJReverbCall reverb)
             uint32_t steering_mode;
             uint32_t timer_index;
 
-            if (rrj_read32(m, camera + 552) == 2u && (*(uint8_t *)rrj_at(m, context + 4, 1) & 1u))
+            if (rrj_read32(m, camera + 552) == 2u && (r_u8(context + 4) & 1u))
                 rrj_write32(m, 0x800D6C04u, 0);
             if (rrj_read32(m, camera + 772) || rrj_read32(m, body + 604) >= 3u)
             {
@@ -1328,19 +1336,19 @@ uint32_t sub_80018FAC(RRJMemory *m, RRJRaceLeafCall call, RRJReverbCall reverb)
                         uint32_t type = rrj_read32(m, actor + 180);
 
                         if (id >> 5)
-                            sample = *(uint8_t *)rrj_at(m, 0x80052630u + type % 6u, 1);
+                            sample = r_u8(0x80052630u + type % 6u);
                         else if (type >= 18u)
                             sample = 4;
                         else
                         {
-                            uint32_t alternate = (*(uint8_t *)rrj_at(m, rrj_read32(m, actor + 1084) + 1, 1) >> 4) & 1u;
+                            uint32_t alternate = (r_u8(rrj_read32(m, actor + 1084) + 1) >> 4) & 1u;
 
                             sample = type >= 9u ? alternate + 2u : alternate;
                         }
                         (void)sub_8001769C(m, slot, player, rrj_read32(m, 0x8005B420u), sample);
                         rrj_write32(m, record + 8, 1);
                     }
-                    if ((rrj_read32(m, actor + 180) >= 18u && rrj_read32(m, body + 604) < 3u) || ((*(uint8_t *)rrj_at(m, context + 4, 1) & 1u) && (id >> 5) == 3u && !rrj_read32(m, actor + 180)))
+                    if ((rrj_read32(m, actor + 180) >= 18u && rrj_read32(m, body + 604) < 3u) || ((r_u8(context + 4) & 1u) && (id >> 5) == 3u && !rrj_read32(m, actor + 180)))
                         (void)sub_80017F64(m, id, player, call);
                 }
                 kind = rrj_read32(m, record + 8);
@@ -1356,7 +1364,7 @@ uint32_t sub_80018FAC(RRJMemory *m, RRJRaceLeafCall call, RRJReverbCall reverb)
                 {
                     uint32_t flags_address = substituted ? actor + 572 : body + 572;
 
-                    *(uint8_t *)rrj_at(m, flags_address, 1) &= 0xF3u;
+                    xport_update_u8(flags_address, XPORT_MEMORY_UPDATE_AND, 0xF3u);
                     (void)sub_80017814(m, slot, player, call);
                 }
                 if (kind >= 3u && kind <= 5u && rrj_read32(m, actor + 180) >= 18u && rrj_read32(m, body + 604) >= 3u)

@@ -7,6 +7,24 @@
 
 static uint32 reverb_mask;
 
+#if defined(LOCKSTEP_DEBUG)
+sint32 rrj_spu_checkpoint_io(FILE *file, sint32 load)
+{
+    uint32 value;
+    if (!file)
+        return 0;
+    if (load)
+    {
+        if (fread(&value, sizeof(value), 1, file) != 1 || (value & ~SPU_ALLCH))
+            return 0;
+        reverb_mask = value;
+        return 1;
+    }
+    value = reverb_mask;
+    return fwrite(&value, sizeof(value), 1, file) == 1;
+}
+#endif
+
 uint32 rrj_spu_reverb(RRJMemory *memory, uint32 mode, uint32 mask)
 {
     mask &= SPU_ALLCH;

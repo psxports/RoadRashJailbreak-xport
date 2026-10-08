@@ -5,7 +5,7 @@
 
 static uint32_t byte(RRJMemory *m, uint32_t a)
 {
-    return *(uint8_t *)rrj_at(m, a, 1);
+    return r_u8(a);
 }
 
 static int32_t shalf(RRJMemory *m, uint32_t a)
@@ -65,7 +65,7 @@ uint32_t sub_F_8006D3E0(RRJMemory *m, uint32_t menu, RRJMenuDraw draw)
 
 uint32_t sub_F_8006D630(RRJMemory *m, uint32_t menu, RRJMenuDraw draw)
 {
-    *(uint8_t *)rrj_at(m, 0x8009C5E1, 1) = (uint8_t)byte(m, menu + 12);
+    w_u8(0x8009C5E1, (uint8_t)byte(m, menu + 12));
     sub_F_8006D3E0(m, menu, draw);
     return 1;
 }

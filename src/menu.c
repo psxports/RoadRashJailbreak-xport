@@ -14,10 +14,10 @@ uint32_t sub_F_80064B30(RRJMemory *memory, uint32_t menu, uint32_t entry)
         return 17;
     if (rrj_u16(rrj_at(memory, entry + 100, 2)) >= 6)
         return 0;
-    slot = *(uint8_t *)rrj_at(memory, entry + 102, 1);
+    slot = r_u8(entry + 102);
     descriptor = 0x8009C548 + slot * 16;
     rrj_write32(memory, 0x8009C64C, descriptor);
-    slot = *(uint8_t *)rrj_at(memory, entry + 102, 1);
+    slot = r_u8(entry + 102);
     value_address = 0x800D81AC + slot * 4;
     rrj_write32(memory, 0x8009C650, value_address);
     value = rrj_read32(memory, value_address);
@@ -84,7 +84,7 @@ uint32_t sub_8001C428(RRJMemory *memory)
         rrj_write32(memory, state + 100, 0);
     }
     state = rrj_read32(memory, 0x8005B2F8);
-    mode = *(uint8_t *)rrj_at(memory, state, 1);
+    mode = r_u8(state);
     delta = mode - 3 < 2 ? 0 : ticks - rrj_read32(memory, 0x8005B458);
     rrj_write32(memory, state + 32, delta);
     rrj_write32(memory, 0x8005B458, ticks);
@@ -96,7 +96,7 @@ uint32_t sub_8001C428(RRJMemory *memory)
 uint32_t sub_8001C3F4(RRJMemory *memory)
 {
     uint32_t context = rrj_read32(memory, 0x8005B470);
-    *(uint8_t *)rrj_at(memory, context + 4, 1) = 0;
+    w_u8(context + 4, 0);
     return context;
 }
 

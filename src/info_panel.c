@@ -12,7 +12,7 @@ static uint32_t h(RRJMemory *m, uint32_t a)
 
 static uint32_t b(RRJMemory *m, uint32_t a)
 {
-    return *(uint8_t *)rrj_at(m, a, 1);
+    return r_u8(a);
 }
 
 static uint32_t sh(uint32_t v)
@@ -145,7 +145,7 @@ uint32_t sub_F_8006FAC8(RRJMemory *m, uint32_t menu, uint32_t entry, RRJModeLabe
         if (!h(m, 0x8009C5EC))
             return 1;
         font = rrj_read32(m, 0x8009C5B8);
-        *(uint8_t *)rrj_at(m, 0x800D8078 + 24 * font + 3, 1) = 0;
+        w_u8(0x800D8078 + 24 * font + 3, 0);
         font = rrj_read32(m, 0x8009C5B8);
         color = rrj_read32(m, rect + 12);
         id = sh(h(m, 0x8009C5EC));
@@ -157,7 +157,7 @@ uint32_t sub_F_8006FAC8(RRJMemory *m, uint32_t menu, uint32_t entry, RRJModeLabe
         if (!desc)
             return 1;
         font = rrj_read32(m, 0x8009C5B8);
-        *(uint8_t *)rrj_at(m, 0x800D8078 + 24 * font + 3, 1) = 0;
+        w_u8(0x800D8078 + 24 * font + 3, 0);
         font = rrj_read32(m, 0x8009C5B8);
         id = sh(h(m, desc));
         color = rrj_read32(m, desc + 4);

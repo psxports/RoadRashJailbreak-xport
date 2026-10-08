@@ -25,7 +25,7 @@ int rrj_platform_smoke(unsigned frames, int headless)
     for (frame = 0; frame < frames && !xport_isquit(); ++frame)
     {
         gpu_begin();
-        gpu_packet(&quad);
+        DrawPrim(&quad);
         if (!gpu_present())
             return 2;
         (void)PadRead(0);

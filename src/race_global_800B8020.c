@@ -5,17 +5,17 @@
 
 static uint8_t global_byte(RRJMemory *m, uint32_t address)
 {
-    return *(uint8_t *)rrj_at(m, address, 1);
+    return r_u8(address);
 }
 
 static int8_t global_sbyte(RRJMemory *m, uint32_t address)
 {
-    return *(int8_t *)rrj_at(m, address, 1);
+    return r_s8(address);
 }
 
 static void global_put_byte(RRJMemory *m, uint32_t address, uint32_t value)
 {
-    *(uint8_t *)rrj_at(m, address, 1) = (uint8_t)value;
+    w_u8(address, (uint8_t)value);
 }
 
 static int32_t global_abs(int32_t value)
@@ -52,8 +52,7 @@ uint32_t sub_800B8020(RRJMemory *m, uint32_t delta, RRJRaceLeafCall call)
     {
         uint32_t first = rrj_read32(m, 0x8005B38C);
         uint32_t second = rrj_read32(m, 0x8005B21C);
-        int32_t separation = (rrj_s32(rrj_read32(m, first + 324)) >> 12) -
-                             (rrj_s32(rrj_read32(m, second + 324)) >> 12);
+        int32_t separation = (rrj_s32(rrj_read32(m, first + 324)) >> 12) - (rrj_s32(rrj_read32(m, second + 324)) >> 12);
         uint32_t flags = rrj_read32(m, 0x800CCAC4);
         split_side = (uint32_t)separation >> 31;
         if (!(flags & 1) && global_abs(separation) >= 825)
@@ -68,17 +67,13 @@ uint32_t sub_800B8020(RRJMemory *m, uint32_t delta, RRJRaceLeafCall call)
         uint32_t actor = base + 1096 * index;
         uint32_t other_index;
         global_put_byte(m, actor + 851, 0);
-        if (global_byte(m, 0x8005ADC0 + player_count - 1) <
-                rrj_u16(rrj_at(m, 0x800CD540, 2)) &&
-            (rrj_u16(rrj_at(m, actor + 320, 2)) & 0x30))
+        if (global_byte(m, 0x8005ADC0 + player_count - 1) < rrj_u16(rrj_at(m, 0x800CD540, 2)) && (rrj_u16(rrj_at(m, actor + 320, 2)) & 0x30))
         {
             for (other_index = 0; other_index < (uint32_t)count; ++other_index)
             {
                 uint32_t other = base + 1096 * other_index;
-                if ((rrj_u16(rrj_at(m, other + 320, 2)) & 0x30) &&
-                    global_byte(m, other + 850) < global_byte(m, actor + 850))
-                    global_put_byte(m, actor + 851,
-                                    global_byte(m, actor + 851) + 1);
+                if ((rrj_u16(rrj_at(m, other + 320, 2)) & 0x30) && global_byte(m, other + 850) < global_byte(m, actor + 850))
+                    global_put_byte(m, actor + 851, global_byte(m, actor + 851) + 1);
             }
         }
     }
@@ -96,10 +91,7 @@ uint32_t sub_800B8020(RRJMemory *m, uint32_t delta, RRJRaceLeafCall call)
             continue;
         identity = rrj_u16(rrj_at(m, actor + 172, 2));
         descriptor = rrj_read32(m, actor + 1084);
-        if ((identity < player_count ||
-             (global_byte(m, descriptor + 1) & 0xF) != 2) &&
-            (rrj_read32(m, descriptor + 40) ||
-             global_byte(m, descriptor + 39) >= 0xF8))
+        if ((identity < player_count || (global_byte(m, descriptor + 1) & 0xF) != 2) && (rrj_read32(m, descriptor + 40) || global_byte(m, descriptor + 39) >= 0xF8))
             continue;
         if (rrj_read32(m, actor + 856) && rrj_read32(m, actor + 1088))
             actor = rrj_read32(m, actor + 856);
@@ -130,13 +122,10 @@ uint32_t sub_800B8020(RRJMemory *m, uint32_t delta, RRJRaceLeafCall call)
         old_position = global_byte(m, descriptor + 39);
         if (!(rrj_read32(m, 0x8005B2A8) & 1))
         {
-            global_put_byte(m, descriptor + 39,
-                            sub_800138E8(m, actor, 0));
-            global_put_byte(m, actor + 928,
-                            global_byte(m, actor + 928) | 8);
+            global_put_byte(m, descriptor + 39, sub_800138E8(m, actor, 0));
+            global_put_byte(m, actor + 928, global_byte(m, actor + 928) | 8);
         }
-        global_put_byte(m, descriptor,
-                        global_byte(m, descriptor) & ~8u);
+        global_put_byte(m, descriptor, global_byte(m, descriptor) & ~8u);
 
         if (index >= 2 && (rrj_read32(m, 0x800CCAC4) & 0xF0))
         {
@@ -148,33 +137,23 @@ uint32_t sub_800B8020(RRJMemory *m, uint32_t delta, RRJRaceLeafCall call)
                 if (amount > 8)
                     amount = 8;
                 global_put_byte(m, 0x800CD530 + index - 2, amount);
-                global_put_byte(m, axis,
-                                global_byte(m, axis) + (uint8_t)amount);
+                global_put_byte(m, axis, global_byte(m, axis) + (uint8_t)amount);
             }
             if (flags & 0x40)
-                global_put_byte(m, axis,
-                    global_byte(m, axis) - global_byte(m, 0x800CD530 + index - 2));
-            global_put_byte(m, descriptor + 16,
-                global_clamp_axis(global_sbyte(m, descriptor + 16)));
-            global_put_byte(m, descriptor + 17,
-                global_clamp_axis(global_sbyte(m, descriptor + 17)));
+                global_put_byte(m, axis, global_byte(m, axis) - global_byte(m, 0x800CD530 + index - 2));
+            global_put_byte(m, descriptor + 16, global_clamp_axis(global_sbyte(m, descriptor + 16)));
+            global_put_byte(m, descriptor + 17, global_clamp_axis(global_sbyte(m, descriptor + 17)));
         }
 
-        if (!rrj_u16(rrj_at(m, actor + 320, 2)) ||
-            !((identity < player_count) ||
-              ((global_byte(m, descriptor + 1) & 0xF) != 2) ||
-              (global_byte(m, actor + 928) & 0x10)))
+        if (!rrj_u16(rrj_at(m, actor + 320, 2)) || !((identity < player_count) || ((global_byte(m, descriptor + 1) & 0xF) != 2) || (global_byte(m, actor + 928) & 0x10)))
             process_actor = 0;
-        if (process_actor && (global_byte(m, state + 4) & 1) &&
-            identity < player_count)
+        if (process_actor && (global_byte(m, state + 4) & 1) && identity < player_count)
         {
             (void)sub_80097388(m, actor, call);
             if (rrj_read32(m, descriptor + 40))
                 process_actor = 0;
         }
-        if (process_actor &&
-            (rrj_read32(m, actor + 560) & 0x18000000u) == 0x08000000u &&
-            rrj_read32(m, 0x8005B2A8))
+        if (process_actor && (rrj_read32(m, actor + 560) & 0x18000000u) == 0x08000000u && rrj_read32(m, 0x8005B2A8))
         {
             int32_t timer = rrj_s32(rrj_read32(m, descriptor + 4) + delta);
             uint32_t period = global_byte(m, descriptor + 3) << 16;
@@ -190,16 +169,13 @@ uint32_t sub_800B8020(RRJMemory *m, uint32_t delta, RRJRaceLeafCall call)
                 (void)sub_800BCEEC(m, descriptor + 2, (uint32_t)steps);
             if (period < (uint32_t)timer)
                 rrj_write32(m, descriptor + 4, (uint32_t)timer - period);
-            actions = sub_800BD2A0(m, actor, old_position) |
-                      global_byte(m, descriptor + 68);
+            actions = sub_800BD2A0(m, actor, old_position) | global_byte(m, descriptor + 68);
             global_put_byte(m, descriptor + 68, 0);
             for (bit = 0; bit < 7; ++bit)
                 if (actions & (1u << bit))
                     adjustment += global_nibble(m, 0x8005ADDC, 4 * bit);
             if ((actions & 0x20) && (global_byte(m, descriptor + 61) >> 4) >= 2)
-                global_put_byte(m, descriptor + 61,
-                    (global_byte(m, descriptor + 61) & 0xF) |
-                    (((global_byte(m, descriptor + 61) >> 4) - 1) << 4));
+                global_put_byte(m, descriptor + 61, (global_byte(m, descriptor + 61) & 0xF) | (((global_byte(m, descriptor + 61) >> 4) - 1) << 4));
             if (actions & 0x40)
             {
                 uint32_t high = global_byte(m, descriptor + 61) >> 4;
@@ -207,8 +183,7 @@ uint32_t sub_800B8020(RRJMemory *m, uint32_t delta, RRJRaceLeafCall call)
                     high -= 2;
                 else if (high >= 2)
                     --high;
-                global_put_byte(m, descriptor + 61,
-                    (global_byte(m, descriptor + 61) & 0xF) | (high << 4));
+                global_put_byte(m, descriptor + 61, (global_byte(m, descriptor + 61) & 0xF) | (high << 4));
             }
 
             for (other_index = 0; other_index < (uint32_t)count; ++other_index)
@@ -232,37 +207,28 @@ uint32_t sub_800B8020(RRJMemory *m, uint32_t delta, RRJRaceLeafCall call)
                 }
                 if (other_adjustment)
                 {
-                    uint32_t axis = descriptor +
-                        global_sbyte(m, 0x800D38B0 +
-                            rrj_u16(rrj_at(m, other + 172, 2))) + 16;
-                    global_put_byte(m, axis,
-                        global_clamp_axis(global_sbyte(m, axis) + other_adjustment));
+                    uint32_t axis = descriptor + global_sbyte(m, 0x800D38B0 + rrj_u16(rrj_at(m, other + 172, 2))) + 16;
+                    global_put_byte(m, axis, global_clamp_axis(global_sbyte(m, axis) + other_adjustment));
                 }
             }
             if (adjustment)
                 (void)sub_800BD34C(m, descriptor + 2, adjustment);
-            if ((uint32_t)(rrj_u16(rrj_at(m, event, 2)) - 10) < 6 &&
-                sub_800A8C48(m, rrj_u16(rrj_at(m, event + 2, 2)),
-                              rrj_read32(m, actor + 912)))
+            if ((uint32_t)(rrj_u16(rrj_at(m, event, 2)) - 10) < 6 && sub_800A8C48(m, rrj_u16(rrj_at(m, event + 2, 2)), rrj_read32(m, actor + 912)))
                 (void)sub_800BD34C(m, descriptor + 61, 1);
-            if (identity >= player_count &&
-                (global_byte(m, descriptor + 1) & 0xF) == 2)
+            if (identity >= player_count && (global_byte(m, descriptor + 1) & 0xF) == 2)
             {
                 (void)sub_8009DC90(m, actor, call);
                 continue;
             }
-            if ((uint32_t)(rrj_u16(rrj_at(m, event, 2)) - 3) < 14 &&
-                !rrj_read32(m, descriptor + 40))
+            if ((uint32_t)(rrj_u16(rrj_at(m, event, 2)) - 3) < 14 && !rrj_read32(m, descriptor + 40))
             {
                 int32_t position = rrj_s32(rrj_read32(m, actor + 324));
-                int32_t distance = (position -
-                    rrj_s32(rrj_read32(m, rrj_read32(m, 0x8005B38C) + 324))) >> 12;
+                int32_t distance = (position - rrj_s32(rrj_read32(m, rrj_read32(m, 0x8005B38C) + 324))) >> 12;
                 int32_t nearest = distance;
                 uint32_t threshold;
                 if (player_count == 2)
                 {
-                    int32_t other_distance = (position -
-                        rrj_s32(rrj_read32(m, rrj_read32(m, 0x8005B21C) + 324))) >> 12;
+                    int32_t other_distance = (position - rrj_s32(rrj_read32(m, rrj_read32(m, 0x8005B21C) + 324))) >> 12;
                     nearest = global_abs(distance);
                     if (global_abs(other_distance) < nearest)
                         nearest = global_abs(other_distance);
@@ -270,38 +236,31 @@ uint32_t sub_800B8020(RRJMemory *m, uint32_t delta, RRJRaceLeafCall call)
                 threshold = (uint32_t)(nearest + 63);
                 if (threshold >= 75)
                 {
-                    if (global_byte(m, actor + 851) <
-                        global_byte(m, 0x8005ADC0 + player_count - 1))
+                    if (global_byte(m, actor + 851) < global_byte(m, 0x8005ADC0 + player_count - 1))
                         continue;
                 }
                 else
                 {
-                    if (rrj_u16(rrj_at(m, event, 2)) != 4 &&
-                        rrj_u16(rrj_at(m, event + 2, 2)) < player_count)
+                    if (rrj_u16(rrj_at(m, event, 2)) != 4 && rrj_u16(rrj_at(m, event + 2, 2)) < player_count)
                         continue;
-                    if (global_byte(m, actor + 851) <
-                            global_byte(m, 0x8005ADC0 + player_count - 1) ||
-                        identity < player_count)
+                    if (global_byte(m, actor + 851) < global_byte(m, 0x8005ADC0 + player_count - 1) || identity < player_count)
                     {
                         collision_mask |= 1u << index;
                         continue;
                     }
                 }
-                global_put_byte(m, descriptor,
-                                global_byte(m, descriptor) | 8);
+                global_put_byte(m, descriptor, global_byte(m, descriptor) | 8);
             }
         }
     }
 
-    if ((global_byte(m, state + 4) & 1) &&
-        (rrj_read32(m, 0x8005AD48) & 0x1F))
+    if ((global_byte(m, state + 4) & 1) && (rrj_read32(m, 0x8005AD48) & 0x1F))
     {
         for (index = 0; index < player_count; ++index)
         {
             uint32_t player = rrj_read32(m, 0x8005B268 + 4 * index);
             uint32_t descriptor = rrj_read32(m, player + 1084);
-            if ((global_byte(m, descriptor + 1) & 0xF) == 2 &&
-                (rrj_read32(m, player + 560) & 0x08000000))
+            if ((global_byte(m, descriptor + 1) & 0xF) == 2 && (rrj_read32(m, player + 560) & 0x08000000))
                 collision_mask = 0;
         }
     }
@@ -317,8 +276,7 @@ uint32_t sub_800B8020(RRJMemory *m, uint32_t delta, RRJRaceLeafCall call)
         rrj_put16(rrj_at(m, descriptor + 66, 2), 0);
         global_put_byte(m, descriptor + 70, 31);
         global_put_byte(m, descriptor + 71, 31);
-        rrj_put16(rrj_at(m, event + 6, 2),
-                  rrj_u16(rrj_at(m, event + 6, 2)) & 0xBFFF);
+        rrj_put16(rrj_at(m, event + 6, 2), rrj_u16(rrj_at(m, event + 6, 2)) & 0xBFFF);
     }
 
     for (index = 0; index < (uint32_t)(count > 0 ? count : 0); ++index)
@@ -334,12 +292,7 @@ uint32_t sub_800B8020(RRJMemory *m, uint32_t delta, RRJRaceLeafCall call)
             {
                 int32_t value = global_sbyte(m, descriptor + 16 + scan);
                 uint32_t candidate = global_byte(m, 0x800D38C8 + scan);
-                if (direction < value &&
-                    candidate != rrj_u16(rrj_at(m, actor + 172, 2)) &&
-                    candidate != 31 &&
-                    sub_800BEA30(m,
-                        rrj_read32(m, 0x8005B3A0) + 1096 * candidate + 172,
-                        actor))
+                if (direction < value && candidate != rrj_u16(rrj_at(m, actor + 172, 2)) && candidate != 31 && sub_800BEA30(m, rrj_read32(m, 0x8005B3A0) + 1096 * candidate + 172, actor))
                 {
                     direction = value;
                     chosen = candidate;
@@ -359,9 +312,7 @@ uint32_t sub_800B8020(RRJMemory *m, uint32_t delta, RRJRaceLeafCall call)
                         uint32_t bit = rrj_u16(rrj_at(m, actor + 172, 2)) - 1;
                         mask &= (uint16_t)~(1u << bit);
                         allow = !mask || !(mask & (mask - 1));
-                        rrj_put16(rrj_at(m, 0x800CCAC0 + 2 * other_id, 2),
-                                  rrj_u16(rrj_at(m, 0x800CCAC0 + 2 * other_id, 2)) &
-                                      (uint16_t)~(1u << bit));
+                        rrj_put16(rrj_at(m, 0x800CCAC0 + 2 * other_id, 2), rrj_u16(rrj_at(m, 0x800CCAC0 + 2 * other_id, 2)) & (uint16_t)~(1u << bit));
                     }
                 }
                 if (allow)
@@ -386,9 +337,7 @@ uint32_t sub_800B8020(RRJMemory *m, uint32_t delta, RRJRaceLeafCall call)
                     uint32_t alternate = rrj_read32(m, 0x8005B268 + 4 * (index == 0));
                     int32_t slot = global_sbyte(m, alternate + 946) - 1;
                     uint32_t prior = alternate + 8 * slot + 956;
-                    if (rrj_u16(rrj_at(m, prior, 2)) == 16 &&
-                        rrj_u16(rrj_at(m, prior + 2, 2)) ==
-                            rrj_u16(rrj_at(m, player + 172, 2)))
+                    if (rrj_u16(rrj_at(m, prior, 2)) == 16 && rrj_u16(rrj_at(m, prior + 2, 2)) == rrj_u16(rrj_at(m, player + 172, 2)))
                         candidate = index == 0;
                     else
                         continue;
@@ -404,18 +353,14 @@ uint32_t sub_800B8020(RRJMemory *m, uint32_t delta, RRJRaceLeafCall call)
                     uint32_t other = rrj_read32(m, 0x8005B3A0) + 1096 * candidate;
                     int32_t separation;
                     uint32_t road = rrj_read32(m, other + 360);
-                    if (road == rrj_read32(m, linked + 360) &&
-                        (!(road >> 16) || rrj_read32(m, other + 336) ==
-                                             rrj_read32(m, linked + 336)))
+                    if (road == rrj_read32(m, linked + 360) && (!(road >> 16) || rrj_read32(m, other + 336) == rrj_read32(m, linked + 336)))
                     {
-                        separation = rrj_s32(rrj_read32(m, other + 344) -
-                                             rrj_read32(m, linked + 344));
+                        separation = rrj_s32(rrj_read32(m, other + 344) - rrj_read32(m, linked + 344));
                         if (rrj_s32(rrj_read32(m, linked + 364)) < 0)
                             separation = -separation;
                     }
                     else
-                        separation = rrj_s32(sub_800B6AAC(
-                            m, other + 184, linked + 432, linked + 184));
+                        separation = rrj_s32(sub_800B6AAC(m, other + 184, linked + 432, linked + 184));
                     if (separation > 0)
                     {
                         uint8_t packet[8] = {0};

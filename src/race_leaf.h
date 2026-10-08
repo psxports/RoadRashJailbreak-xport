@@ -105,6 +105,7 @@ uint32_t sub_8001C004(RRJMemory *m, RRJRaceLeafCall call);
 uint32_t sub_8001C4D0(RRJMemory *m);
 uint32_t sub_8001C590(RRJMemory *m, RRJRaceLeafCall call);
 uint32_t sub_8001CB3C_race(RRJMemory *m, RRJRaceLeafCall call);
+uint32_t rrj_input_audit_probe(RRJMemory *m, const uint32_t args[6]);
 int32_t sub_8001CA58(RRJMemory *m, uint32_t input, uint32_t table);
 uint32_t sub_8001DC94(RRJMemory *m, uint32_t index, int32_t delay);
 uint32_t sub_8001DD08(RRJMemory *m, uint32_t index, int32_t delay, uint32_t value);
@@ -368,4 +369,6 @@ uint32_t sub_800C9420(RRJMemory *m, uint32_t group, RRJRaceLeafCall call);
 uint32_t sub_800C9E74(RRJMemory *m);
 uint32_t sub_800CA05C(RRJMemory *m, uint32_t mode);
 
+uint32_t sub_80048428(RRJMemory *m);
+int rrj_coverage_probe(RRJMemory *m, uint32_t target, const uint32_t args[6], uint32_t *result);
 #endif

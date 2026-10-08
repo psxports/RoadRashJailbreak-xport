@@ -10,7 +10,7 @@ static uint32_t h(RRJMemory *m, uint32_t a)
 
 static uint32_t b(RRJMemory *m, uint32_t a)
 {
-    return *(uint8_t *)rrj_at(m, a, 1);
+    return r_u8(a);
 }
 
 static uint32_t sxh(uint32_t v)

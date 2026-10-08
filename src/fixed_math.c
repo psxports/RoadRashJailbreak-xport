@@ -17,16 +17,10 @@ int64_t sub_8001FC90(int32_t a, int32_t b)
 uint32_t sub_8001FEB4(RRJMemory *m, int32_t angle)
 {
     uint32_t index = (uint32_t)angle & 4095u;
-    int32_t numerator =
-        (int16_t)rrj_u16(rrj_at(m, 0x8005624Cu + 4u * index, 2)) * 16;
-    int32_t denominator =
-        (int16_t)rrj_u16(rrj_at(m, 0x8005624Eu + 4u * index, 2)) * 16;
-    uint32_t numerator_magnitude = numerator > 0
-                                       ? (uint32_t)numerator
-                                       : 0u - (uint32_t)numerator;
-    uint32_t denominator_magnitude = denominator > 0
-                                         ? (uint32_t)denominator
-                                         : 0u - (uint32_t)denominator;
+    int32_t numerator = (int16_t)rrj_u16(rrj_at(m, 0x8005624Cu + 4u * index, 2)) * 16;
+    int32_t denominator = (int16_t)rrj_u16(rrj_at(m, 0x8005624Eu + 4u * index, 2)) * 16;
+    uint32_t numerator_magnitude = numerator > 0 ? (uint32_t)numerator : 0u - (uint32_t)numerator;
+    uint32_t denominator_magnitude = denominator > 0 ? (uint32_t)denominator : 0u - (uint32_t)denominator;
     uint32_t result;
 
     FUNCTION_MARKER(0x8001FEB4, "SLUS_010.53");
@@ -36,8 +30,7 @@ uint32_t sub_8001FEB4(RRJMemory *m, int32_t angle)
     return result;
 }
 
-uint32_t sub_8002EA20(RRJMemory *m, uint32_t left, uint32_t right,
-                      int32_t scale, uint32_t output)
+uint32_t sub_8002EA20(RRJMemory *m, uint32_t left, uint32_t right, int32_t scale, uint32_t output)
 {
     uint32_t i;
     uint32_t result = 0;
@@ -45,20 +38,16 @@ uint32_t sub_8002EA20(RRJMemory *m, uint32_t left, uint32_t right,
     FUNCTION_MARKER(0x8002EA20, "SLUS_010.53");
     for (i = 0; i < 3; ++i)
     {
-        int32_t left_value =
-            (int16_t)rrj_u16(rrj_at(m, left + 2u * i, 2)) * 16;
-        int32_t right_value =
-            (int16_t)rrj_u16(rrj_at(m, right + 2u * i, 2)) * 16;
+        int32_t left_value = (int16_t)rrj_u16(rrj_at(m, left + 2u * i, 2)) * 16;
+        int32_t right_value = (int16_t)rrj_u16(rrj_at(m, right + 2u * i, 2)) * 16;
 
-        result = (uint32_t)sub_8001FC90(right_value, scale) +
-                 (uint32_t)left_value;
+        result = (uint32_t)sub_8001FC90(right_value, scale) + (uint32_t)left_value;
         rrj_write32(m, output + 4u * i, result);
     }
     return result;
 }
 
-uint32_t rrj_quaternion_to_matrix_values(RRJMemory *m, uint32_t matrix,
-                                         const int32_t quaternion[4])
+uint32_t rrj_quaternion_to_matrix_values(RRJMemory *m, uint32_t matrix, const int32_t quaternion[4])
 {
     int32_t x = quaternion[0];
     int32_t y = quaternion[1];

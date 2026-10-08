@@ -9,7 +9,7 @@ static void half(RRJMemory *m, uint32_t a, uint32_t v)
 
 static void byte(RRJMemory *m, uint32_t a, uint32_t v)
 {
-    *(uint8_t *)rrj_at(m, a, 1) = (uint8_t)v;
+    w_u8(a, (uint8_t)v);
 }
 
 uint32_t sub_8004CC44(RRJMemory *m, uint32_t p, uint32_t x, uint32_t y, uint32_t w, uint32_t h, RRJScreenCall call)

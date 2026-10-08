@@ -27,7 +27,7 @@ uint32_t sub_8001EB44(RRJMemory *m, uint32_t mask)
 
 uint32_t sub_8001E86C(RRJMemory *m, uint32_t bank, uint32_t index)
 {
-    uint32_t count = *(uint8_t *)rrj_at(m, bank + 4, 1), offset;
+    uint32_t count = r_u8(bank + 4), offset;
     if (rrj_s32(index) < 0 || rrj_s32(index) >= (int32_t)count)
         return 0;
     offset = rrj_read32(m, bank + 16 + index * 4);
@@ -109,13 +109,13 @@ uint32_t sub_8001F174(RRJMemory *m, uint32_t bank, uint32_t sample, uint32_t loo
         return 0;
     if (rrj_read32(m, 0x800D69F4))
     {
-        left = rrj_u32(p + 4) * *(uint8_t *)rrj_at(m, record, 1);
+        left = rrj_u32(p + 4) * r_u8(record);
         right = left;
     }
     else
     {
         uint32_t pan = rrj_u32(p + 8), folded = rrj_s32(pan) < 129 ? pan : 256 - pan;
-        uint32_t volume = rrj_u32(p + 4) * *(uint8_t *)rrj_at(m, record, 1);
+        uint32_t volume = rrj_u32(p + 4) * r_u8(record);
         uint32_t product = (folded - 64) * volume, shifted = asr(product, 6);
         left = (volume - (shifted & asr(0 - shifted, 31))) ^ asr(pan, 31);
         if (rrj_s32(pan) >= 129)

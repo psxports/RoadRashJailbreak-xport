@@ -5,12 +5,12 @@
 
 static uint32_t read_byte(RRJMemory *m, uint32_t a)
 {
-    return *(uint8_t *)rrj_at(m, a, 1);
+    return r_u8(a);
 }
 
 static void clear_flags(RRJMemory *m, uint32_t a, uint32_t mask)
 {
-    *(uint8_t *)rrj_at(m, a, 1) = (uint8_t)(read_byte(m, a) & mask);
+    w_u8(a, (uint8_t)(read_byte(m, a) & mask));
 }
 
 uint32_t sub_G_8008AD40(RRJMemory *m, uint32_t delta, uint32_t player, uint32_t base, RRJRaceGlobalCall call)
@@ -86,7 +86,7 @@ uint32_t sub_G_8008AB00(RRJMemory *m, uint32_t delta, RRJRaceGlobalCall call)
         else
         {
             uint32_t state = rrj_read32(m, 0x8005B2F8);
-            uint32_t flags = *(uint8_t *)rrj_at(m, state + 4, 1);
+            uint32_t flags = r_u8(state + 4);
             uint32_t index = rrj_read32(m, state + 60) + ((flags & 4) ? 6 : ((0u - (flags & 1)) & 3));
             elapsed = rrj_read32(m, 0x8005B30C);
             if (rrj_s32(rrj_read32(m, 0x80052FAC + 4 * index)) < rrj_s32(elapsed))
@@ -97,7 +97,7 @@ uint32_t sub_G_8008AB00(RRJMemory *m, uint32_t delta, RRJRaceGlobalCall call)
             }
         }
     }
-    else if (!*(uint8_t *)rrj_at(m, rrj_read32(m, 0x8005B2F8) + 3, 1))
+    else if (!r_u8(rrj_read32(m, 0x8005B2F8) + 3))
         return 0;
     (void)call(m, 0x800B9414, delta);
     (void)call(m, 0x8008CD88, delta);

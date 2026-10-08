@@ -4,7 +4,7 @@
 
 static uint32_t b(RRJMemory *m, uint32_t a)
 {
-    return *(uint8_t *)rrj_at(m, a, 1);
+    return r_u8(a);
 }
 
 static uint32_t h(RRJMemory *m, uint32_t a)
@@ -72,10 +72,10 @@ uint32_t sub_F_80066318(RRJMemory *m, uint32_t font, uint32_t text, uint32_t rec
                 if (!last_break)
                     last_break = index;
                 saved = b(m, text + last_break);
-                *(uint8_t *)rrj_at(m, text + last_break, 1) = 0;
+                w_u8(text + last_break, 0);
                 (void)sub_8002CDC8(m, font, text + start, sxh(h(m, rect)), sxh(y), link, color);
                 y += step;
-                *(uint8_t *)rrj_at(m, text + last_break, 1) = (uint8_t)saved;
+                w_u8(text + last_break, (uint8_t)saved);
                 if (rrj_s32(bottom) < rrj_s32(sxh(y) + sxh(step)))
                     break;
                 start = last_break + 1;

@@ -8,7 +8,7 @@
 
 static uint32_t b(RRJMemory *m, uint32_t a)
 {
-    return *(uint8_t *)rrj_at(m, a, 1);
+    return r_u8(a);
 }
 
 static uint32_t h(RRJMemory *m, uint32_t a)
@@ -28,7 +28,7 @@ static uint32_t sh(uint32_t v)
 
 static void put(RRJMemory *m, uint32_t a, uint32_t v)
 {
-    *(uint8_t *)rrj_at(m, a, 1) = (uint8_t)v;
+    w_u8(a, (uint8_t)v);
 }
 
 static uint32_t unavailable(RRJMemory *m, uint32_t root)

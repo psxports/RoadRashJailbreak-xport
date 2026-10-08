@@ -32,13 +32,13 @@ void sub_8001CB3C_menu(RRJMemory *m, RRJSDKCall critical)
         for (button = 0; button < 19; ++button, record += 8)
         {
             uint32_t held = rrj_read32(m, record);
-            *(uint8_t *)rrj_at(m, record + 6, 1) = 0;
+            w_u8(record + 6, 0);
             if (rrj_s32(held) < 0)
                 held = 0;
             rrj_write32(m, record, held);
         }
     }
-    if (*(uint8_t *)rrj_at(m, rrj_read32(m, 0x8005B2F8), 1) != 2)
+    if (r_u8(rrj_read32(m, 0x8005B2F8)) != 2)
     {
         RRJ_WIP(m, 0x8001CB3C, "function", "input_latch", "skip_non_menu_tail_continue_critical_exit", NULL, 0);
     }

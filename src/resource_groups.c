@@ -3,13 +3,13 @@
 
 static uint32_t b(RRJMemory *m, uint32_t a)
 {
-    return *(uint8_t *)rrj_at(m, a, 1);
+    return r_u8(a);
 }
 
 uint32_t sub_F_80064254(RRJMemory *m, uint32_t mode)
 {
     uint32_t mask = mode < 6 ? 1u << mode : 1;
-    *(uint8_t *)rrj_at(m, 0x8009C5E4, 1) = (uint8_t)mask;
+    w_u8(0x8009C5E4, (uint8_t)mask);
     return mask; /* v1=800A0000 is a scratch register, not a 64-bit result. */
 }
 

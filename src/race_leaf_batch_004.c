@@ -107,7 +107,7 @@ uint32_t sub_800B658C(RRJMemory *m, uint32_t actor, uint32_t other, int32_t valu
     FUNCTION_MARKER(0x800B658C, "RASHCDG.BIN");
     if (!other || ((rrj_u16(rrj_at(m, other + 172, 2)) >> 5) == 1u && (rrj_u16(rrj_at(m, other + 172, 2)) & 31u) < rrj_read32(m, state + 48)))
         result = sub_8001DD74(m, rrj_u16(rrj_at(m, actor + 172, 2)), second, 150, (uint32_t)first);
-    if (!other || (*(uint8_t *)rrj_at(m, other + 572, 1) & 0x20u))
+    if (!other || (r_u8(other + 572) & 0x20u))
     {
         uint32_t link = rrj_read32(m, actor + 856);
         uint32_t linked_actor;
@@ -115,12 +115,12 @@ uint32_t sub_800B658C(RRJMemory *m, uint32_t actor, uint32_t other, int32_t valu
         if (!link)
             return 0;
         linked_actor = rrj_read32(m, link + 852);
-        result = *(uint8_t *)rrj_at(m, linked_actor + 572, 1) & 0x40u;
+        result = r_u8(linked_actor + 572) & 0x40u;
         if (!result)
         {
             int eligible = 0;
 
-            if (link && (*(uint8_t *)rrj_at(m, rrj_read32(m, actor + 852) + 572, 1) & 0x10u) && rrj_read32(m, linked_actor + 604) < 2u)
+            if (link && (r_u8(rrj_read32(m, actor + 852) + 572) & 0x10u) && rrj_read32(m, linked_actor + 604) < 2u)
                 eligible = 1;
             if (other)
                 eligible = 1;
@@ -697,22 +697,22 @@ uint32_t sub_800A9408(RRJMemory *m, uint32_t actor, int32_t amount, int32_t rati
     if (active)
     {
         uint32_t controller = rrj_read32(m, actor + 1084);
-        uint32_t current = *(uint8_t *)rrj_at(m, controller + 37, 1);
+        uint32_t current = r_u8(controller + 37);
         uint32_t product = (uint32_t)((int64_t)clamped * ratio);
         int32_t next = (int32_t)current - (rrj_s32(product) >> 16);
 
         if (next > 0)
         {
-            uint8_t controller_flags = *(uint8_t *)rrj_at(m, controller + 68, 1);
+            uint8_t controller_flags = r_u8(controller + 68);
 
             if (((current & 0x80u) && next < 128) || (current >= 0x40u && next < 64))
                 controller_flags |= 0x40u;
-            *(uint8_t *)rrj_at(m, controller + 68, 1) = controller_flags;
-            *(uint8_t *)rrj_at(m, rrj_read32(m, actor + 1084) + 37, 1) = (uint8_t)next;
+            w_u8(controller + 68, controller_flags);
+            w_u8(rrj_read32(m, actor + 1084) + 37, (uint8_t)next);
         }
         else
         {
-            *(uint8_t *)rrj_at(m, controller + 37, 1) = 0;
+            w_u8(controller + 37, 0);
         }
     }
     return (uint32_t)clamped;
@@ -903,7 +903,7 @@ uint32_t sub_80017B30(RRJMemory *m, int32_t value)
         value = 0;
     if (value > 51)
         value = 51;
-    return *(uint8_t *)rrj_at(m, 0x800525C0u + (uint32_t)value, 1);
+    return r_u8(0x800525C0u + (uint32_t)value);
 }
 
 static uint32_t batch4_find_penetrating_point(RRJMemory *m, uint32_t points, uint32_t normal, uint32_t origin, uint32_t *distance)
@@ -1303,7 +1303,7 @@ uint32_t sub_80083928(RRJMemory *m, uint32_t actor, uint32_t other, uint32_t nor
     flags |= (flags & 0x1Fu) ? 0x1000u : ((flags & 0x220u) != 0) << 11;
     rrj_write32(m, actor + 568, flags);
     if (flags & 0x130u)
-        *(uint8_t *)rrj_at(m, other + 509, 1) |= 0x10u;
+        xport_update_u8(other + 509, XPORT_MEMORY_UPDATE_OR, 0x10u);
     return (uint32_t)result;
 }
 
@@ -1441,7 +1441,7 @@ uint32_t sub_80083F30(RRJMemory *m, uint32_t actor, uint32_t contact, uint32_t n
             uint32_t owner = rrj_read32(m, actor + 852);
 
             rrj_write32(m, owner + 552, rrj_read32(m, owner + 552) | 0x10000u);
-            if (*(uint8_t *)rrj_at(m, owner + 572, 1) & 0x10u)
+            if (r_u8(owner + 572) & 0x10u)
             {
                 uint32_t linked_owner = rrj_read32(m, rrj_read32(m, actor + 856) + 852);
 

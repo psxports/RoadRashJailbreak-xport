@@ -15,12 +15,7 @@ static void release_pointer_slot(RRJMemory *m, uint32_t object)
         rrj_write32(m, 0x800D1660u, (uint32_t)index);
 }
 
-static void release_forward_pool(RRJMemory *m, uint32_t identity,
-                                 uint32_t base, uint32_t stride,
-                                 uint32_t maximum_address,
-                                 uint32_t minimum_address,
-                                 uint32_t active_address,
-                                 uint32_t cursor_increment)
+static void release_forward_pool(RRJMemory *m, uint32_t identity, uint32_t base, uint32_t stride, uint32_t maximum_address, uint32_t minimum_address, uint32_t active_address, uint32_t cursor_increment)
 {
     int32_t maximum = rrj_s32(rrj_read32(m, maximum_address));
     int32_t i;
@@ -36,8 +31,7 @@ static void release_forward_pool(RRJMemory *m, uint32_t identity,
         rrj_put16(rrj_at(m, object + 320, 2), 0);
         index = tag & 31u;
         if (rrj_s32(rrj_read32(m, active_address)) > 0)
-            rrj_write32(m, active_address,
-                        rrj_read32(m, active_address) - 1u);
+            rrj_write32(m, active_address, rrj_read32(m, active_address) - 1u);
         if (rrj_read32(m, maximum_address) == index)
         {
             int32_t next;
@@ -47,13 +41,8 @@ static void release_forward_pool(RRJMemory *m, uint32_t identity,
                 next = rrj_s32(rrj_read32(m, maximum_address)) - 1;
                 rrj_write32(m, maximum_address, (uint32_t)next);
                 if (cursor_increment)
-                    rrj_write32(m, 0x800D1814u,
-                                rrj_read32(m, 0x800D1814u) +
-                                    cursor_increment);
-            } while (next >= 0 &&
-                     !rrj_u16(rrj_at(m, base + stride * (uint32_t)next +
-                                             172,
-                                         2)));
+                    rrj_write32(m, 0x800D1814u, rrj_read32(m, 0x800D1814u) + cursor_increment);
+            } while (next >= 0 && !rrj_u16(rrj_at(m, base + stride * (uint32_t)next + 172, 2)));
         }
         if (index < rrj_read32(m, minimum_address))
             rrj_write32(m, minimum_address, index);
@@ -79,8 +68,7 @@ static void release_reverse_pool(RRJMemory *m, uint32_t identity)
         rrj_put16(rrj_at(m, object + 320, 2), 0);
         index = tag & 31u;
         if (rrj_s32(rrj_read32(m, 0x800CE598u)) > 0)
-            rrj_write32(m, 0x800CE598u,
-                        rrj_read32(m, 0x800CE598u) - 1u);
+            rrj_write32(m, 0x800CE598u, rrj_read32(m, 0x800CE598u) - 1u);
         if (rrj_read32(m, 0x800CE5A0u) == index)
         {
             int32_t next;
@@ -89,12 +77,8 @@ static void release_reverse_pool(RRJMemory *m, uint32_t identity)
             {
                 next = rrj_s32(rrj_read32(m, 0x800CE5A0u)) - 1;
                 rrj_write32(m, 0x800CE5A0u, (uint32_t)next);
-                rrj_write32(m, 0x800D1814u,
-                            rrj_read32(m, 0x800D1814u) + 452u);
-            } while (next >= 0 &&
-                     !rrj_u16(rrj_at(m, base - 452u * (uint32_t)next +
-                                             172,
-                                         2)));
+                rrj_write32(m, 0x800D1814u, rrj_read32(m, 0x800D1814u) + 452u);
+            } while (next >= 0 && !rrj_u16(rrj_at(m, base - 452u * (uint32_t)next + 172, 2)));
         }
         if (index < rrj_read32(m, 0x800CE59Cu))
             rrj_write32(m, 0x800CE59Cu, index);
@@ -112,7 +96,7 @@ uint32_t sub_8008C45C(RRJMemory *m, uint32_t identity, uint32_t player)
     int32_t remaining;
 
     FUNCTION_MARKER(0x8008C45C, "RASHCDG.BIN");
-    if (*(uint8_t *)rrj_at(m, state + 4, 1) & 0x10u)
+    if (r_u8(state + 4) & 0x10u)
     {
         binding = sub_80013360(m, identity, player);
         (void)sub_800A3ECC(m, identity, player);
@@ -126,10 +110,7 @@ uint32_t sub_8008C45C(RRJMemory *m, uint32_t identity, uint32_t player)
         stride = rrj_read32(m, 0x800CE4D4u);
         while (remaining >= 0)
         {
-            if (rrj_u16(rrj_at(m, base + 172, 2)) >=
-                    rrj_read32(m, state + 48) &&
-                rrj_read32(m, base + 176) == identity &&
-                rrj_u16(rrj_at(m, base + 320, 2)))
+            if (rrj_u16(rrj_at(m, base + 172, 2)) >= rrj_read32(m, state + 48) && rrj_read32(m, base + 176) == identity && rrj_u16(rrj_at(m, base + 320, 2)))
                 sub_80093ED4(m, base, 1, rrj_spu_reverb);
             --remaining;
             base += stride;
@@ -142,24 +123,18 @@ uint32_t sub_8008C45C(RRJMemory *m, uint32_t identity, uint32_t player)
             uint32_t tag = rrj_u16(rrj_at(m, base + 172, 2));
             uint32_t linked;
 
-            if ((tag >> 5) != 1 ||
-                (tag & 31u) >= rrj_read32(m, state + 48))
+            if ((tag >> 5) != 1 || (tag & 31u) >= rrj_read32(m, state + 48))
             {
                 linked = rrj_read32(m, base + 852);
-                if ((rrj_read32(m, linked + 604) - 3u) < 2u &&
-                    rrj_read32(m, linked + 176) == identity &&
-                    rrj_u16(rrj_at(m, linked + 320, 2)))
+                if ((rrj_read32(m, linked + 604) - 3u) < 2u && rrj_read32(m, linked + 176) == identity && rrj_u16(rrj_at(m, linked + 320, 2)))
                     sub_800951B8(m, linked, 1, rrj_spu_reverb);
             }
             linked = rrj_read32(m, base + 852);
-            if (*(uint8_t *)rrj_at(m, linked + 572, 1) & 0x10u)
+            if (r_u8(linked + 572) & 0x10u)
             {
-                uint32_t second = rrj_read32(
-                    m, rrj_read32(m, base + 856) + 852);
+                uint32_t second = rrj_read32(m, rrj_read32(m, base + 856) + 852);
 
-                if ((rrj_read32(m, second + 604) - 3u) < 2u &&
-                    rrj_read32(m, second + 176) == identity &&
-                    rrj_u16(rrj_at(m, second + 320, 2)))
+                if ((rrj_read32(m, second + 604) - 3u) < 2u && rrj_read32(m, second + 176) == identity && rrj_u16(rrj_at(m, second + 320, 2)))
                     sub_800951B8(m, second, 1, rrj_spu_reverb);
             }
             --remaining;
@@ -176,16 +151,14 @@ uint32_t sub_8008C45C(RRJMemory *m, uint32_t identity, uint32_t player)
             {
                 uint32_t index = tag & 31u;
 
-                if (!rrj_read32(m, base + 180) &&
-                    ((rrj_read32(m, base + 36) >> 27) & 1u))
+                if (!rrj_read32(m, base + 180) && ((rrj_read32(m, base + 36) >> 27) & 1u))
                 {
                     (void)sub_8002847C(m, base);
                     (void)sub_8002820C(m, base);
                 }
                 rrj_put16(rrj_at(m, base + 320, 2), 0);
                 if (rrj_s32(rrj_read32(m, 0x800CF650u)) > 0)
-                    rrj_write32(m, 0x800CF650u,
-                                rrj_read32(m, 0x800CF650u) - 1u);
+                    rrj_write32(m, 0x800CF650u, rrj_read32(m, 0x800CF650u) - 1u);
                 if (rrj_read32(m, 0x800CF658u) == index)
                 {
                     int32_t next;
@@ -194,11 +167,7 @@ uint32_t sub_8008C45C(RRJMemory *m, uint32_t identity, uint32_t player)
                     {
                         next = rrj_s32(rrj_read32(m, 0x800CF658u)) - 1;
                         rrj_write32(m, 0x800CF658u, (uint32_t)next);
-                    } while (next >= 0 &&
-                             !rrj_u16(rrj_at(m, 0x800CF660u +
-                                                     512u * (uint32_t)next +
-                                                     172,
-                                                 2)));
+                    } while (next >= 0 && !rrj_u16(rrj_at(m, 0x800CF660u + 512u * (uint32_t)next + 172, 2)));
                 }
                 if (index < rrj_read32(m, 0x800CF654u))
                     rrj_write32(m, 0x800CF654u, index);
@@ -222,8 +191,7 @@ uint32_t sub_8008C45C(RRJMemory *m, uint32_t identity, uint32_t player)
                     rrj_put16(rrj_at(m, base + 320, 2), 0);
                     (void)sub_800CC0B0(m, base);
                     if (rrj_s32(rrj_read32(m, 0x800D4B70u)) > 0)
-                        rrj_write32(m, 0x800D4B70u,
-                                    rrj_read32(m, 0x800D4B70u) - 1u);
+                        rrj_write32(m, 0x800D4B70u, rrj_read32(m, 0x800D4B70u) - 1u);
                     if (rrj_read32(m, 0x800D4B78u) == index)
                     {
                         int32_t next;
@@ -232,11 +200,7 @@ uint32_t sub_8008C45C(RRJMemory *m, uint32_t identity, uint32_t player)
                         {
                             next = rrj_s32(rrj_read32(m, 0x800D4B78u)) - 1;
                             rrj_write32(m, 0x800D4B78u, (uint32_t)next);
-                        } while (next >= 0 &&
-                                 !rrj_u16(rrj_at(
-                                     m, rrj_read32(m, 0x800D4B80u) +
-                                            572u * (uint32_t)next + 172,
-                                     2)));
+                        } while (next >= 0 && !rrj_u16(rrj_at(m, rrj_read32(m, 0x800D4B80u) + 572u * (uint32_t)next + 172, 2)));
                     }
                     if (index < rrj_read32(m, 0x800D4B74u))
                         rrj_write32(m, 0x800D4B74u, index);
@@ -246,9 +210,7 @@ uint32_t sub_8008C45C(RRJMemory *m, uint32_t identity, uint32_t player)
                 base += 572;
             }
         }
-        release_forward_pool(m, identity, rrj_read32(m, 0x800CD6D4u),
-                             596, 0x800CD6D0u, 0x800CD6CCu,
-                             0x800CD6C8u, 596);
+        release_forward_pool(m, identity, rrj_read32(m, 0x800CD6D4u), 596, 0x800CD6D0u, 0x800CD6CCu, 0x800CD6C8u, 596);
         release_reverse_pool(m, identity);
     }
 
@@ -262,7 +224,7 @@ uint32_t sub_8008C45C(RRJMemory *m, uint32_t identity, uint32_t player)
 
             if (tag && rrj_read32(m, base + 4) == identity)
             {
-                uint32_t mask = *(uint8_t *)rrj_at(m, base + 3, 1);
+                uint32_t mask = r_u8(base + 3);
                 uint32_t bit = 1u << (player & 31u);
 
                 if (mask & bit)
@@ -272,38 +234,26 @@ uint32_t sub_8008C45C(RRJMemory *m, uint32_t identity, uint32_t player)
                         uint32_t index = tag & 31u;
 
                         if (binding)
-                            (void)sub_8009C41C(
-                                m, binding, 6,
-                                *(uint8_t *)rrj_at(m, base + 2, 1), 0);
+                            (void)sub_8009C41C(m, binding, 6, r_u8(base + 2), 0);
                         rrj_put16(rrj_at(m, base + 148, 2), 0);
                         if (rrj_s32(rrj_read32(m, 0x800CD6A8u)) > 0)
-                            rrj_write32(m, 0x800CD6A8u,
-                                        rrj_read32(m, 0x800CD6A8u) - 1u);
+                            rrj_write32(m, 0x800CD6A8u, rrj_read32(m, 0x800CD6A8u) - 1u);
                         if (rrj_read32(m, 0x800CD6B0u) == index)
                         {
                             int32_t next;
 
                             do
                             {
-                                next = rrj_s32(
-                                           rrj_read32(m, 0x800CD6B0u)) -
-                                       1;
-                                rrj_write32(m, 0x800CD6B0u,
-                                            (uint32_t)next);
-                            } while (next >= 0 &&
-                                     !rrj_u16(rrj_at(
-                                         m, rrj_read32(m, 0x800CD6C4u) +
-                                                280u * (uint32_t)next,
-                                         2)));
+                                next = rrj_s32(rrj_read32(m, 0x800CD6B0u)) - 1;
+                                rrj_write32(m, 0x800CD6B0u, (uint32_t)next);
+                            } while (next >= 0 && !rrj_u16(rrj_at(m, rrj_read32(m, 0x800CD6C4u) + 280u * (uint32_t)next, 2)));
                         }
                         if (index < rrj_read32(m, 0x800CD6ACu))
                             rrj_write32(m, 0x800CD6ACu, index);
                         rrj_put16(rrj_at(m, base, 2), 0);
                     }
                     else
-                        *(uint8_t *)rrj_at(m, base + 3, 1) =
-                            (uint8_t)(mask &
-                                      (1u << ((player ^ 1u) & 31u)));
+                        w_u8(base + 3, (uint8_t)(mask & (1u << ((player ^ 1u) & 31u))));
                 }
             }
             --remaining;
@@ -313,8 +263,7 @@ uint32_t sub_8008C45C(RRJMemory *m, uint32_t identity, uint32_t player)
     return base;
 }
 
-uint32_t sub_80032810(RRJMemory *m, uint32_t identity, uint32_t kind,
-                      uint32_t group)
+uint32_t sub_80032810(RRJMemory *m, uint32_t identity, uint32_t kind, uint32_t group)
 {
     int32_t index = rrj_s32(group * 12u);
     int32_t limit = rrj_s32(group * 12u + 12u);
@@ -332,8 +281,7 @@ uint32_t sub_80032810(RRJMemory *m, uint32_t identity, uint32_t kind,
             if (kind == 9)
             {
                 rrj_write32(m, rrj_read32(m, record + 4) + 60, 0);
-                rrj_write32(m, record + 12,
-                            rrj_read32(m, record + 12) & 0xFFFFFFA9u);
+                rrj_write32(m, record + 12, rrj_read32(m, record + 12) & 0xFFFFFFA9u);
             }
             else
             {
@@ -353,8 +301,7 @@ uint32_t sub_80032810(RRJMemory *m, uint32_t identity, uint32_t kind,
                     rrj_write32(m, record + field + 96, 0);
                     rrj_write32(m, record + field + 104, 0);
                 }
-                rrj_write32(m, 0x8005AEDCu,
-                            rrj_read32(m, 0x8005AEDCu) - 1u);
+                rrj_write32(m, 0x8005AEDCu, rrj_read32(m, 0x8005AEDCu) - 1u);
                 return 1;
             }
         }

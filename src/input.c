@@ -38,13 +38,12 @@ static void critical(RRJMemory *m, uint32_t fn, uint32_t a0, uint32_t a1)
 void rrj_input_read(RRJMemory *m)
 {
     uint32_t buttons = PadRead(0) ^ 0xffff;
-    uint8_t *raw = (uint8_t *)rrj_at(m, 0x800D70E0, 72);
-    memset(raw, 0xff, 72);
-    raw[0] = 0;
-    raw[1] = 0x41;
-    raw[2] = (uint8_t)(buttons >> 8);
-    raw[3] = (uint8_t)buttons;
-    memset(raw + 4, 0, 4);
+    xport_guest_fill(0x800D70E0, 0xff, 72);
+    w_u8(0x800D70E0, 0);
+    w_u8(0x800D70E1, 0x41);
+    w_u8(0x800D70E2, buttons >> 8);
+    w_u8(0x800D70E3, buttons);
+    xport_guest_fill(0x800D70E4, 0, 4);
     (void)rrj_pad_poll(m, digital_sdk);
 }
 

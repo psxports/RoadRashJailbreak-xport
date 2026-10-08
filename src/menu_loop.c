@@ -2,9 +2,9 @@
 #include "menu_loop.h"
 #include <stdlib.h>
 
-void rrj_menu_iteration(RRJMemory *m, RRJLoopCall call)
+uint32_t rrj_menu_prepare_iteration(RRJMemory *m, RRJLoopCall call)
 {
-    uint32_t sequence, ctx, tick, count;
+    uint32_t sequence, ctx, tick;
     uint8_t delay;
     if (!call)
         abort();
@@ -20,15 +20,32 @@ void rrj_menu_iteration(RRJMemory *m, RRJLoopCall call)
     rrj_write32(m, 0x800D75B0 + 4 * sequence, rrj_read32(m, ctx + 268) - 60);
     call(m, 0x800667E4, ctx, tick);
     call(m, 0x80066C34, 0, 0);
-    delay = *(uint8_t *)rrj_at(m, 0x8009C5E2, 1);
+    delay = r_u8(0x8009C5E2);
     if (delay > 0 && delay < 128)
-        *(uint8_t *)rrj_at(m, 0x8009C5E2, 1) = delay - 1;
+        w_u8(0x8009C5E2, delay - 1);
     else
     {
         call(m, 0x8001C3F4, 0, 0);
+        return 1u;
+    }
+    return 0u;
+}
+
+void rrj_menu_iteration(RRJMemory *m, RRJLoopCall call)
+{
+    if (rrj_menu_prepare_iteration(m, call))
+    {
         call(m, 0x8001C408, 0, 0);
         rrj_write32(m, 0x80088C44, 0);
     }
+    rrj_menu_finish_iteration(m, call);
+}
+
+void rrj_menu_finish_iteration(RRJMemory *m, RRJLoopCall call)
+{
+    uint32_t count;
+    if (!call)
+        abort();
     count = rrj_read32(m, 0x8009C2F0);
     if (count)
         call(m, 0x80062774, 0x8009C2F8, count);
@@ -46,7 +63,7 @@ void rrj_menu_iteration(RRJMemory *m, RRJLoopCall call)
 
 uint32_t sub_F_80080274(RRJMemory *m, RRJLoopCall call)
 {
-    while (*(uint8_t *)rrj_at(m, rrj_read32(m, 0x8005B2F8), 1) == 2)
+    while (r_u8(rrj_read32(m, 0x8005B2F8)) == 2)
         rrj_menu_iteration(m, call);
     return 2;
 }

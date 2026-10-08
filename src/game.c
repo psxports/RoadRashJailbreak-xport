@@ -8,6 +8,7 @@
 #include "psx.h"
 #include "psx_gpu.h"
 #include "psx_spu.h"
+#include "xport_trace.h"
 #include "menu.h"
 #include "gpu.h"
 #include "menu_navigation.h"
@@ -84,11 +85,15 @@
 #include "video_tick.h"
 #include "video_preview.h"
 #include "race_leaf_batch_007.h"
+#include <setjmp.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "wip.h"
+#include "rrj_lockstep.h"
 #define abort() rrj_wip_stop(__func__, __FILE__, __LINE__)
+
+const uint32 xport_gpu_graph_type_address = 0x80055F0Cu;
 
 /* Explicit test seam: record SDK calls, no GPU side effects. Enabled only when
  * a boundary-log file is provided. The ordinary bootstrap does not install it. */
@@ -103,11 +108,26 @@ static uint32_t probe_pad_sdk(RRJMemory *m, uint32_t fn, uint32_t a0, uint32_t a
     return fn == 0x80040550 ? pad_sdk_returns[0] : pad_sdk_returns[1];
 }
 
+static uint32_t screen_probe_mode, screen_probe_env_index;
+
 static void probe_screen_env(RRJMemory *m, uint32_t fn, uint32_t address, uint32_t x, uint32_t y, uint32_t w, uint32_t h)
 {
     if (!m->sdk_user)
         abort();
     fprintf((FILE *)m->sdk_user, "%08X %08X %08X %08X %08X %08X\n", fn, address, x, y, w, h);
+    if (screen_probe_mode == 1 && screen_probe_env_index == 0)
+    {
+        rrj_write32(m, 0x80160008, 0x13579BDF);
+        rrj_write32(m, 0x8016000C, 0x2468ACE0);
+        rrj_write32(m, 0x8005B470, 0x80160000);
+    }
+    if (screen_probe_mode == 2 && screen_probe_env_index == 1)
+    {
+        uint32_t context = rrj_read32(m, 0x8005B470);
+        rrj_write32(m, context + 8, 0x31415926);
+        rrj_write32(m, context + 12, 0x27182818);
+    }
+    ++screen_probe_env_index;
 }
 
 static uint32_t submenu_reply;
@@ -350,7 +370,7 @@ static uint32_t probe_race_frame(RRJMemory *m, uint32_t fn, const uint32_t args[
         fprintf((FILE *)m->sdk_user, " %08X", args[i]);
     fputc('\n', (FILE *)m->sdk_user);
     if (race_frame_args[1] == 1 && fn == 0x80018C1C)
-        *(uint8_t *)rrj_at(m, rrj_read32(m, 0x8005B2F8) + 1, 1) = (uint8_t)race_frame_args[2];
+        w_u8(rrj_read32(m, 0x8005B2F8) + 1, (uint8_t)race_frame_args[2]);
     if (race_frame_args[1] == 2 && fn == 0x800C8CD4)
         rrj_write32(m, rrj_read32(m, 0x8005B2F8) + 48, 1);
     return race_frame_args[0];
@@ -497,7 +517,7 @@ static void probe_loop(RRJMemory *m, uint32_t fn, uint32_t a0, uint32_t a1)
         abort();
     fprintf((FILE *)m->sdk_user, "%08X %08X %08X\n", fn, a0, a1);
     if (fn == 0x800803FC && --probe_loop_remaining == 0)
-        *(uint8_t *)rrj_at(m, rrj_read32(m, 0x8005B2F8), 1) = 3;
+        w_u8(rrj_read32(m, 0x8005B2F8), 3);
 }
 
 static uint32_t probe_vblank(RRJMemory *m, uint32_t fn, uint32_t arg)
@@ -561,7 +581,7 @@ static void *ram_pointer(uint32_t address, size_t size)
 
 static int read_file(const char *path, void *data, size_t size)
 {
-    FILE *f = fopen(path, "rb");
+    FILE *f = xport_fopen(path, "rb");
     int ok;
     if (!f)
         return 0;
@@ -588,17 +608,17 @@ static int skip_checkpoint_block(FILE *stream, uint32_t size)
     return 1;
 }
 
-static int read_checkpoint_gte(FILE *stream, uint32_t size, uint32_t registers[64])
+static int read_checkpoint_gte(FILE *stream, uint32_t size, uint32_t registers[64], RRJNativeCheckpointABI *abi)
 {
     const uint32_t prefix = 1260;
     const uint32_t register_bytes = 64 * sizeof(uint32_t);
+    uint8_t cpu_prefix[1260];
 
-    if (size < prefix + register_bytes)
-    {
-        memset(registers, 0, register_bytes);
-        return skip_checkpoint_block(stream, size);
-    }
-    return skip_checkpoint_block(stream, prefix) && fread(registers, 1, register_bytes, stream) == register_bytes && skip_checkpoint_block(stream, size - prefix - register_bytes);
+    if (size != 6637 || fread(cpu_prefix, 1, prefix, stream) != prefix)
+        return 0;
+    if (rrj_u32(cpu_prefix + 84) != 2 || rrj_u32(cpu_prefix + 88) != 0x800CD898 || rrj_u32(cpu_prefix + 128) != 0x8005AC8C || rrj_u32(cpu_prefix + 152) != 0x80012370 || rrj_u32(cpu_prefix + 156) != 0x80012374 || cpu_prefix[218] || cpu_prefix[219] || cpu_prefix[222] != 34 || cpu_prefix[227] != 34 || memcmp(cpu_prefix + 236, SCRATCHPAD, sizeof(SCRATCHPAD)))
+        return 0;
+    return rrj_native_checkpoint_decode(abi, cpu_prefix, prefix) && fread(registers, 1, register_bytes, stream) == register_bytes && skip_checkpoint_block(stream, size - prefix - register_bytes);
 }
 
 static void restore_checkpoint_gte(const uint32 registers[64])
@@ -634,12 +654,14 @@ static int load_race_checkpoint(RRJMemory *m, const char *path, uint32_t *ordina
     uint8_t stored_abi[64];
     uint32_t magic, pc, sizes[5];
     uint32_t gte_registers[64];
+    RRJNativeCheckpointABI checkpoint_abi;
     FILE *stream;
     unsigned i;
 
-    if (!path || !(stream = fopen(path, "rb")))
+    m->checkpoint_abi_valid = 0;
+    if (!path || !(stream = xport_fopen(path, "rb")))
         return 0;
-    if (fread(&magic, 4, 1, stream) != 1 || fread(stored_abi, 1, sizeof stored_abi, stream) != sizeof stored_abi || fread(&pc, 4, 1, stream) != 1 || fread(ordinal, 4, 1, stream) != 1 || fread(sizes, sizeof sizes, 1, stream) != 1 || magic != 0x31504A52 || memcmp(stored_abi, abi, sizeof abi) || pc != 0x80012370 || !read_checkpoint_block(stream, DRAM, sizeof(DRAM), sizes[0]) || !read_checkpoint_block(stream, SCRATCHPAD, sizeof(SCRATCHPAD), sizes[1]) || !read_checkpoint_gte(stream, sizes[2], gte_registers))
+    if (fread(&magic, 4, 1, stream) != 1 || fread(stored_abi, 1, sizeof stored_abi, stream) != sizeof stored_abi || fread(&pc, 4, 1, stream) != 1 || fread(ordinal, 4, 1, stream) != 1 || fread(sizes, sizeof sizes, 1, stream) != 1 || magic != 0x31504A52 || memcmp(stored_abi, abi, sizeof abi) || pc != 0x80012370 || !read_checkpoint_block(stream, DRAM, sizeof(DRAM), sizes[0]) || !read_checkpoint_block(stream, SCRATCHPAD, sizeof(SCRATCHPAD), sizes[1]) || !read_checkpoint_gte(stream, sizes[2], gte_registers, &checkpoint_abi))
     {
         fclose(stream);
         return 0;
@@ -653,6 +675,9 @@ static int load_race_checkpoint(RRJMemory *m, const char *path, uint32_t *ordina
     if (fgetc(stream) != EOF || fclose(stream))
         return 0;
     restore_checkpoint_gte(gte_registers);
+    m->checkpoint_abi = checkpoint_abi;
+    m->cpu_status = checkpoint_abi.cpu_status;
+    m->checkpoint_abi_valid = 1;
     return 1;
 }
 
@@ -870,6 +895,8 @@ static uint32_t trace_race_call(RRJMemory *m, uint32_t target, const uint32_t ar
         return sub_800853E4(m, args[0], args[1]);
     if (target == 0x80086E1C)
         return sub_80086E1C(m, args[0], trace_race_call);
+    if (target == 0x8003775C)
+        return sub_8003775C(m, args[0], args[1], args[2]);
     if (target == 0x800374D4)
         return sub_800374D4(m, args[0], args[1]);
     if (target == 0x80088140)
@@ -1148,7 +1175,7 @@ static uint32_t trace_race_call(RRJMemory *m, uint32_t target, const uint32_t ar
     {
         uint32_t result = (args[2] ? 0xE1000200u : 0xE1000000u) | (args[3] & 0x9FFu) | (args[1] ? 0x400u : 0);
 
-        *(uint8_t *)rrj_at(m, args[0] + 3, 1) = 1;
+        w_u8(args[0] + 3, 1);
         rrj_write32(m, args[0] + 4, result);
         return result;
     }
@@ -1177,7 +1204,7 @@ static uint32_t trace_race_call(RRJMemory *m, uint32_t target, const uint32_t ar
         uint32_t width = rrj_u16(rrj_at(m, args[0] + 4, 2));
         uint32_t height = rrj_u16(rrj_at(m, args[0] + 6, 2));
 
-        memset(rrj_at(m, args[1], width * height * 2), 0, width * height * 2);
+        xport_guest_fill(args[1], 0, width * height * 2);
         return 0;
     }
     if (target == 0x8004D7B4 || target == 0x8004D9A8 || target == 0x8004D9E4 || target == 0x8004D90C || target == 0x8004D988)
@@ -1338,6 +1365,8 @@ static uint32_t trace_race_call(RRJMemory *m, uint32_t target, const uint32_t ar
         return sub_8009AB60(m);
     if (target == 0x8001CB3C)
         return sub_8001CB3C_race(m, trace_race_call);
+    if (target == 0x8008A998)
+        return sub_8008A998(m, args[0], args[1]);
     if (target == 0x800C2348)
         return sub_800C2348(m, args[0], args[1], trace_race_call);
     if (target == 0x8008AB00)
@@ -1443,7 +1472,7 @@ static int trace_replay(RRJMemory *m)
 
 static int write_file(const char *path, const void *data, size_t size)
 {
-    FILE *f = fopen(path, "wb");
+    FILE *f = xport_fopen(path, "wb");
     int ok;
     if (!f)
         return 0;
@@ -1523,9 +1552,14 @@ static void native_menu_draw(RRJMemory *m, uint32_t target, uint32_t menu, uint3
 
 static uint32_t live_video_call(RRJMemory *, uint32_t, const uint32_t args[9]);
 static uint32_t live_video_open(RRJMemory *, uint32_t, uint32_t);
+static uint32_t live_queue_call(RRJMemory *, uint32_t, uint32_t, uint32_t);
 
 static uint32_t native_menu_frame(RRJMemory *m, uint32_t target, uint32_t menu, uint32_t a1)
 {
+    if (target == 0x80078BD8u)
+        return sub_F_80078BD8(m, menu, a1, live_queue_call);
+    if (target == 0x80078E80u)
+        return sub_F_80078E80(m, menu, live_queue_call);
     if (target == 0x80022A78)
     {
         /* WIP CD queue wait: dummy reads create no outstanding native I/O. */
@@ -1628,7 +1662,7 @@ static int upload_smoke(RRJMemory *memory)
         memset(VRAM, 0x5A, sizeof(VRAM));
         rrj_write32(memory, 0x8005B2F8, 0x801E0000);
         rrj_write32(memory, 0x801E0030, 1);
-        memset(rrj_at(memory, 0x800533B4, 16), 0, 16);
+        xport_guest_fill(0x800533B4, 0, 16);
         for (i = 0; i < 24; ++i)
             rrj_write32(memory, 0x800D9270 + 48 * i, 0xFFFFFFFF);
         rrj_write32(memory, 0x800D9268, 0xFFFFFFFF);
@@ -1667,11 +1701,11 @@ static int input_smoke(RRJMemory *m, const char *fixture)
     xport_set_headless(1);
     PadInit(0);
     state = rrj_read32(m, 0x8005B2F8);
-    *(uint8_t *)rrj_at(m, state, 1) = 2;
+    w_u8(state, 2);
     rrj_write32(m, state + 52, 1);
-    memset(rrj_at(m, 0x800D6DE0, 768), 0, 768);
+    xport_guest_fill(0x800D6DE0, 0, 768);
     /* Make the first press a single-click event, as in initialized game data. */
-    *(uint8_t *)rrj_at(m, 0x800D6E09, 1) = 30;
+    w_u8(0x800D6E09, 30);
     for (frame = 0; frame < 80; ++frame)
     {
         unsigned expected = frame == 0 ? 1 : (frame >= 32 && frame < 70 && (frame - 32) % 3 == 0) ? 255 : 0;
@@ -1681,7 +1715,7 @@ static int input_smoke(RRJMemory *m, const char *fixture)
         rrj_write32(m, state + 12, frame + 1);
         rrj_input_read(m);
         rrj_input_latch(m);
-        actual = *(uint8_t *)rrj_at(m, 0x800D7152, 1);
+        actual = r_u8(0x800D7152);
         if (actual != expected)
         {
             fprintf(stderr, "input frame %u: %u != %u\n", frame, actual, expected);
@@ -1689,26 +1723,26 @@ static int input_smoke(RRJMemory *m, const char *fixture)
         }
         if (actual)
             ++events;
-        if (*(uint8_t *)rrj_at(m, 0x800D6E0A, 1) != 0 || rrj_read32(m, 0x800D712C) != (frame < 70 ? (uint32)PADLup : 0u))
+        if (r_u8(0x800D6E0A) != 0 || rrj_read32(m, 0x800D712C) != (frame < 70 ? (uint32)PADLup : 0u))
             return 2;
     }
     for (frame = 0; frame < 15; ++frame)
     {
         uint32 record = 0x800D6DF4 + 8 * frame;
-        memset(rrj_at(m, 0x800D6DE0, 192), 0, 192);
-        *(uint8_t *)rrj_at(m, record + 5, 1) = 30;
+        xport_guest_fill(0x800D6DE0, 0, 192);
+        w_u8(record + 5, 30);
         buttons = rrj_read32(m, 0x80052658 + 4 * frame);
         xport_input_override(1, buttons);
         rrj_write32(m, state + 12, 100 + frame);
         rrj_input_read(m);
         rrj_input_latch(m);
-        if (*(uint8_t *)rrj_at(m, 0x800D7142 + 8 * frame, 1) != 1 || rrj_read32(m, 0x800D712C) != buttons)
+        if (r_u8(0x800D7142 + 8 * frame) != 1 || rrj_read32(m, 0x800D712C) != buttons)
             return 2;
         buttons = 0;
         xport_input_override(1, buttons);
         rrj_input_read(m);
         rrj_input_latch(m);
-        if (*(uint8_t *)rrj_at(m, 0x800D7142 + 8 * frame, 1) != 0)
+        if (r_u8(0x800D7142 + 8 * frame) != 0)
             return 2;
     }
     printf("Host input integration: 80 frames, %u events, 15 mappings, press/repeat/release PASS\n", events);
@@ -1746,6 +1780,30 @@ static int audio_smoke(RRJMemory *m, const char *memory_path, const char *spu_pa
 
 /* WIP integrated State1 runner. Classified missing calls support discovery. */
 static uint32_t live_music_read_failures;
+
+#if defined(LOCKSTEP_DEBUG)
+sint32 rrj_game_checkpoint_io(FILE *file, sint32 load)
+{
+    uint32 state[4];
+    if (!file)
+        return 0;
+    if (load)
+    {
+        if (fread(state, sizeof(state), 1, file) != 1)
+            return 0;
+        live_origin_x = rrj_s32(state[0]);
+        live_origin_y = rrj_s32(state[1]);
+        live_race_draw_calls = state[2];
+        live_music_read_failures = state[3];
+        return 1;
+    }
+    state[0] = (uint32)live_origin_x;
+    state[1] = (uint32)live_origin_y;
+    state[2] = live_race_draw_calls;
+    state[3] = live_music_read_failures;
+    return fwrite(state, sizeof(state), 1, file) == 1;
+}
+#endif
 
 static uint32_t live_music(RRJMemory *m, uint32_t fn, uint32_t args[8])
 {
@@ -1790,9 +1848,13 @@ static void live_sdk(RRJMemory *m, uint32_t fn, uint32_t a0, uint32_t a1)
             rrj_gpu_clear_ot(m, a0, a1);
             return;
         case 0x800487C0:
+            return;
         case 0x80043DA4:
+            sub_80043DA4(m);
+            return;
         case 0x80043DB4:
-            return; /* synchronous, one native thread */
+            sub_80043DB4(m);
+            return;
         case 0x80050D08:
         case 0x80050678:
             rrj_spu_command(m, fn, a0, a1);
@@ -1835,19 +1897,29 @@ static uint32_t live_service(RRJMemory *m, uint32_t fn, uint32_t a0)
     if (fn == 0x80048E24)
     {
         unsigned x = rrj_u16(rrj_at(m, a0, 2)), y = rrj_u16(rrj_at(m, a0 + 2, 2));
-        unsigned w = rrj_u16(rrj_at(m, a0 + 4, 2)), h = rrj_u16(rrj_at(m, a0 + 6, 2));
-        unsigned ox = rrj_u16(rrj_at(m, a0 + 8, 2)), oy = rrj_u16(rrj_at(m, a0 + 10, 2));
         live_origin_x = (int)x;
         live_origin_y = (int)y;
-        rrj_gpu_environment(0xe3000000 | x | (y << 10), x, y);
-        rrj_gpu_environment(0xe4000000 | (x + w - 1) | ((y + h - 1) << 10), x, y);
-        rrj_gpu_environment(0xe5000000 | (ox & 2047) | ((oy & 2047) << 11), x, y);
+        gpu_put_draw_env(a0, (int)x, (int)y);
         return a0;
     }
     if (fn == 0x80048FF0)
         return a0; /* framebuffer presentation below; visual timing WIP */
     live_sdk(m, fn, a0, 0);
     return 0;
+}
+
+static uint32_t live_stream_call(RRJMemory *, uint32_t, const uint32_t[9]);
+
+static uint32_t live_queue_call(RRJMemory *m, uint32_t fn, uint32_t a0, uint32_t a1)
+{
+    if (fn == 0x80061C44u)
+    {
+        uint32_t args[9] = {a0, 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u};
+        return live_stream_call(m, fn, args);
+    }
+    /* TODO Bind the original resource and decoder adapters */
+    fprintf(stderr, "RRJ menu: missing adapter %08X (%08X, %08X)\n", fn, a0, a1);
+    abort();
 }
 
 static void live_loop(RRJMemory *m, uint32_t fn, uint32_t a0, uint32_t a1)
@@ -1871,8 +1943,15 @@ static void live_loop(RRJMemory *m, uint32_t fn, uint32_t a0, uint32_t a1)
             return;
         case 0x8001C408:
         {
+#if defined(LOCKSTEP_DEBUG)
+            if (xport_run_mode() == RUN_MODE_LOCKSTEP_REPLAY)
+            {
+                (void)sub_8001C408(m, rrj_lockstep_poll);
+                return;
+            }
+#endif
             uint32_t context = rrj_read32(m, 0x8005B470); /* cached by original1C408 */
-            while (!*(uint8_t *)rrj_at(m, context + 4, 1))
+            while (!r_u8(context + 4))
             {
                 VSync(0);
                 (void)sub_F_80064C30(m, live_service);
@@ -1889,8 +1968,7 @@ static void live_loop(RRJMemory *m, uint32_t fn, uint32_t a0, uint32_t a1)
             sub_F_800803FC(m);
             return;
         case 0x80062774:
-            /* WIP: user-authorized video/MDEC dummy; no decoding performed. */
-            fprintf(stderr, "WIP video queue %08X count=%u\n", a0, a1);
+            sub_F_80062774(m, a0, a1, live_queue_call);
             return;
         default:
             live_sdk(m, fn, a0, a1);
@@ -1901,7 +1979,7 @@ static void live_loop(RRJMemory *m, uint32_t fn, uint32_t a0, uint32_t a1)
 static uint32_t live_screen_call(RRJMemory *m, uint32_t fn, uint32_t arg)
 {
     if (fn == 0x80048428)
-        return 0; /* State1 NTSC. */
+        return sub_80048428(m);
     if (fn == 0x80047724)
     {
         SetDispMask((sint32)arg);
@@ -1957,6 +2035,67 @@ static void live_video_stop(RRJMemory *m, uint32_t fn, uint32_t a, uint32_t b)
     }
 }
 
+static uint32_t live_stream_bytes(RRJMemory *m, uint32_t fn, uint32_t argument, const uint8_t *bytes, uint32_t size)
+{
+    /* TODO Bind diagnostic DrawPrim and CD control byte buffers */
+    fprintf(stderr, "Missing STR byte adapter %08X (%08X, %u bytes)\n", fn, argument, size);
+    abort();
+}
+
+static void live_stream_header(RRJMemory *m, uint8_t header[12])
+{
+    /* TODO Bind the twelve-byte physical CD sector header */
+    fprintf(stderr, "Missing STR CD sector header adapter\n");
+    abort();
+}
+
+static uint32_t live_stream_call(RRJMemory *m, uint32_t fn, const uint32_t args[9])
+{
+    if (fn == 0x800611F4u)
+        return sub_F_800611F4(m, args[0], live_stream_call, live_stream_header);
+    if (fn == 0x80043DD4u)
+    {
+        m->cpu_status &= 0xfffffbfeu;
+        return 0u;
+    }
+    if (fn == 0x80043DF4u)
+    {
+        m->cpu_status |= 0x401u;
+        return 0u;
+    }
+    if (fn == 0x80061584u)
+        return sub_F_80061584(m, args[0], live_stream_call);
+    if (fn == 0x80061060u)
+        return sub_F_80061060(m, args[0], args[1], args[2], live_stream_call);
+    if (fn == 0x80061180u)
+        return sub_F_80061180(m, args[0], args[1], args[2], live_stream_call);
+    if (fn == 0x80060F44u)
+        return sub_F_80060F44(m, args[0], args[1], args[2], live_stream_call);
+    if (fn == 0x80061148u)
+        return sub_F_80061148(m, args[0], args[1], args[2], live_stream_call);
+    if (fn == 0x800611B8u)
+        return sub_F_800611B8(m, args[0], args[1], args[2], live_stream_call);
+    if (fn == 0x80061818u)
+        return sub_F_80061818(m);
+    if (fn == 0x8001E0B4u)
+        return sub_8001E0B4(m, args[0], args[1], args[2]);
+    if (fn == 0x80061C44u)
+        return sub_F_80061C44(m, args[0], live_stream_call, live_stream_bytes);
+    if (fn == 0x80061938u)
+    {
+        sub_F_80061938(m, live_stream_call, live_stream_bytes);
+        return 0u;
+    }
+    /* TODO Bind CD command, audio and VLC adapters */
+    fprintf(stderr, "Missing STR adapter %08X (%08X, %08X, %08X)\n", fn, args[0], args[1], args[2]);
+    abort();
+}
+
+static uint32_t live_stream_read(RRJMemory *m, uint32_t *length)
+{
+    return sub_F_80061F04(m, length, live_stream_call);
+}
+
 static uint32_t live_video_call(RRJMemory *m, uint32_t fn, const uint32_t args[9])
 {
     switch (fn)
@@ -1966,8 +2105,9 @@ static uint32_t live_video_call(RRJMemory *m, uint32_t fn, const uint32_t args[9
                 abort();
             return rrj_read32(m, 0x80053464); /* actual non-wait MIPS branch */
         case 0x8005F36C:
-        case 0x8005F484:
             return 0; /* WIP STR/MDEC: failure / end-of-stream */
+        case 0x8005F484:
+            return sub_F_8005F484(m, args[0], args[1], args[2], args[3], args[4], live_stream_read, live_stream_call);
         case 0x8005F7E0:
         case 0x8001460C:
             live_video_stop(m, fn, args[0], 0);
@@ -2017,6 +2157,228 @@ static int save_live_frame(const char *ram_path)
     return gpu_save_frame(path);
 }
 
+static FILE *full_gpu_output;
+static FILE *full_frame_output;
+static jmp_buf full_stop;
+static uint32_t full_resume[12];
+static uint32_t full_frame_events;
+static uint32_t full_intervals;
+static uint32_t full_limit;
+static uint64_t full_gpu_bytes;
+static int full_failed;
+static FILE *full_ot_schedule;
+static uint32_t full_ot_next_row[2];
+static uint32_t full_ot_unread;
+static uint32_t full_ot_has_next;
+static uint32_t full_ot_consumed;
+static uint32_t full_current_frame;
+static uint32_t full_ot_pending[64][2];
+static uint32_t full_ot_pending_count;
+static XportMemorySnapshotWriter full_memory_writer;
+static int full_memory_enabled;
+
+static int full_memory_start(void)
+{
+    const char *path = getenv("XPORT_MEMORY_OUTPUT");
+    const char *manifest = getenv("XPORT_MEMORY_MANIFEST");
+    const char *interval = getenv("XPORT_MEMORY_KEYFRAME_INTERVAL");
+    uint32_t keyframes = interval ? (uint32_t)strtoul(interval, NULL, 10) : 300u;
+    full_memory_enabled = 0;
+    if (!path && !manifest)
+        return 1;
+    if (!path || !manifest || !keyframes || !xport_memory_snapshot_open(&full_memory_writer, path, manifest, keyframes) || !xport_memory_snapshot_register_psx_regions(&full_memory_writer))
+    {
+        xport_memory_snapshot_abort(&full_memory_writer);
+        return 0;
+    }
+    full_memory_enabled = 1;
+    return 1;
+}
+
+static int full_path(char path[1024], const char *directory, const char *name)
+{
+    int length = snprintf(path, 1024, "%s/%s", directory, name);
+    return length >= 0 && length < 1024;
+}
+
+static int full_read(const char *directory, const char *name, void *data, size_t size)
+{
+    char path[1024];
+    return full_path(path, directory, name) && read_file(path, data, size);
+}
+
+static void full_gpu_transfer(void *context, uint32 operation, uint32 address, const uint32 *words, uint32 count)
+{
+    uint64_t tick = 0;
+    uint32_t header[3] = {operation, address, count};
+    if (!full_gpu_output || fwrite(&tick, sizeof(tick), 1, full_gpu_output) != 1 || fwrite(header, sizeof(header), 1, full_gpu_output) != 1 || fwrite(words, sizeof(uint32), count, full_gpu_output) != count)
+    {
+        full_failed = 1;
+        longjmp(full_stop, 1);
+    }
+    ++full_frame_events;
+    full_gpu_bytes += 20u + (uint64_t)count * 4u;
+}
+
+static int full_ot_read_next(void)
+{
+    if (!full_ot_unread)
+    {
+        full_ot_has_next = 0;
+        return 1;
+    }
+    if (fread(full_ot_next_row, sizeof(full_ot_next_row), 1, full_ot_schedule) != 1)
+        return 0;
+    --full_ot_unread;
+    full_ot_has_next = 1;
+    return 1;
+}
+
+static sint32 full_ot_submit(void *context, uint32 address, uint32 copy_bytes)
+{
+    uint32_t frame;
+    if (!full_ot_has_next || full_ot_next_row[1] != address || full_ot_next_row[0] < full_current_frame || full_ot_pending_count >= 64)
+        return 0;
+    frame = full_ot_next_row[0];
+    ++full_ot_consumed;
+    if (!full_ot_read_next())
+        return 0;
+    if (frame == full_current_frame)
+        return gpu_execute_linked_dma(address);
+    full_ot_pending[full_ot_pending_count][0] = frame;
+    full_ot_pending[full_ot_pending_count][1] = address;
+    ++full_ot_pending_count;
+    return 1;
+}
+
+static void full_ot_advance(void)
+{
+    uint32_t consumed = 0;
+    while (consumed < full_ot_pending_count && full_ot_pending[consumed][0] == full_current_frame)
+    {
+        if (!gpu_execute_linked_dma(full_ot_pending[consumed][1]))
+        {
+            full_failed = 1;
+            longjmp(full_stop, 1);
+        }
+        ++consumed;
+    }
+    if (consumed)
+    {
+        memmove(full_ot_pending, full_ot_pending + consumed, (full_ot_pending_count - consumed) * sizeof(full_ot_pending[0]));
+        full_ot_pending_count -= consumed;
+    }
+    if ((full_ot_pending_count && full_ot_pending[0][0] < full_current_frame) || (full_ot_has_next && full_ot_next_row[0] < full_current_frame))
+    {
+        full_failed = 1;
+        longjmp(full_stop, 1);
+    }
+}
+
+static sint32 full_vblank(void *context)
+{
+    uint32_t row[2] = {full_resume[2] + full_intervals, full_frame_events};
+    XportMemorySnapshotBoundary boundary = {full_resume[2] + full_intervals, full_current_frame, full_ot_consumed, 1u};
+    if (full_memory_enabled && !xport_memory_snapshot_capture_psx(&full_memory_writer, boundary))
+    {
+        full_failed = 1;
+        longjmp(full_stop, 1);
+    }
+    if (full_ot_has_next && full_ot_next_row[0] == full_current_frame)
+    {
+        full_failed = 1;
+        longjmp(full_stop, 1);
+    }
+    if (!full_frame_output || fwrite(row, sizeof(row), 1, full_frame_output) != 1 || fwrite(&full_gpu_bytes, sizeof(full_gpu_bytes), 1, full_frame_output) != 1 || fflush(full_frame_output) || fflush(full_gpu_output))
+    {
+        full_failed = 1;
+        longjmp(full_stop, 1);
+    }
+    if (++full_intervals >= full_limit)
+        longjmp(full_stop, 1);
+    full_frame_events = 0;
+    ++full_current_frame;
+    psx_vblank_signal();
+    full_ot_advance();
+    return !psx_vblank_failed();
+}
+
+static int full_origin_probe(RRJMemory *m)
+{
+    static uint8_t spu[524288];
+    uint32_t gte[64];
+    GpuRasterState raster;
+    PsxIrqState irq;
+    const char *directory = getenv("RRJ_FULL_ORIGIN");
+    const char *gpu_path = getenv("RRJ_FULL_GPU_OUTPUT");
+    const char *frame_path = getenv("RRJ_FULL_FRAMES_OUTPUT");
+    const char *limit = getenv("RRJ_FULL_INTERVALS");
+    const char *ot_path = getenv("RRJ_FULL_OT_SCHEDULE");
+    uint32_t ot_header[6];
+    uint8_t ot_digest[32];
+    if (!directory || !gpu_path || !frame_path || !full_read(directory, "resume.bin", full_resume, sizeof(full_resume)) || full_resume[0] != 0x31464A52 || full_resume[1] != 1 || full_resume[2] != 3012 || full_resume[3] != 0x8001C414 || full_resume[4] != 0x8001C418 || full_resume[6] != 0x8008034C || full_resume[7] != 0x8001C410 || !full_read(directory, "ram.bin", DRAM, sizeof(DRAM)) || !full_read(directory, "scratchpad.bin", SCRATCHPAD, sizeof(SCRATCHPAD)) || !full_read(directory, "gte.bin", gte, sizeof(gte)) || !full_read(directory, "vram.bin", VRAM, sizeof(VRAM)) || !full_read(directory, "spu-ram.bin", spu, sizeof(spu)) || !full_read(directory, "raster.bin", &raster, sizeof(raster)) || !full_read(directory, "irq.bin", &irq, sizeof(irq)) || !psx_irq_validate(&irq) || !psx_irq_pending(&irq) || !gpu_import_raster(&raster, VRAM, sizeof(VRAM)))
+        return 22;
+    full_limit = limit ? (uint32_t)strtoul(limit, NULL, 10) : 1;
+    if (!full_limit)
+        return 22;
+    full_gpu_output = xport_fopen(gpu_path, "wb");
+    full_frame_output = xport_fopen(frame_path, "wb");
+    full_ot_schedule = ot_path ? xport_fopen(ot_path, "rb") : NULL;
+    if (!full_gpu_output || !full_frame_output || !full_ot_schedule || fread(ot_header, sizeof(ot_header), 1, full_ot_schedule) != 1 || fread(ot_digest, sizeof(ot_digest), 1, full_ot_schedule) != 1 || ot_header[0] != 0x31544F52 || ot_header[1] != 1 || ot_header[3] != full_resume[2] || ot_header[4] != 5773 || ot_header[5] != 8)
+    {
+        if (full_gpu_output)
+            fclose(full_gpu_output);
+        if (full_frame_output)
+            fclose(full_frame_output);
+        if (full_ot_schedule)
+            fclose(full_ot_schedule);
+        return 23;
+    }
+    restore_checkpoint_gte(gte);
+    rrj_spu_initialize(spu);
+    if (!full_memory_start())
+        return 22;
+    xport_set_headless(1);
+    m->sdk_call = live_sdk;
+    rrj_video_bind(live_video);
+    full_frame_events = full_intervals = 0;
+    full_gpu_bytes = 0;
+    full_failed = 0;
+    full_ot_unread = ot_header[2];
+    full_ot_has_next = full_ot_consumed = full_ot_pending_count = 0;
+    full_current_frame = full_resume[2];
+    if (!full_ot_read_next())
+        full_failed = 1;
+    psx_vblank_bind(full_vblank, NULL, rrj_read32(m, 0x8005B46C));
+    gpu_set_transfer_observer(full_gpu_transfer, NULL);
+    gpu_bind_linked_submit(full_ot_submit, NULL);
+    if (setjmp(full_stop) == 0)
+    {
+        (void)sub_F_80064C30(m, live_service);
+        live_loop(m, 0x8001C408, 0, 0);
+        rrj_write32(m, 0x80088C44, 0);
+        rrj_menu_finish_iteration(m, live_loop);
+        while (r_u8(rrj_read32(m, 0x8005B2F8)) == 2)
+        {
+            rrj_menu_iteration(m, live_loop);
+        }
+        full_failed = 1;
+    }
+    gpu_bind_linked_submit(NULL, NULL);
+    gpu_set_transfer_observer(NULL, NULL);
+    if (fclose(full_gpu_output) || fclose(full_frame_output) || fclose(full_ot_schedule))
+        full_failed = 1;
+    if (full_memory_enabled && !xport_memory_snapshot_finish(&full_memory_writer))
+    {
+        xport_memory_snapshot_abort(&full_memory_writer);
+        full_failed = 1;
+    }
+    full_memory_enabled = 0;
+    full_gpu_output = full_frame_output = full_ot_schedule = NULL;
+    printf("full_origin_probe frame=%u intervals=%u submissions=%u failed=%d full_convergence=0\n", full_resume[2], full_intervals, full_ot_consumed, full_failed);
+    return full_failed ? 24 : 25;
+}
+
 static int menu_run(RRJMemory *m, char **argv, int navigation)
 {
     uint32_t buttons = 0, last_selection = 0xffffffff;
@@ -2041,7 +2403,7 @@ static int menu_run(RRJMemory *m, char **argv, int navigation)
     for (frame = 0; frame < limit && !xport_isquit(); ++frame)
     {
         rrj_wip_frame(frame);
-        if (*(uint8_t *)rrj_at(m, rrj_read32(m, 0x8005B2F8), 1) != 2)
+        if (r_u8(rrj_read32(m, 0x8005B2F8)) != 2)
             break;
         if (navigation == 1)
             buttons = frame >= 5 && frame < 10 ? PADLdown : frame >= 20 && frame < 25 ? PADLup : 0;
@@ -2074,7 +2436,7 @@ static int menu_run(RRJMemory *m, char **argv, int navigation)
         }
     }
     xport_audio_shutdown();
-    if (!xport_isquit() && (enter_first_race || *(uint8_t *)rrj_at(m, rrj_read32(m, 0x8005B2F8), 1) != 2))
+    if (!xport_isquit() && (enter_first_race || r_u8(rrj_read32(m, 0x8005B2F8)) != 2))
         return first_race_play(m);
     printf("audio submitted=%u nonzero=%u peak=%u active=%u overruns=%u\n", g_xport_audio_submitted_buffers, g_xport_audio_nonzero_buffers, g_xport_audio_peak, g_xport_audio_backend_active, g_xport_audio_callback_overruns);
     printf("WIP native menu: iterations=%u menu=%u vblanks=%u; audio device stopped\n", frame, (unsigned)rrj_u16(rrj_at(m, 0x8009C5D0, 2)), rrj_read32(m, 0x8005B46C));
@@ -2082,8 +2444,7 @@ static int menu_run(RRJMemory *m, char **argv, int navigation)
     return !argv[6] || (write_file(argv[6], DRAM, sizeof(DRAM)) && save_live_frame(argv[6])) ? 0 : 2;
 }
 
-// XPORT REVISION: 2026-09-24T16:58:21Z
-int xport_main(int argc, char **argv)
+static int rrj_main(int argc, char **argv)
 {
     RRJMemory memory = {0};
     uint8_t argument_bytes[36], result_bytes[8];
@@ -2103,8 +2464,50 @@ int xport_main(int argc, char **argv)
     }
     if (!rrj_wip_options(&argc, argv, &memory))
         return 2;
+    rrj_memory_bind(&memory);
+    if (argc == 4 && strcmp(argv[1], "--checkpoint-abi") == 0)
+    {
+        uint32_t ordinal;
+        uint8_t output[106];
+        const RRJNativeCheckpointABI *abi = &memory.checkpoint_abi;
+        const RRJNativeCallFrame *frame = &abi->frame;
+        uint32_t fields[25];
+
+        xport_set_headless(1);
+        if (!load_race_checkpoint(&memory, argv[2], &ordinal) || !memory.checkpoint_abi_valid)
+            return 22;
+        fields[0] = 0x31414a52;
+        fields[1] = 1;
+        fields[2] = abi->checkpoint_pc;
+        fields[3] = abi->checkpoint_npc;
+        fields[4] = abi->global_pointer;
+        fields[5] = frame->stack_pointer;
+        fields[6] = frame->return_address;
+        fields[7] = frame->return_value;
+        fields[8] = frame->secondary_result;
+        fields[9] = frame->preserved_s0;
+        fields[10] = frame->preserved_s1;
+        fields[11] = frame->preserved_s2;
+        fields[12] = frame->preserved_s3;
+        fields[13] = frame->preserved_s4;
+        for (i = 0; i < 4; ++i)
+            fields[14 + i] = abi->arguments[i];
+        fields[18] = abi->frame_pointer;
+        fields[19] = abi->multiply_high;
+        fields[20] = abi->multiply_low;
+        fields[21] = abi->preserved_s5;
+        fields[22] = abi->preserved_s6;
+        fields[23] = abi->preserved_s7;
+        fields[24] = memory.cpu_status;
+        for (i = 0; i < 25; ++i)
+            rrj_put32(output + 4 * i, fields[i]);
+        memcpy(output + 100, abi->pipeline_flags, 6);
+        return write_file(argv[3], output, sizeof(output)) ? 0 : 23;
+    }
     if (argc == 2 && strcmp(argv[1], "--trace-replay") == 0)
         return trace_replay(&memory);
+    if (argc == 2 && strcmp(argv[1], "--full-origin-probe") == 0)
+        return full_origin_probe(&memory);
     if (argc == 7 && strcmp(argv[1], "--menu-run") == 0)
         return menu_run(&memory, argv, 0);
     if (argc == 7 && strcmp(argv[1], "--menu-idle") == 0)
@@ -2150,7 +2553,7 @@ int xport_main(int argc, char **argv)
         args[i] = rrj_u32(argument_bytes + i * 4);
     if (argc == 8 || argc == 10)
     {
-        memory.sdk_user = fopen(argv[7], "w");
+        memory.sdk_user = xport_fopen(argv[7], "w");
         if (!memory.sdk_user)
             return 2;
         memory.sdk_call = record_sdk;
@@ -2297,6 +2700,9 @@ int xport_main(int argc, char **argv)
             break;
         case 0x80039BB0:
             result = sub_80039BB0(&memory, args[0], args[1], args[2], args[3]);
+            break;
+        case 0x8003775C:
+            result = sub_8003775C(&memory, args[0], args[1], args[2]);
             break;
         case 0x80037A30:
             if (args[5])
@@ -2673,7 +3079,13 @@ int xport_main(int argc, char **argv)
             result = rrj_race_player_tail(&memory, args[0]);
             break;
         case 0x8008A998:
-            result = sub_8008A998(&memory, args[0], args[1]);
+            if (args[5])
+            {
+                const uint32_t wide_args[8] = {args[0], args[1], 0, 0, 0, 0, 0, 0};
+                result = trace_race_call(&memory, function, wide_args);
+            }
+            else
+                result = sub_8008A998(&memory, args[0], args[1]);
             break;
         case 0x800BC7CC:
             result = sub_800BC7CC(&memory, args[0]);
@@ -3175,7 +3587,16 @@ int xport_main(int argc, char **argv)
             result = sub_8004CD04(&memory, args[0], args[1], args[2], args[3], args[4]);
             break;
         case 0x8001BE08:
+            screen_probe_mode = args[4];
+            screen_probe_env_index = 0;
             result = sub_8001BE08(&memory, args[0], args[1], args[2], args[3], probe_vblank, probe_screen_env);
+            screen_probe_mode = 0;
+            break;
+        case 0x800C2178:
+            result = sub_800C2178(&memory, args[0], args[1]);
+            break;
+        case 0x8008B428:
+            result = sub_8008B428(&memory, args[0], args[1]);
             break;
         case 0x8001BF1C:
             result = sub_8001BF1C(&memory, args[0], args[1], args[2], args[3], probe_vblank);
@@ -3240,8 +3661,13 @@ int xport_main(int argc, char **argv)
             result = sub_8001E0B4(&memory, args[0], args[1], args[2]);
             break;
         case 0x8001CB3C:
-            sub_8001CB3C_menu(&memory, memory.sdk_call);
-            result = 0;
+            if (args[5])
+                result = rrj_input_audit_probe(&memory, args);
+            else
+            {
+                sub_8001CB3C_menu(&memory, memory.sdk_call);
+                result = 0;
+            }
             break;
         case 0x8001DDC4:
             pad_sdk_returns[0] = args[2];
@@ -3474,8 +3900,16 @@ int xport_main(int argc, char **argv)
             result = sub_8002B878(&memory, ram_pointer(args[0], 4), ram_pointer(args[1], 4), ram_pointer(args[2], 4));
             break;
         default:
-            fprintf(stderr, "Function %08X is not translated.\n", function);
-            return 2;
+        {
+            uint32_t coverage_result;
+            if (!rrj_coverage_probe(&memory, function, args, &coverage_result))
+            {
+                fprintf(stderr, "Function %08X is not translated.\n", function);
+                return 2;
+            }
+            result = coverage_result;
+            break;
+        }
     }
     if (memory.sdk_user && fclose((FILE *)memory.sdk_user) != 0)
         return 2;
@@ -3484,4 +3918,26 @@ int xport_main(int argc, char **argv)
     if (argc == 10 && !write_file(argv[9], SCRATCHPAD, sizeof(SCRATCHPAD)))
         return 2;
     return write_file(argv[5], result_bytes, 8) && write_file(argv[6], DRAM, sizeof(DRAM)) ? 0 : 2;
+}
+
+// XPORT REVISION: 2026-09-29T20:00:00Z
+void xport_main(void)
+{
+#if defined(LOCKSTEP_DEBUG)
+    if (xport_run_mode() == RUN_MODE_LOCKSTEP_SELFTEST)
+    {
+        xport_set_exit_code(rrj_lockstep_selftest());
+        return;
+    }
+    if (xport_run_mode() == RUN_MODE_LOCKSTEP_REPLAY)
+    {
+        RRJMemory memory = {0};
+        rrj_memory_bind(&memory);
+        memory.sdk_call = live_sdk;
+        rrj_video_bind(live_video);
+        xport_set_exit_code(rrj_lockstep_run(&memory, live_loop, live_service));
+        return;
+    }
+#endif
+    xport_set_exit_code(rrj_main(xport_arg_count(), xport_arg_values()));
 }

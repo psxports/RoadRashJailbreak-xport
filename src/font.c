@@ -5,7 +5,7 @@
 
 static uint32_t byte(RRJMemory *m, uint32_t a)
 {
-    return *(uint8_t *)rrj_at(m, a, 1);
+    return r_u8(a);
 }
 
 static uint32_t half(RRJMemory *m, uint32_t a)

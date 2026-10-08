@@ -3,7 +3,7 @@
 
 static uint32_t b(RRJMemory *m, uint32_t a)
 {
-    return *(uint8_t *)rrj_at(m, a, 1);
+    return r_u8(a);
 }
 
 static uint32_t h(RRJMemory *m, uint32_t a)
@@ -51,7 +51,7 @@ uint32_t sub_F_800680E8(RRJMemory *m, uint32_t menu, uint32_t entry)
     static const uint32_t globals[72] = {0x8009C4B0, 0, 0, 0x8009C4BC, 0, 0, 0, 0x8009C4C8, 0x8009C4CC, 0x8009C4D0, 0, 0, 0x8009C4DC, 0x8009C4E0, 0x8009C4E4, 0x8009C4D8, 0, 0x8009C4E8, 0, 0, 0, 0, 0, 0, 0x8009C4C8, 0x8009C4EC, 0x8009C4F0, 0, 0x8009C4F4, 0, 0x8009C4C8, 0x8009C4F8, 0x8009C4FC, 0, 0, 0, 0x8009C508, 0x8009C50C, 0, 0x8009C4C8, 0x8009C4EC, 0x8009C510, 0x8009C518, 0, 0x8009C514, 0x8009C51C, 0, 0x8009C4C8, 0x8009C4D0, 0x8009C4D4, 0, 0, 0, 0x8009C4CC, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x8009C524, 0x8009C528, 0x8009C52C, 0x8009C520, 0, 0x8009C534, 0x8009C538, 0x8009C53C, 0x8009C540};
     uint32_t result = 0x8009C5D0, address = 0, selector, resource, table;
     rrj_write32(m, 0x8009C664, 0);
-    *(uint8_t *)rrj_at(m, 0x8009C5E7, 1) = 0;
+    w_u8(0x8009C5E7, 0);
     if (!entry)
         return result;
     if (h(m, entry + 8) == 13)
@@ -80,7 +80,7 @@ uint32_t sub_F_800680E8(RRJMemory *m, uint32_t menu, uint32_t entry)
         return result;
     rrj_write32(m, 0x8009C678, table + 12 * sb(b(m, resource + 3)));
     result = sub_F_800649BC(m, resource);
-    *(uint8_t *)rrj_at(m, 0x8009C5E7, 1) = (uint8_t)result;
+    w_u8(0x8009C5E7, (uint8_t)result);
     return result;
 }
 

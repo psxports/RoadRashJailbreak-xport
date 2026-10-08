@@ -5,7 +5,7 @@
 
 static void B(RRJMemory *m, uint32_t a, uint32_t v)
 {
-    *(uint8_t *)rrj_at(m, a, 1) = (uint8_t)v;
+    w_u8(a, (uint8_t)v);
 }
 
 static void H(RRJMemory *m, uint32_t a, uint32_t v)
@@ -15,7 +15,7 @@ static void H(RRJMemory *m, uint32_t a, uint32_t v)
 
 static uint32_t S(RRJMemory *m, uint32_t a)
 {
-    uint32_t v = *(uint8_t *)rrj_at(m, a, 1);
+    uint32_t v = r_u8(a);
     return v & 128 ? v | 0xffffff00 : v;
 }
 
@@ -119,7 +119,7 @@ uint32_t sub_F_8006883C(RRJMemory *m, uint32_t id, RRJResetCall cb)
             R(m, cb, 0x8009C4E0, S(m, 0x800D80E2));
             R(m, cb, 0x8009C4DC, S(m, 0x800D80E1));
             R(m, cb, 0x8009C4C8, S(m, 0x800D80DC));
-            R(m, cb, 0x8009C4D4, *(uint8_t *)rrj_at(m, 0x800D80EA, 1));
+            R(m, cb, 0x8009C4D4, r_u8(0x800D80EA));
             break;
         case 27:
             rrj_write32(m, 0x800D80D8, 1);

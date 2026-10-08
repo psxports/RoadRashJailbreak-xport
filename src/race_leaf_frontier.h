@@ -12,8 +12,7 @@ uint32_t sub_800C4B30(RRJMemory *m, uint32_t actor, RRJRaceLeafCall call);
 uint32_t sub_800C4BA0(RRJMemory *m, uint32_t actor, RRJRaceLeafCall call);
 uint32_t sub_800C4E18(RRJMemory *m, uint32_t actor, RRJRaceLeafCall call);
 uint32_t sub_800881B4(RRJMemory *m, uint32_t actor, int32_t delta, RRJRaceLeafCall call);
-uint32_t sub_80087420(RRJMemory *m, uint32_t actor, int32_t delta,
-                      RRJRaceLeafCall call);
+uint32_t sub_80087420(RRJMemory *m, uint32_t actor, int32_t delta, RRJRaceLeafCall call);
 uint32_t sub_800853E4(RRJMemory *m, uint32_t actor, uint32_t descriptor);
 uint32_t sub_80086E1C(RRJMemory *m, uint32_t actor, RRJRaceLeafCall call);
 uint32_t sub_80088140(RRJMemory *m, uint32_t actor);

@@ -52,14 +52,14 @@ uint32_t sub_8001264C(RRJMemory *m)
     {
         uint32_t marker = player + 547;
 
-        if ((int8_t)*(uint8_t *)rrj_at(m, marker, 1) < 0)
+        if ((int8_t)r_u8(marker) < 0)
         {
             rrj_write32(m, player + 480, 0);
             rrj_write32(m, player + 184, rrj_read32(m, player + 12) << 10);
             rrj_write32(m, player + 552, rrj_read32(m, player + 552) | 2);
             rrj_write32(m, player + 192, rrj_read32(m, player + 20) << 10);
         }
-        *(uint8_t *)rrj_at(m, marker, 1) = 0;
+        w_u8(marker, 0);
         player += 628;
     }
     player = rrj_read32(m, 0x800D4B80);
@@ -70,7 +70,7 @@ uint32_t sub_8001264C(RRJMemory *m)
         {
             uint32_t marker = player + 547;
 
-            if ((int8_t)*(uint8_t *)rrj_at(m, marker, 1) < 0)
+            if ((int8_t)r_u8(marker) < 0)
             {
                 if (!(rrj_read32(m, player + 388) & 1))
                 {
@@ -79,7 +79,7 @@ uint32_t sub_8001264C(RRJMemory *m)
                 }
                 rrj_write32(m, player + 568, rrj_read32(m, player + 568) | 2);
             }
-            *(uint8_t *)rrj_at(m, marker, 1) = 0;
+            w_u8(marker, 0);
             player += 572;
         }
     }

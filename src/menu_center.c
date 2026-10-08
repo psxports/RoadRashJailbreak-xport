@@ -11,7 +11,7 @@ static uint32_t h(RRJMemory *m, uint32_t a)
 
 static uint32_t b(RRJMemory *m, uint32_t a)
 {
-    return *(uint8_t *)rrj_at(m, a, 1);
+    return r_u8(a);
 }
 
 static uint32_t sxh(uint32_t v)
@@ -58,7 +58,7 @@ uint32_t sub_F_8006E8FC(RRJMemory *m, uint32_t menu, uint32_t entry, RRJMenuReso
             }
             rrj_write32(m, 0x8009C664, saved1);
             rrj_write32(m, 0x8009C678, saved2);
-            *(uint8_t *)rrj_at(m, 0x8009C5E7, 1) = (uint8_t)saved3;
+            w_u8(0x8009C5E7, (uint8_t)saved3);
             if (!source)
                 return 1;
             break;
