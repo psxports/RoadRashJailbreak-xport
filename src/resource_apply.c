@@ -1,3 +1,4 @@
+#include "psx.h"
 /* Resource -> game settings, F8006310C. Void ABI: v0 is scratch. */
 #include "resource_apply.h"
 #include "resource_value.h"
@@ -20,7 +21,7 @@ static void put(RRJMemory *m, uint32_t a, uint32_t v)
 
 static uint32_t value(RRJMemory *m, uint32_t r)
 {
-    return b(m, rrj_read32(m, r + 4) + 12 * sb(b(m, r + 3)) + 1);
+    return b(m, rrj_read32(r + 4) + 12 * sb(b(m, r + 3)) + 1);
 }
 
 static void call(RRJMemory *m, RRJSDKCall effect, uint32_t fn, uint32_t a, uint32_t c)
@@ -30,23 +31,24 @@ static void call(RRJMemory *m, RRJSDKCall effect, uint32_t fn, uint32_t a, uint3
     effect(m, fn, a, c);
 }
 
-void sub_F_8006310C(RRJMemory *m, uint32_t r, RRJSDKCall effect)
+void sub_F_8006310C(uint32_t r, RRJSDKCall effect)
 {
+    FUNCTION_MARKER(0x8006310Cu, "RASHCDF.BIN");
     uint32_t kind, dest = 0, v, index, other, changed;
-    if (!r || !rrj_read32(m, r + 4))
+    if (!r || !rrj_read32(r + 4))
         return;
-    kind = b(m, r + 2);
+    kind = b(rrj_host_context(), r + 2);
     switch (kind)
     {
         case 0:
-            v = value(m, r);
-            index = b(m, 0x8009C5E3);
-            put(m, 0x800D81E1, v);
+            v = value(rrj_host_context(), r);
+            index = b(rrj_host_context(), 0x8009C5E3);
+            put(rrj_host_context(), 0x800D81E1, v);
             if (index & 192)
             {
-                other = rrj_read32(m, v == 1 ? 0x8009C4B8 : 0x8009C4B4);
-                put(m, 0x800D81E2, 0);
-                (void)sub_F_800630C0(m, other, 0);
+                other = rrj_read32(v == 1 ? 0x8009C4B8 : 0x8009C4B4);
+                put(rrj_host_context(), 0x800D81E2, 0);
+                (void)sub_F_800630C0(other, 0);
             }
             return;
         case 1:
@@ -73,7 +75,7 @@ void sub_F_8006310C(RRJMemory *m, uint32_t r, RRJSDKCall effect)
             break;
         case 7:
         case 62:
-            dest = 0x800D81D8 + 36 * b(m, 0x800D80EB) + 7;
+            dest = 0x800D81D8 + 36 * b(rrj_host_context(), 0x800D80EB) + 7;
             break;
         case 9:
             dest = 0x800D80EA;
@@ -91,8 +93,8 @@ void sub_F_8006310C(RRJMemory *m, uint32_t r, RRJSDKCall effect)
             dest = 0x800D80E3;
             break;
         case 14:
-            put(m, 0x800D80DF, value(m, r));
-            put(m, 0x800D80E0, value(m, r) + 38);
+            put(rrj_host_context(), 0x800D80DF, value(rrj_host_context(), r));
+            put(rrj_host_context(), 0x800D80E0, value(rrj_host_context(), r) + 38);
             return;
         case 17:
         case 20:
@@ -107,12 +109,12 @@ void sub_F_8006310C(RRJMemory *m, uint32_t r, RRJSDKCall effect)
             dest = 0x800D8211;
             break;
         case 28:
-            v = value(m, r);
-            changed = b(m, 0x800D80EC) != v;
-            put(m, 0x800D80EC, v);
-            call(m, effect, 0x8001EFDC, v == 0, 0);
+            v = value(rrj_host_context(), r);
+            changed = b(rrj_host_context(), 0x800D80EC) != v;
+            put(rrj_host_context(), 0x800D80EC, v);
+            call(rrj_host_context(), effect, 0x8001EFDC, v == 0, 0);
             if (changed)
-                call(m, effect, 0x8007ED34, sb(b(m, 0x800D80EC)), 0);
+                call(rrj_host_context(), effect, 0x8007ED34, sb(b(rrj_host_context(), 0x800D80EC)), 0);
             return;
         case 29:
             dest = 0x800D80EF;
@@ -124,25 +126,25 @@ void sub_F_8006310C(RRJMemory *m, uint32_t r, RRJSDKCall effect)
             dest = 0x8009C5DE;
             break;
         case 32:
-            index = b(m, 0x8009C5DE);
-            put(m, 0x800D8198 + index, value(m, r));
-            index = b(m, 0x8009C5DE);
-            call(m, effect, 0x8002490C, index, sb(b(m, 0x800D8198 + index)));
+            index = b(rrj_host_context(), 0x8009C5DE);
+            put(rrj_host_context(), 0x800D8198 + index, value(rrj_host_context(), r));
+            index = b(rrj_host_context(), 0x8009C5DE);
+            call(rrj_host_context(), effect, 0x8002490C, index, sb(b(rrj_host_context(), 0x800D8198 + index)));
             return;
         case 33:
-            other = rrj_read32(m, 0x8009C538);
-            v = value(m, r);
-            put(m, 0x8009C5E6, v);
-            (void)sub_F_800630C0(m, other, sb(b(m, 0x800D81D8 + 36 * sb(v) + 8)));
-            index = sb(b(m, 0x8009C5E6));
-            other = rrj_read32(m, 0x8009C53C);
-            (void)sub_F_800630C0(m, other, sb(b(m, 0x800D81D8 + 36 * index + 23)));
+            other = rrj_read32(0x8009C538);
+            v = value(rrj_host_context(), r);
+            put(rrj_host_context(), 0x8009C5E6, v);
+            (void)sub_F_800630C0(other, sb(b(rrj_host_context(), 0x800D81D8 + 36 * sb(v) + 8)));
+            index = sb(b(rrj_host_context(), 0x8009C5E6));
+            other = rrj_read32(0x8009C53C);
+            (void)sub_F_800630C0(other, sb(b(rrj_host_context(), 0x800D81D8 + 36 * index + 23)));
             return;
         case 34:
-            dest = 0x800D81D8 + 36 * sb(b(m, 0x8009C5E6)) + 8;
+            dest = 0x800D81D8 + 36 * sb(b(rrj_host_context(), 0x8009C5E6)) + 8;
             break;
         case 35:
-            dest = 0x800D81D8 + 36 * sb(b(m, 0x8009C5E6)) + 23;
+            dest = 0x800D81D8 + 36 * sb(b(rrj_host_context(), 0x8009C5E6)) + 23;
             break;
         case 36:
             dest = 0x8009C5E9;
@@ -150,5 +152,5 @@ void sub_F_8006310C(RRJMemory *m, uint32_t r, RRJSDKCall effect)
         default:
             return;
     }
-    put(m, dest, value(m, r));
+    put(rrj_host_context(), dest, value(rrj_host_context(), r));
 }

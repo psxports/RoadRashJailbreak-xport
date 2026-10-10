@@ -3,6 +3,9 @@
 
 #include "psx_memory.h"
 
+typedef void (*RRJLivePoll)(RRJMemory *m);
+
+void rrj_trace_runtime_set_live_poll(RRJLivePoll poll);
 int rrj_trace_runtime_init(RRJMemory *m, uint32_t phase_base);
 int rrj_trace_runtime_init_live(RRJMemory *m);
 void rrj_trace_set_live_limit(uint32 limit);

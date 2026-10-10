@@ -9,25 +9,26 @@
 
 static uint32_t packet(RRJMemory *memory, uint32_t size)
 {
-    uint32_t context = rrj_read32(memory, 0x8005B470);
-    uint32_t address = rrj_read32(memory, context + 0x10C);
-    if (address + size >= rrj_read32(memory, 0x8005B4D0))
+    uint32_t context = rrj_read32(0x8005B470);
+    uint32_t address = rrj_read32(context + 0x10C);
+    if (address + size >= rrj_read32(0x8005B4D0))
     {
-        address = sub_80021C98(memory, address, size);
-        context = rrj_read32(memory, 0x8005B470);
-        rrj_write32(memory, context + 0x10C, address);
+        address = sub_80021C98(address, size);
+        context = rrj_read32(0x8005B470);
+        rrj_write32(context + 0x10C, address);
     }
-    context = rrj_read32(memory, 0x8005B470);
-    address = rrj_read32(memory, context + 0x10C);
-    rrj_write32(memory, context + 0x10C, address + size);
+    context = rrj_read32(0x8005B470);
+    address = rrj_read32(context + 0x10C);
+    rrj_write32(context + 0x10C, address + size);
     return address;
 }
 
-uint32_t sub_8002AF9C(RRJMemory *memory, const void *quad, const void *color, void *link)
+uint32_t sub_8002AF9C(const void *quad, const void *color, void *link)
 {
+    FUNCTION_MARKER(0x8002AF9Cu, "SLUS_010.53");
     const uint8_t *pt = (const uint8_t *)quad;
-    uint32_t address = packet(memory, 24), value;
-    uint8_t *prim = (uint8_t *)rrj_at(memory, address, 24);
+    uint32_t address = packet(rrj_host_context(), 24), value;
+    uint8_t *prim = (uint8_t *)rrj_at(address, 24);
     rrj_put32(prim, rrj_u32(link));
     rrj_put32(link, address);
     value = rrj_u32(color);
@@ -42,11 +43,11 @@ uint32_t sub_8002AF9C(RRJMemory *memory, const void *quad, const void *color, vo
     return value;
 }
 
-uint32_t sub_8002B080(RRJMemory *memory, const void *quad, const void *color, void *link)
+uint32_t sub_8002B080(const void *quad, const void *color, void *link)
 {
     const uint8_t *pt = (const uint8_t *)quad;
-    uint32_t address = packet(memory, 24), value;
-    uint8_t *prim = (uint8_t *)rrj_at(memory, address, 24);
+    uint32_t address = packet(rrj_host_context(), 24), value;
+    uint8_t *prim = (uint8_t *)rrj_at(address, 24);
 
     FUNCTION_MARKER(0x8002B080, "SLUS_010.53");
     rrj_put32(prim, rrj_u32(link));
@@ -63,11 +64,12 @@ uint32_t sub_8002B080(RRJMemory *memory, const void *quad, const void *color, vo
     return value;
 }
 
-uint32_t sub_8002B164(RRJMemory *memory, const void *quad, const void *color, void *link)
+uint32_t sub_8002B164(const void *quad, const void *color, void *link)
 {
+    FUNCTION_MARKER(0x8002B164u, "SLUS_010.53");
     const uint8_t *pt = (const uint8_t *)quad;
-    uint32_t address = packet(memory, 36), value;
-    uint8_t *prim = (uint8_t *)rrj_at(memory, address, 36);
+    uint32_t address = packet(rrj_host_context(), 36), value;
+    uint8_t *prim = (uint8_t *)rrj_at(address, 36);
     rrj_put32(prim, rrj_u32(link));
     rrj_put32(link, address);
     value = rrj_u32(color);
@@ -86,12 +88,13 @@ uint32_t sub_8002B164(RRJMemory *memory, const void *quad, const void *color, vo
     return value;
 }
 
-uint32_t sub_8002B258(RRJMemory *memory, const void *quad, const void *color, uint32_t type, void *link)
+uint32_t sub_8002B258(const void *quad, const void *color, uint32_t type, void *link)
 {
+    FUNCTION_MARKER(0x8002B258u, "SLUS_010.53");
     const uint8_t *pt = (const uint8_t *)quad;
-    const uint8_t *texture = (const uint8_t *)rrj_at(memory, 0x800D4270 + type * 28, 24);
-    uint32_t address = packet(memory, 40), value;
-    uint8_t *prim = (uint8_t *)rrj_at(memory, address, 40);
+    const uint8_t *texture = (const uint8_t *)rrj_at(0x800D4270 + type * 28, 24);
+    uint32_t address = packet(rrj_host_context(), 40), value;
+    uint8_t *prim = (uint8_t *)rrj_at(address, 40);
     rrj_put32(prim, rrj_u32(link));
     rrj_put32(link, address);
     value = rrj_u32(color);
@@ -122,18 +125,20 @@ static void xy_offset(uint8_t *point, const void *xy, uint32_t x, uint32_t y)
     rrj_put16(point + 2, rrj_u16((const uint8_t *)xy + 2) + y);
 }
 
-uint32_t sub_8002B3FC(RRJMemory *memory, const void *xy, const void *color, uint32_t width, uint32_t height, uint8_t type, void *link)
+uint32_t sub_8002B3FC(const void *xy, const void *color, uint32_t width, uint32_t height, uint8_t type, void *link)
 {
+    FUNCTION_MARKER(0x8002B3FCu, "SLUS_010.53");
     uint8_t pt[16];
     xy_offset(pt, xy, 0u - width, height);
     xy_offset(pt + 4, xy, width, height);
     xy_offset(pt + 8, xy, 0u - width, 0u - height);
     xy_offset(pt + 12, xy, width, 0u - height);
-    return sub_8002B258(memory, pt, color, type, link);
+    return sub_8002B258(pt, color, type, link);
 }
 
-uint32_t sub_8002B4A0(RRJMemory *memory, const void *xy, const void *color, uint32_t width, uint32_t height, void *link)
+uint32_t sub_8002B4A0(const void *xy, const void *color, uint32_t width, uint32_t height, void *link)
 {
+    FUNCTION_MARKER(0x8002B4A0u, "SLUS_010.53");
     uint8_t pt[24];
     uint32_t quarter = (uint32_t)(rrj_s32(width) / 4), half = (uint32_t)(rrj_s32(width) / 2);
     uint32_t h = (uint32_t)(rrj_s32(height) / 2);
@@ -143,8 +148,8 @@ uint32_t sub_8002B4A0(RRJMemory *memory, const void *xy, const void *color, uint
     xy_offset(pt + 12, xy, half, 0);
     xy_offset(pt + 16, xy, 0u - quarter, 0u - h);
     xy_offset(pt + 20, xy, quarter, 0u - h);
-    sub_8002AF9C(memory, pt, color, link);
-    return sub_8002AF9C(memory, pt + 8, color, link);
+    sub_8002AF9C(pt, color, link);
+    return sub_8002AF9C(pt + 8, color, link);
 }
 
 static uint32_t scaled(uint32_t size, const void *table_halfword)
@@ -155,24 +160,26 @@ static uint32_t scaled(uint32_t size, const void *table_halfword)
     return (uint32_t)(rrj_s32(size * (uint32_t)factor) / 256);
 }
 
-uint32_t sub_8002B5B4(RRJMemory *memory, const void *xy, const void *color, uint32_t width, uint32_t height, void *link)
+uint32_t sub_8002B5B4(const void *xy, const void *color, uint32_t width, uint32_t height, void *link)
 {
+    FUNCTION_MARKER(0x8002B5B4u, "SLUS_010.53");
     uint8_t pt[32];
     unsigned i;
-    const uint8_t *table = (const uint8_t *)rrj_at(memory, 0x80053A28, 64);
+    const uint8_t *table = (const uint8_t *)rrj_at(0x80053A28, 64);
     for (i = 0; i < 8; ++i)
         xy_offset(pt + i * 4, xy, scaled(width, table + i * 8), scaled(height, table + i * 8 + 2));
-    sub_8002AF9C(memory, pt, color, link);
-    sub_8002AF9C(memory, pt + 8, color, link);
-    return sub_8002AF9C(memory, pt + 16, color, link);
+    sub_8002AF9C(pt, color, link);
+    sub_8002AF9C(pt + 8, color, link);
+    return sub_8002AF9C(pt + 16, color, link);
 }
 
-uint32_t sub_8002B68C(RRJMemory *memory, const void *xy, const void *color, uint32_t width, uint32_t height, void *link)
+uint32_t sub_8002B68C(const void *xy, const void *color, uint32_t width, uint32_t height, void *link)
 {
+    FUNCTION_MARKER(0x8002B68Cu, "SLUS_010.53");
     uint8_t pt[72];
     unsigned i;
     uint32_t result = 0;
-    const uint8_t *table = (const uint8_t *)rrj_at(memory, 0x800539E8, 64);
+    const uint8_t *table = (const uint8_t *)rrj_at(0x800539E8, 64);
     for (i = 0; i < 9; ++i)
     {
         const uint8_t *record = table + (i % 8) * 8;
@@ -180,11 +187,11 @@ uint32_t sub_8002B68C(RRJMemory *memory, const void *xy, const void *color, uint
         xy_offset(pt + i * 8 + 4, xy, scaled(width - 5, record), scaled(height - 5, record + 2));
     }
     for (i = 0; i < 8; ++i)
-        result = sub_8002B164(memory, pt + i * 8, color, link);
+        result = sub_8002B164(pt + i * 8, color, link);
     return result;
 }
 
-uint32_t sub_8002B878(RRJMemory *memory, const void *xy, const void *color, void *link)
+uint32_t sub_8002B878(const void *xy, const void *color, void *link)
 {
     uint32_t projected[8];
     int index;
@@ -197,19 +204,19 @@ uint32_t sub_8002B878(RRJMemory *memory, const void *xy, const void *color, void
         sint32 screen;
         sint32 flags;
 
-        vertex.vx = (sint16)rrj_u16(rrj_at(memory, source, 2));
-        vertex.vy = (sint16)rrj_u16(rrj_at(memory, source + 2, 2));
-        vertex.vz = (sint16)rrj_u16(rrj_at(memory, source + 4, 2));
-        vertex.pad = (sint16)rrj_u16(rrj_at(memory, source + 6, 2));
+        vertex.vx = (sint16)rrj_u16(rrj_at(source, 2));
+        vertex.vy = (sint16)rrj_u16(rrj_at(source + 2, 2));
+        vertex.vz = (sint16)rrj_u16(rrj_at(source + 4, 2));
+        vertex.pad = (sint16)rrj_u16(rrj_at(source + 6, 2));
         (void)gte_project(&vertex, &screen, &flags);
         projected[index] = (uint32_t)screen;
     }
     for (index = 7; index >= 0; --index)
     {
-        int16_t first = (int16_t)rrj_u16(rrj_at(memory, 0x8005399E + 2 * (uint32_t)index, 2));
-        int16_t second = (int16_t)rrj_u16(rrj_at(memory, 0x800539AE + 2 * (uint32_t)index, 2));
-        uint32_t address = packet(memory, 28);
-        uint8_t *prim = (uint8_t *)rrj_at(memory, address, 28);
+        int16_t first = (int16_t)rrj_u16(rrj_at(0x8005399E + 2 * (uint32_t)index, 2));
+        int16_t second = (int16_t)rrj_u16(rrj_at(0x800539AE + 2 * (uint32_t)index, 2));
+        uint32_t address = packet(rrj_host_context(), 28);
+        uint8_t *prim = (uint8_t *)rrj_at(address, 28);
 
         rrj_put32(prim, rrj_u32(link));
         rrj_put32(link, address);

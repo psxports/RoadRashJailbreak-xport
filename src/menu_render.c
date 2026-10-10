@@ -16,28 +16,28 @@ void rrj_render_menu_entry(RRJMemory *m, uint32_t target, uint32_t menu, uint32_
     switch (target)
     {
         case 0x80070580:
-            (void)sub_F_80070580(m, menu, entry, rrj_gpu_upload);
+            (void)sub_F_80070580(menu, entry, rrj_gpu_upload);
             break;
         case 0x8006EF30:
-            (void)sub_F_8006EF30(m, menu, entry, resource, rrj_gpu_upload);
+            (void)sub_F_8006EF30(menu, entry, resource, rrj_gpu_upload);
             break;
         case 0x8006E894:
-            (void)sub_F_8006E894(m, menu, entry, resource);
+            (void)sub_F_8006E894(menu, entry, resource);
             break;
         case 0x8006F764:
-            (void)sub_F_8006F764(m, menu, entry, resource);
+            (void)sub_F_8006F764(menu, entry, resource);
             break;
         case 0x8006E7A4:
-            (void)sub_F_8006E7A4(m, menu, entry, resource, rrj_blink_text);
+            (void)sub_F_8006E7A4(menu, entry, resource, rrj_blink_text);
             break;
         case 0x8006E8FC:
-            (void)sub_F_8006E8FC(m, menu, entry, resource, rrj_select_menu_image, NULL);
+            (void)sub_F_8006E8FC(menu, entry, resource, rrj_select_menu_image, NULL);
             break;
         case 0x8006FAC8:
-            (void)sub_F_8006FAC8(m, menu, entry, NULL, NULL);
+            (void)sub_F_8006FAC8(menu, entry, NULL, NULL);
             break;
         case 0x8006E4D8:
-            (void)sub_F_8006E4D8(m, menu, entry, video);
+            (void)sub_F_8006E4D8(menu, entry, video);
             break;
         default:
             RRJ_WIP3(m, target, "menu_renderer", menu, entry, 0);

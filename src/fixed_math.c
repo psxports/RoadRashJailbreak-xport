@@ -8,17 +8,18 @@
 
 int64_t sub_8001FC90(int32_t a, int32_t b)
 {
+    FUNCTION_MARKER(0x8001FC90u, "SLUS_010.53");
     const int64_t product = (int64_t)a * b;
     /* MULT, MFHI/MFLO, SRL 16, SLL 16, OR; JR delay: SRA v1,hi,16.
      * Explicit floor avoids an implementation-defined signed right shift. */
     return product / 65536 - (product < 0 && product % 65536 != 0);
 }
 
-uint32_t sub_8001FEB4(RRJMemory *m, int32_t angle)
+uint32_t sub_8001FEB4(int32_t angle)
 {
     uint32_t index = (uint32_t)angle & 4095u;
-    int32_t numerator = (int16_t)rrj_u16(rrj_at(m, 0x8005624Cu + 4u * index, 2)) * 16;
-    int32_t denominator = (int16_t)rrj_u16(rrj_at(m, 0x8005624Eu + 4u * index, 2)) * 16;
+    int32_t numerator = (int16_t)rrj_u16(rrj_at(0x8005624Cu + 4u * index, 2)) * 16;
+    int32_t denominator = (int16_t)rrj_u16(rrj_at(0x8005624Eu + 4u * index, 2)) * 16;
     uint32_t numerator_magnitude = numerator > 0 ? (uint32_t)numerator : 0u - (uint32_t)numerator;
     uint32_t denominator_magnitude = denominator > 0 ? (uint32_t)denominator : 0u - (uint32_t)denominator;
     uint32_t result;
@@ -30,7 +31,7 @@ uint32_t sub_8001FEB4(RRJMemory *m, int32_t angle)
     return result;
 }
 
-uint32_t sub_8002EA20(RRJMemory *m, uint32_t left, uint32_t right, int32_t scale, uint32_t output)
+uint32_t sub_8002EA20(const uint16_t left[3], const uint16_t right[3], int32_t scale, uint32_t output[3])
 {
     uint32_t i;
     uint32_t result = 0;
@@ -38,11 +39,13 @@ uint32_t sub_8002EA20(RRJMemory *m, uint32_t left, uint32_t right, int32_t scale
     FUNCTION_MARKER(0x8002EA20, "SLUS_010.53");
     for (i = 0; i < 3; ++i)
     {
-        int32_t left_value = (int16_t)rrj_u16(rrj_at(m, left + 2u * i, 2)) * 16;
-        int32_t right_value = (int16_t)rrj_u16(rrj_at(m, right + 2u * i, 2)) * 16;
+        int32_t right_value = (int16_t)rrj_u16((const uint8_t *)right + 2u * i) * 16;
+        int64_t product = (int64_t)right_value * scale;
+        int32_t left_value = (int16_t)rrj_u16((const uint8_t *)left + 2u * i) * 16;
+        int64_t scaled = product / 65536 - (product < 0 && product % 65536 != 0);
 
-        result = (uint32_t)sub_8001FC90(right_value, scale) + (uint32_t)left_value;
-        rrj_write32(m, output + 4u * i, result);
+        result = (uint32_t)scaled + (uint32_t)left_value;
+        rrj_put32((uint8_t *)output + 4u * i, result);
     }
     return result;
 }
@@ -68,31 +71,32 @@ uint32_t rrj_quaternion_to_matrix_values(RRJMemory *m, uint32_t matrix, const in
     int32_t wy = (int32_t)sub_8001FC90(w, sy);
     int32_t xz = (int32_t)sub_8001FC90(x, sz);
 
-    rrj_put16(rrj_at(m, matrix + 14, 2), (uint16_t)((wx + yz) >> 4));
-    rrj_put16(rrj_at(m, matrix + 10, 2), (uint16_t)((yz - wx) >> 4));
-    rrj_put16(rrj_at(m, matrix, 2), (uint16_t)((0x10000 - (yy + zz)) >> 4));
-    rrj_put16(rrj_at(m, matrix + 8, 2), (uint16_t)((0x10000 - (xx + zz)) >> 4));
-    rrj_put16(rrj_at(m, matrix + 16, 2), (uint16_t)((0x10000 - (xx + yy)) >> 4));
-    rrj_put16(rrj_at(m, matrix + 2, 2), (uint16_t)((xy - wz) >> 4));
-    rrj_put16(rrj_at(m, matrix + 6, 2), (uint16_t)((xy + wz) >> 4));
-    rrj_put16(rrj_at(m, matrix + 4, 2), (uint16_t)((xz + wy) >> 4));
-    rrj_put16(rrj_at(m, matrix + 12, 2), (uint16_t)((xz - wy) >> 4));
+    rrj_put16(rrj_at(matrix + 14, 2), (uint16_t)((wx + yz) >> 4));
+    rrj_put16(rrj_at(matrix + 10, 2), (uint16_t)((yz - wx) >> 4));
+    rrj_put16(rrj_at(matrix, 2), (uint16_t)((0x10000 - (yy + zz)) >> 4));
+    rrj_put16(rrj_at(matrix + 8, 2), (uint16_t)((0x10000 - (xx + zz)) >> 4));
+    rrj_put16(rrj_at(matrix + 16, 2), (uint16_t)((0x10000 - (xx + yy)) >> 4));
+    rrj_put16(rrj_at(matrix + 2, 2), (uint16_t)((xy - wz) >> 4));
+    rrj_put16(rrj_at(matrix + 6, 2), (uint16_t)((xy + wz) >> 4));
+    rrj_put16(rrj_at(matrix + 4, 2), (uint16_t)((xz + wy) >> 4));
+    rrj_put16(rrj_at(matrix + 12, 2), (uint16_t)((xz - wy) >> 4));
     return (uint32_t)wy;
 }
 
-uint32_t sub_8001005C(RRJMemory *m, uint32_t matrix, uint32_t quaternion)
+uint32_t sub_8001005C(uint32_t matrix, uint32_t quaternion)
 {
     int32_t values[4];
     uint32_t i;
 
     FUNCTION_MARKER(0x8001005C, "SLUS_010.53");
     for (i = 0; i < 4; ++i)
-        values[i] = rrj_s32(rrj_read32(m, quaternion + 4u * i));
-    return rrj_quaternion_to_matrix_values(m, matrix, values);
+        values[i] = rrj_s32(rrj_read32(quaternion + 4u * i));
+    return rrj_quaternion_to_matrix_values(rrj_host_context(), matrix, values);
 }
 
 int64_t sub_8002E874(const void *left, const void *right, void *out)
 {
+    FUNCTION_MARKER(0x8002E874u, "SLUS_010.53");
     const uint8_t *a = (const uint8_t *)left, *b = (const uint8_t *)right;
     uint8_t *r = (uint8_t *)out;
     uint32_t first;
@@ -111,6 +115,7 @@ int64_t sub_8002E874(const void *left, const void *right, void *out)
 
 int64_t sub_8002E928(const void *vector, const void *matrix, void *out)
 {
+    FUNCTION_MARKER(0x8002E928u, "SLUS_010.53");
     const uint8_t *v = (const uint8_t *)vector, *m = (const uint8_t *)matrix;
     uint8_t *r = (uint8_t *)out;
     uint32_t first, second;

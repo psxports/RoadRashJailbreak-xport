@@ -8,6 +8,7 @@
     "project_tools": "tools",
     "analysis_database": "status/analysis.sqlite",
     "native_executable": "bin/RRJ.exe",
+    "native_debug_executable": "bin/RRJ_debug.exe",
     "native_working_directory": "bin",
     "native_solution": "src/platform/win/RRJ.sln",
     "native_build": "_build",
@@ -26,18 +27,27 @@
     "reserved_gdb_ports": {
       "audit": 2401,
       "trace": 2402,
-      "user": 2403
+      "user": 2403,
+      "lockstep": 2438
     },
     "trace_profile": "tools/duckstation/xport-trace-profile.ini",
     "default_role": "user",
-    "data_directory": "tools/duckstation/data/user",
+    "data_directory": "tools/duckstation/data/user-v2",
     "data_directories": {
-      "audit": "tools/duckstation/data/audit",
-      "trace": "tools/duckstation/data/trace",
-      "user": "tools/duckstation/data/user"
-    }
+      "audit": "tools/duckstation/data/audit-v2",
+      "trace": "tools/duckstation/data/trace-v2",
+      "user": "tools/duckstation/data/user-v2",
+      "lockstep": "tools/duckstation/data/lockstep"
+    },
+    "save_serial": "SLUS-01053"
   },
   "analysis": {
+    "ctree_exports": [
+      {
+        "image": "SLUS_010.53",
+        "path": "status/pipeline-redesign-v1/batches/B16/rrj-ctree-4"
+      }
+    ],
     "default_image": "SLUS_010.53",
     "images": [
       "SLUS_010.53",
@@ -50,16 +60,51 @@
     "redbook_audio": {
       "enabled": false,
       "reason": "Reviewed Road Rash CUE contains one MODE2/2352 data track and no Red Book AUDIO tracks; music data remains inside the game data track"
+    },
+    "trace_workflow": {
+      "record_enabled": true,
+      "record_evidence": [
+        "status/toolset-validation/trace-contract.md"
+      ],
+      "converge_enabled": true,
+      "converge_evidence": [
+        "status/toolset-validation/trace-contract.md"
+      ]
     }
   },
   "trace_layout": {
     "actor_stride": 192,
     "actor_fields": [
-      [0, 4, "sample_clock", "<I"],
-      [4, 4, "buttons", "<I"],
-      [12, 4, "controller_type", "<I"],
-      [16, 4, "analog", "<I"],
-      [188, 4, "invalid", "<I"]
+      [
+        0,
+        4,
+        "sample_clock",
+        "<I"
+      ],
+      [
+        4,
+        4,
+        "buttons",
+        "<I"
+      ],
+      [
+        12,
+        4,
+        "controller_type",
+        "<I"
+      ],
+      [
+        16,
+        4,
+        "analog",
+        "<I"
+      ],
+      [
+        188,
+        4,
+        "invalid",
+        "<I"
+      ]
     ],
     "gpu": {
       "ignore_ft4_padding": false,
@@ -77,6 +122,53 @@
     "gameplay_arguments": []
   },
   "stage_pipeline": {
+    "audit_replay_binding": {
+      "contract": "xport-audit-replay-v1",
+      "checkpoint_adapter": "tools/rrj_stage_adapter.py",
+      "native_probe": "tools/rrj_full_probe.py",
+      "hardware_binding": "tools/rrj_hardware_adapter.py",
+      "native_runtime": "src/race_trace_runtime.c",
+      "journal_binding": "src/wip.c",
+      "shared_python": [
+        "trace_checkpoint_adapter",
+        "trace_native_probe"
+      ],
+      "shared_native": [
+        "xport_trace_runtime",
+        "xport_memory_snapshot",
+        "xport_audit",
+        "xport_journal"
+      ],
+      "legacy_cli_forwarders": [
+        "tools/rrj_stage_adapter.py",
+        "tools/rrj_full_probe.py"
+      ]
+    },
+    "hardware_diagnostic_adapter": "tools/rrj_hardware_adapter.py",
+    "hardware_acceptance_revision": 2,
+    "supervisor_protocol": {
+      "schema": 1,
+      "enabled": true,
+      "mode": "enforced",
+      "one_launch": true,
+      "notify_on_revision_only": true,
+      "batch_limits": {
+        "functions": 5,
+        "instructions": 2048,
+        "modules": 2
+      },
+      "acceptance": {
+        "unchanged_model_calls": 0,
+        "interventions_per_failure": 1,
+        "submissions_per_batch": 1,
+        "fast_refreshes_per_batch": 1,
+        "provisional_replays_per_batch": 1,
+        "full_gate_after_provisional_match": true,
+        "max_control_responses": 5,
+        "max_compactions": 2,
+        "deterministic_call_reduction_percent": 90
+      }
+    },
     "entry_tick": 0,
     "native_abi": "RoadRash race-loop checkpoint ABI 1",
     "compatible_adapters": [
@@ -88,6 +180,23 @@
     "prune_successful_runs": true,
     "diagnostic_cross_build_checkpoint": true
   },
+  "hardware_diagnostics": {
+    "test": {
+      "oracle": {
+        "path": "status/hardware-converge/test/oracle-v1/index.json",
+        "sha256": "30db552736ec3b823c7a3cf2353347ee843e99775b8dc2b9a2c655b1606beccd"
+      },
+      "origin": {
+        "path": "status/hardware-converge/test/origin-v2/manifest.json",
+        "sha256": "87489b416c2bb98c6ef6b4710c97ea00cb6ded1afd5b3a33c0d57efb958c0c0e"
+      },
+      "serial": {
+        "path": "status/hardware-converge/test/serial-v1/manifest.json",
+        "sha256": "7d8f75a795be79a9a260e2d7e0d97d481e2fdca06afadfc7ce4f57a3c7ff40f5"
+      },
+      "session_sha256": "1c251cf63d02bf62eb51569c86143f82b42c5e1dac8856d3d797baf6902a63c2"
+    }
+  },
   "code_refresh": {
     "report": "status/code-refresh-latest.json",
     "log": "status/code-refresh-latest.log",
@@ -95,7 +204,7 @@
       "solution": "src/platform/win/RRJ.sln",
       "configuration": "Debug",
       "platform": "x86",
-      "process_name": "RRJ.exe"
+      "process_name": "RRJ_debug.exe"
     },
     "tests": [
       {
@@ -125,7 +234,52 @@
     "artifacts": []
   },
   "user_trace": {
-    "slot_pattern": "tools/duckstation/data/user/savestates/SLUS-01053_{slot}.sav",
+    "slot_pattern": "tools/duckstation/data/user-v2/savestates/SLUS-01053_{slot}.sav",
     "default_seconds": 600
+  },
+  "lockstep": {
+    "schema": 1,
+    "enabled": true,
+    "original_image": "SLUS_010.53",
+    "native_configuration": "Debug",
+    "native_platform": "x86",
+    "msbuild_property": "LockstepDebug=true",
+    "source_roots": [
+      "src"
+    ],
+    "max_events": 1000000,
+    "same_revision_checkpoint": true,
+    "timing": {
+      "video_standard": "NTSC",
+      "field_rate": 60
+    },
+    "memory": {
+      "abi_registry": "status/lockstep/abi.json",
+      "scratchpad_size": 1024,
+      "dram_size": 2097152
+    },
+    "devices": {
+      "spu_ram": "trusted_wrapper",
+      "vram": "trusted_wrapper"
+    },
+    "runtime": {
+      "duckstation_role": "lockstep",
+      "record_role": "user",
+      "native_arguments": [
+        "--lockstep-replay"
+      ]
+    },
+    "handoff": {
+      "argument_registers": [
+        "r29"
+      ],
+      "continuation": "rrj_menu_iteration",
+      "expected_registers": {
+        "pc": "0x800802C8"
+      },
+      "ordered_breakpoints": [
+        "0x800802C8"
+      ]
+    }
   }
 }

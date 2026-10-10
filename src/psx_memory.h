@@ -16,6 +16,8 @@ struct RRJMemory
     RRJSDKCall sdk_call;
     void *sdk_user;
     uint32_t cpu_status;
+    /* Original SP at the resident menu continuation */
+    uint32_t menu_stack_pointer;
     /* Optional immutable BIOS image used by exact trace replay */
     uint8 *bios;
     /* Explicit root-counter MMIO registers */
@@ -25,29 +27,28 @@ struct RRJMemory
     RRJNativeDispatchContext *native_dispatch;
 };
 
-void *rrj_at_slow(RRJMemory *memory, uint32_t address, size_t bytes);
+void *rrj_at_slow(uint32_t address, size_t bytes);
 void rrj_memory_bind(RRJMemory *memory);
 
-static RRJ_FORCEINLINE void *rrj_at(RRJMemory *memory, uint32_t address, size_t bytes)
+/* Host device state is separate from original game arguments */
+RRJMemory *rrj_host_context(void);
+
+static RRJ_FORCEINLINE void *rrj_at(uint32_t address, size_t bytes)
 {
-    const uint32_t physical = address & 0x1fffffff;
-    if (physical >= 0x1f800000 && physical < 0x1f800400 && bytes <= 0x1f800400 - physical)
-        return xport_guest_ptr(address, bytes);
-    if (physical >= 0x1f801100 && physical < 0x1f801130 && bytes <= 0x1f801130 - physical)
-        return memory->root_counters + (physical - 0x1f801100);
-    if (physical >= 0x1fc00000 && physical < 0x1fc80000 && memory->bios && bytes <= 0x1fc80000 - physical)
-        return (void *)xport_guest_cptr(address, bytes);
+    const uint32_t physical = address & 0x1fffffffu;
     if (physical <= PSX_DRAM_SIZE && bytes <= PSX_DRAM_SIZE - physical)
-        return xport_guest_ptr(address, bytes);
-    return rrj_at_slow(memory, address, bytes);
+        return DRAM + physical;
+    if (physical >= 0x1f800000u && physical < 0x1f800400u && bytes <= 0x1f800400u - physical)
+        return (uint8 *)SCRATCHPAD + (physical - 0x1f800000u);
+    return rrj_at_slow(address, bytes);
 }
 
-static RRJ_FORCEINLINE uint32_t rrj_read32(RRJMemory *memory, uint32_t address)
+static RRJ_FORCEINLINE uint32_t rrj_read32(uint32_t address)
 {
     return r_u32(address);
 }
 
-static RRJ_FORCEINLINE void rrj_write32(RRJMemory *memory, uint32_t address, uint32_t value)
+static RRJ_FORCEINLINE void rrj_write32(uint32_t address, uint32_t value)
 {
     (void)w_u32(address, value);
 }

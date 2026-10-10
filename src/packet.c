@@ -1,10 +1,11 @@
+#include "psx.h"
 /* IDA draft + MIPS SLUS_010.53:80021BE8..80022018.
  * DAT names/offsets are retained. Queue field names are provisional.
  * All pointer comparisons in the allocator are unsigned, as SLTU dictates.
  */
 #include "packet.h"
-#define RD(a) rrj_read32(memory, (a))
-#define WR(a, v) rrj_write32(memory, (a), (v))
+#define RD(a) rrj_read32((a))
+#define WR(a, v) rrj_write32((a), (v))
 #define CONTEXT 0x8005B470u
 #define LIMIT 0x8005B4D0u
 #define END 0x8005B4DCu
@@ -14,17 +15,18 @@
 #define TIMES 0x800D75C0u
 #define ACTIVE 0x800D75D0u
 
-uint32_t sub_80021BE8(RRJMemory *memory)
+uint32_t sub_80021BE8(void)
 {
+    FUNCTION_MARKER(0x80021BE8u, "SLUS_010.53");
     uint32_t context, slot, start;
-    rrj_sdk_call(memory, 0x80044894, 0x80010B2C, 0); /* printf(string) */
+    rrj_sdk_call(rrj_host_context(), 0x80044894, 0x80010B2C, 0); /* printf(string) */
     context = RD(CONTEXT);
-    rrj_sdk_call(memory, 0x80048DB4, RD(context + 0x108) + RD(0x8005ADFC) * 4 - 4, 0); /* DrawOTag */
-    rrj_sdk_call(memory, 0x800487C0, 0, 0);                                            /* DrawSync(0) */
-    rrj_sdk_call(memory, 0x80044894, 0x80010B6C, 0);
+    rrj_sdk_call(rrj_host_context(), 0x80048DB4, RD(context + 0x108) + RD(0x8005ADFC) * 4 - 4, 0); /* DrawOTag */
+    rrj_sdk_call(rrj_host_context(), 0x800487C0, 0, 0);                                            /* DrawSync(0) */
+    rrj_sdk_call(rrj_host_context(), 0x80044894, 0x80010B6C, 0);
     context = RD(CONTEXT);
-    rrj_sdk_call(memory, 0x80048CAC, RD(context + 0x108), RD(0x8005ADFC)); /* ClearOTagR */
-    rrj_sdk_call(memory, 0x800487C0, 0, 0);
+    rrj_sdk_call(rrj_host_context(), 0x80048CAC, RD(context + 0x108), RD(0x8005ADFC)); /* ClearOTagR */
+    rrj_sdk_call(rrj_host_context(), 0x800487C0, 0, 0);
     context = RD(CONTEXT);
     start = RD(context + 0xF0) & 0xFFFFFF;
     WR(LIMIT, RD(END));
@@ -56,8 +58,9 @@ static void advance_queue(RRJMemory *memory, uint32_t context, uint32_t last, ui
     }
 }
 
-uint32_t sub_80021C98(RRJMemory *memory, uint32_t cursor, uint32_t bytes)
+uint32_t sub_80021C98(uint32_t cursor, uint32_t bytes)
 {
+    FUNCTION_MARKER(0x80021C98u, "SLUS_010.53");
     uint32_t context, last, next, end, candidate, request_end;
     int fits = 0, fits_end;
     end = RD(END);
@@ -72,7 +75,7 @@ uint32_t sub_80021C98(RRJMemory *memory, uint32_t cursor, uint32_t bytes)
     fits_end = request_end < end;
     for (;;)
     {
-        advance_queue(memory, context, last, next); /* 80021E64..80021F18 */
+        advance_queue(rrj_host_context(), context, last, next); /* 80021E64..80021F18 */
         candidate = RD(POINTERS + RD(CURRENT) * 4);
         if (RD(LIMIT) != candidate)
         {
@@ -131,7 +134,7 @@ wrap_buffer: /* 80021CBC; keep 24-bit physical address, not KSEG0 */
         next = last + 1;
         for (;;)
         {
-            advance_queue(memory, context, last, next); /* 80021D34..80021DE8 */
+            advance_queue(rrj_host_context(), context, last, next); /* 80021D34..80021DE8 */
             candidate = RD(POINTERS + RD(CURRENT) * 4);
             if (request_end < candidate)
             {
@@ -145,6 +148,6 @@ wrap_buffer: /* 80021CBC; keep 24-bit physical address, not KSEG0 */
     }
 finish: /* 80021FF8 */
     if (!fits)
-        sub_80021BE8(memory);
+        sub_80021BE8();
     return cursor;
 }

@@ -1,42 +1,47 @@
+#include "native_game_api.h"
+#include "psx.h"
+#include "race_pause.h"
 #include "race_bodyless_batch_008.h"
 
-uint32_t sub_8001A2E4(RRJMemory *m, uint32_t runtime_gp, uint32_t arguments[8], RRJBodylessRegistersCall call)
+uint32_t sub_8001A2E4(uint32_t identifier)
 {
-    uint32_t identifier = arguments[0], mode = 2, index, attempt = 0, address, tag, entry, state, handle, current;
-    arguments[0] = rrj_read32(m, runtime_gp + 0x7a0);
+    uint32_t arguments[8] = {0};
+    uint32_t mode = 2, index, attempt = 0, address, tag, entry, state, handle, current;
+    FUNCTION_MARKER(0x8001A2E4, "SLUS_010.53");
+    arguments[0] = rrj_read32(0x8005B42Cu);
     if (arguments[0])
     {
-        arguments[0] = rrj_read32(m, arguments[0]);
+        arguments[0] = rrj_read32(arguments[0]);
         if (arguments[0])
         {
             arguments[1] = 0;
-            if (call(m, 0x800138e8, arguments) < 6)
+            if ((uint32_t)sub_800138E8(arguments[0], arguments[1]) < 6)
                 mode = 1;
         }
     }
     arguments[0] = 0xf2000002;
-    index = (9 * (call(m, 0x80043f00, arguments) & 255)) >> 8;
+    index = (9 * ((uint32_t)sub_80043F00(arguments[0]) & 255)) >> 8;
     arguments[0] = identifier & 255;
     arguments[2] = index;
     arguments[3] = 0;
     do
     {
         address = 0x800d6c40 + (index << 2);
-        tag = rrj_read32(m, address);
+        tag = rrj_read32(address);
         arguments[1] = tag;
         if ((tag & 15) < 2)
-            rrj_write32(m, address, (tag & 3) | (mode << 4));
-        if (rrj_read32(m, address) == (identifier & 255))
+            rrj_write32(address, (tag & 3) | (mode << 4));
+        if (rrj_read32(address) == (identifier & 255))
         {
             entry = 0x800d6aa0 + (index << 5);
             if (((uint32_t)r_u8(entry + 4) >> 4) != ((identifier & 255) >> 4))
                 return index;
-            state = rrj_read32(m, entry + 8);
+            state = rrj_read32(entry + 8);
             arguments[1] = state;
             if (state >= 3)
             {
-                handle = rrj_read32(m, entry);
-                current = rrj_read32(m, runtime_gp + 0x778);
+                handle = rrj_read32(entry);
+                current = rrj_read32(0x8005B404u);
                 if (handle != current)
                     return index;
             }
@@ -63,178 +68,130 @@ static uint32_t curve_signed_byte(uint32_t address)
     return (uint32_t)(int32_t)(int8_t)r_u8(address);
 }
 
-static int curve_endpoint(RRJMemory *m, uint32_t record, uint32_t piece)
+typedef struct RRJCurveRoutes
+{
+    uint32_t boundary[8];
+    uint32_t candidates[24];
+    uint32_t directions[4];
+} RRJCurveRoutes;
+
+typedef uint32_t (*RRJCurveNeighbors)(uint32_t, uint32_t[8], uint32_t[24], uint32_t[3], uint32_t);
+
+static void curve_copy_record(uint32_t destination[8], const uint32_t source[8])
+{
+    uint32_t index;
+    for (index = 0; index < 8; ++index)
+        rrj_put32((uint8_t *)destination + 4u * index, rrj_u32((const uint8_t *)source + 4u * index));
+}
+
+static int curve_endpoint(const uint32_t record[8], uint32_t piece)
 {
     uint32_t index = curve_signed_half(piece);
-    if (!index)
-        return 1;
-    return index == curve_signed_half(rrj_read32(m, record + 8) + 10) - 1;
+    return !index || index == curve_signed_half(rrj_u32((const uint8_t *)record + 8) + 10) - 1u;
 }
 
-static uint32_t curve_copy(RRJMemory *m, uint32_t destination, uint32_t source, uint32_t arguments[8], RRJBodylessRegistersCall call)
+static uint32_t curve_neighbor(uint32_t record[8], RRJCurveRoutes *routes, uint32_t identity, uint32_t *direction, int resolve)
 {
-    arguments[0] = destination;
-    arguments[1] = source;
-    arguments[2] = 32;
-    return call(m, 0x8001e0b4, arguments);
-}
-
-static uint32_t curve_neighbor(RRJMemory *m, uint32_t record, uint32_t frame, uint32_t actor, int reload_actor, int resolve, uint32_t selected_direction, uint32_t arguments[8], RRJBodylessRegistersCall call)
-{
-    uint32_t direction = resolve ? rrj_read32(m, frame + 248) : selected_direction;
-    uint32_t target = rrj_s32(direction) > 0 ? 0x80037a30 : 0x80037fbc;
-    uint32_t result;
-    arguments[1] = record;
-    arguments[2] = frame + 136;
-    arguments[3] = frame + 232;
-    if (reload_actor)
-        actor = rrj_read32(m, frame + 252) + 172;
-    rrj_write32(m, frame + 16, 3);
-    arguments[4] = 3;
-    arguments[0] = actor;
-    result = call(m, target, arguments);
+    RRJCurveNeighbors neighbors = rrj_s32(*direction) > 0 ? sub_80037A30 : sub_80037FBC;
+    uint32_t count = neighbors(identity, record, routes->candidates, routes->directions, 3);
     if (resolve)
-    {
-        arguments[0] = actor;
-        arguments[1] = frame + 136;
-        arguments[2] = frame + 232;
-        arguments[3] = result;
-        rrj_write32(m, frame + 16, record);
-        rrj_write32(m, frame + 20, frame + 248);
-        arguments[4] = record;
-        arguments[5] = frame + 248;
-        result = call(m, 0x80039048, arguments);
-    }
-    return result;
+        return sub_80039048(identity, routes->candidates, routes->directions, count, record, direction);
+    return count;
 }
 
-static uint32_t curve_boundary(RRJMemory *m, uint32_t frame, uint32_t arguments[8], RRJBodylessRegistersCall call)
+static uint32_t *curve_boundary(uint32_t source[8], RRJCurveRoutes *routes, uint32_t actor, uint32_t *direction)
 {
-    uint32_t record = frame + 104;
-    uint32_t source = rrj_read32(m, frame + 260);
-    uint32_t direction = rrj_read32(m, frame + 248);
-    rrj_write32(m, frame + 232, direction);
-    (void)curve_copy(m, record, source, arguments, call);
-    (void)curve_neighbor(m, record, frame, 0, 1, 1, 0, arguments, call);
-    return record;
+    routes->directions[0] = *direction;
+    curve_copy_record(routes->boundary, source);
+    (void)curve_neighbor(routes->boundary, routes, actor + 172, direction, 1);
+    return routes->boundary;
 }
 
-static uint32_t curve_project(RRJMemory *m, uint32_t piece, uint32_t tangent_offset, uint32_t coefficient, uint32_t output, uint32_t arguments[8], RRJBodylessRegistersCall call)
+static uint32_t curve_project(uint32_t piece, uint32_t tangent_offset, uint32_t coefficient, uint32_t output[3])
 {
-    arguments[0] = piece + 20;
-    arguments[1] = piece + tangent_offset;
-    arguments[2] = coefficient;
-    arguments[3] = output;
-    return call(m, 0x8002ead8, arguments);
+    return sub_8002EAD8(rrj_at(piece + 20, 12), rrj_at(piece + tangent_offset, 6), coefficient, output);
 }
 
-static uint32_t curve_ratio(RRJMemory *m, uint32_t numerator, uint32_t denominator, uint32_t arguments[8], RRJBodylessRegistersCall call)
+static uint32_t curve_ratio(uint32_t numerator, uint32_t denominator)
 {
     int numerator_positive = rrj_s32(numerator) > 0;
     int denominator_positive = rrj_s32(denominator) > 0;
-    uint32_t result;
-    arguments[0] = numerator_positive ? numerator : 0 - numerator;
-    arguments[1] = denominator_positive ? denominator : 0 - denominator;
-    result = call(m, 0x80010028, arguments);
-    return numerator_positive != denominator_positive ? 0 - result : result;
+    uint32_t result = sub_80010028(numerator_positive ? numerator : 0u - numerator,
+                                 denominator_positive ? denominator : 0u - denominator);
+    return numerator_positive != denominator_positive ? 0u - result : result;
 }
 
-static uint32_t curve_extrapolation_weight(RRJMemory *m, uint32_t frame, uint32_t distance, uint32_t length, uint32_t endpoint, int right, uint32_t arguments[8], RRJBodylessRegistersCall call)
+static uint32_t curve_extrapolation_weight(uint32_t distance, uint32_t length, uint32_t endpoint[3], int right, uint32_t middle[3])
 {
-    uint32_t result, blend_weight;
+    uint32_t result;
     if (rrj_s32(length) > 0)
     {
-        arguments[0] = 0;
-        arguments[1] = length;
-        blend_weight = 0 - call(m, 0x80010028, arguments);
-        rrj_write32(m, frame + 16, blend_weight);
-        arguments[4] = blend_weight;
-        arguments[0] = frame + 40;
-        arguments[1] = endpoint;
-        arguments[2] = endpoint;
-        arguments[3] = 0x10000 - blend_weight;
-        (void)call(m, 0x8002e6f8, arguments);
+        uint32_t blend_weight = 0u - sub_80010028(0, length);
+        (void)sub_8002E6F8(middle, endpoint, endpoint, rrj_s32(0x10000u - blend_weight), rrj_s32(blend_weight));
         length = 0;
     }
-    arguments[0] = 0 - distance;
-    arguments[1] = 0 - length;
-    result = call(m, 0x80010028, arguments);
-    return right ? 0x8000 - result : 0x8000 + result;
+    result = sub_80010028(0u - distance, 0u - length);
+    return right ? 0x8000u - result : 0x8000u + result;
 }
 
-uint32_t sub_800386DC(RRJMemory *m, uint32_t incoming_sp, uint32_t arguments[8], RRJBodylessRegistersCall call)
+uint32_t sub_800386DC(uint32_t actor, uint32_t target_distance, uint32_t initial_distance, uint32_t input_direction, uint32_t input_record[8], uint32_t position_output[3], uint32_t copy_output[8])
 {
-    uint32_t frame = incoming_sp - 312;
-    uint32_t record = rrj_read32(m, incoming_sp + 16);
-    uint32_t copy_output = rrj_read32(m, incoming_sp + 24);
-    uint32_t target_distance = arguments[1], initial_distance = arguments[2], input_direction = arguments[3];
-    uint32_t original_piece, piece, next_piece, direction, old_direction, length, distance;
-    uint32_t old_coefficient, next_coefficient, coefficient, actor, result, weight, endpoint, component;
-    uint32_t square, half, first_weight, middle_weight, first_product, middle_product, output;
+    uint32_t *record = input_record;
+    uint32_t *saved_record;
+    uint32_t record_copy[8];
+    RRJCurveRoutes routes;
+    uint32_t first[3], middle[3], last[3];
+    uint32_t *endpoint;
+    uint32_t saved_piece = rrj_u32((const uint8_t *)input_record + 12);
+    uint32_t original_piece = saved_piece;
+    uint32_t direction = rrj_s32(input_direction) > 0 ? 1u : UINT32_MAX;
+    uint32_t piece, next_piece, old_direction, length, distance;
+    uint32_t old_coefficient, next_coefficient, coefficient, result, weight, component;
+    uint32_t square, half, first_weight, middle_weight, first_product, middle_product;
     int smooth;
-    rrj_write32(m, frame + 252, arguments[0]);
-    original_piece = rrj_read32(m, record + 12);
-    arguments[1] = initial_distance;
-    rrj_write32(m, frame + 256, original_piece);
-    if (rrj_s32(input_direction) > 0)
-    {
-        length = rrj_read32(m, original_piece + 32);
-        rrj_write32(m, frame + 248, 1);
-        distance = length - initial_distance;
-    }
-    else
-    {
-        rrj_write32(m, frame + 248, UINT32_MAX);
-        distance = initial_distance;
-    }
+
+    FUNCTION_MARKER(0x800386DCu, "SLUS_010.53");
+    distance = rrj_s32(input_direction) > 0 ? rrj_read32(original_piece + 32) - initial_distance : initial_distance;
     if (rrj_s32(distance) < rrj_s32(target_distance))
     {
-        actor = rrj_read32(m, frame + 252) + 172;
+        uint32_t identity = actor + 172;
         do
         {
-            piece = rrj_read32(m, record + 12);
-            arguments[0] = piece;
-            if (!curve_endpoint(m, record, piece))
-            {
-                direction = rrj_read32(m, frame + 248);
-                rrj_write32(m, record + 12, piece + 52 * direction);
-            }
+            piece = record[3];
+            if (!curve_endpoint(record, piece))
+                record[3] = piece + 52u * direction;
             else
             {
-                direction = rrj_read32(m, frame + 248);
-                output = rrj_read32(m, incoming_sp + 16);
-                rrj_write32(m, frame + 232, direction);
-                if (record == output)
+                routes.directions[0] = direction;
+                if (record == input_record)
                 {
-                    record = frame + 72;
-                    (void)curve_copy(m, record, output, arguments, call);
+                    record = record_copy;
+                    curve_copy_record(record, input_record);
                 }
-                arguments[1] = rrj_read32(m, frame + 248);
-                arguments[0] = record;
-                result = call(m, 0x800394f0, arguments);
+                result = sub_800394F0(record, direction);
                 if (result)
                 {
-                    piece = rrj_read32(m, record + 12);
-                    direction = rrj_read32(m, frame + 248);
-                    result = curve_project(m, piece, 14, rrj_s32(direction) > 0 ? target_distance - distance : distance - target_distance, rrj_read32(m, incoming_sp + 20), arguments, call);
-                    arguments[0] = copy_output;
+                    piece = record[3];
+                    result = curve_project(piece, 14, rrj_s32(direction) > 0 ? target_distance - distance : distance - target_distance, position_output);
                     if (copy_output)
-                        result = curve_copy(m, copy_output, record, arguments, call);
+                    {
+                        curve_copy_record(copy_output, record);
+                        result = (uint32_t)(uintptr_t)copy_output;
+                    }
                     return result;
                 }
-                (void)curve_neighbor(m, record, frame, actor, 0, 1, 0, arguments, call);
+                (void)curve_neighbor(record, &routes, identity, &direction, 1);
             }
-            piece = rrj_read32(m, record + 12);
-            distance += rrj_read32(m, piece + 32);
+            piece = record[3];
+            distance += rrj_read32(piece + 32);
         } while (rrj_s32(distance) < rrj_s32(target_distance));
     }
-    rrj_write32(m, frame + 260, record);
+    saved_record = record;
     if (copy_output)
-        (void)curve_copy(m, copy_output, record, arguments, call);
-    direction = rrj_read32(m, frame + 248);
-    original_piece = rrj_read32(m, record + 12);
-    rrj_write32(m, frame + 264, direction);
-    length = rrj_read32(m, original_piece + 32);
+        curve_copy_record(copy_output, record);
+    original_piece = record[3];
+    old_direction = direction;
+    length = rrj_read32(original_piece + 32);
     distance -= target_distance;
     if (rrj_s32(direction) > 0)
     {
@@ -243,186 +200,152 @@ uint32_t sub_800386DC(RRJMemory *m, uint32_t incoming_sp, uint32_t arguments[8],
     }
     else
         old_coefficient = curve_signed_byte(original_piece + 39) << 13;
-    piece = rrj_read32(m, record + 12);
-    arguments[0] = piece;
-    component = curve_signed_half(piece);
-    rrj_write32(m, frame + 248, 1);
-    if (!component || component == curve_signed_half(rrj_read32(m, record + 8) + 10) - 1)
-        record = curve_boundary(m, frame, arguments, call);
+    piece = record[3];
+    direction = 1;
+    if (curve_endpoint(record, piece))
+        record = curve_boundary(saved_record, &routes, actor, &direction);
     else
-        rrj_write32(m, record + 12, piece + 52);
-    direction = rrj_read32(m, frame + 248);
-    next_piece = rrj_read32(m, record + 12);
-    old_direction = rrj_read32(m, frame + 264);
+        record[3] = piece + 52;
+    next_piece = record[3];
     if (rrj_s32(direction) > 0)
         next_coefficient = curve_signed_byte(next_piece + (rrj_s32(old_direction) > 0 ? 38 : 39)) << 13;
     else
     {
         next_coefficient = curve_signed_byte(next_piece + (rrj_s32(old_direction) > 0 ? 39 : 38)) << 13;
-        length += rrj_read32(m, next_piece + 32);
+        length += rrj_read32(next_piece + 32);
     }
     if (rrj_s32(distance) < (rrj_s32(length) >> 1))
     {
-        (void)curve_project(m, next_piece, 2, next_coefficient, frame + 56, arguments, call);
-        result = curve_project(m, original_piece, 2, old_coefficient, frame + 40, arguments, call);
-        endpoint = frame + 56;
+        (void)curve_project(next_piece, 2, next_coefficient, last);
+        result = curve_project(original_piece, 2, old_coefficient, middle);
+        endpoint = last;
         smooth = rrj_s32(distance) < 0;
         if (smooth)
         {
-            weight = curve_extrapolation_weight(m, frame, distance, length, endpoint, 0, arguments, call);
-            record = rrj_read32(m, frame + 260);
-            arguments[0] = weight;
-            rrj_write32(m, record + 12, original_piece);
-            arguments[1] = original_piece;
-            component = curve_signed_half(original_piece);
-            rrj_write32(m, frame + 248, UINT32_MAX);
-            if (!component || component == curve_signed_half(rrj_read32(m, record + 8) + 10) - 1)
-                record = curve_boundary(m, frame, arguments, call);
+            weight = curve_extrapolation_weight(distance, length, endpoint, 0, middle);
+            record = saved_record;
+            record[3] = original_piece;
+            direction = UINT32_MAX;
+            if (curve_endpoint(record, original_piece))
+                record = curve_boundary(saved_record, &routes, actor, &direction);
             else
-                rrj_write32(m, record + 12, original_piece - 52);
-            direction = rrj_read32(m, frame + 248);
+                record[3] = original_piece - 52;
             if (rrj_s32(direction) < 0)
             {
-                old_direction = rrj_read32(m, frame + 264);
-                piece = rrj_read32(m, record + 12);
+                piece = record[3];
                 coefficient = curve_signed_byte(piece + (rrj_s32(old_direction) > 0 ? 38 : 39)) << 13;
             }
             else
             {
-                if (rrj_s32(curve_signed_half(rrj_read32(m, record + 8) + 10)) >= 2)
-                {
-                    piece = rrj_read32(m, record + 12);
-                    rrj_write32(m, record + 12, piece + 52);
-                }
+                if (rrj_s32(curve_signed_half(record[2] + 10)) >= 2)
+                    record[3] += 52;
                 else
-                    (void)curve_neighbor(m, record, frame, 0, 1, 0, direction, arguments, call);
-                direction = rrj_read32(m, frame + 248);
-                old_direction = rrj_read32(m, frame + 264);
-                piece = rrj_read32(m, record + 12);
+                    (void)curve_neighbor(record, &routes, actor + 172, &direction, 0);
+                piece = record[3];
                 component = r_u8(piece + 38);
                 if (rrj_s32(direction ^ old_direction) < 0)
                     coefficient = (uint32_t)(rrj_s32(component << 24) >> 11);
                 else
                     coefficient = curve_signed_byte(piece + 39) << 13;
             }
-            result = curve_project(m, piece, 2, coefficient, frame + 24, arguments, call);
+            result = curve_project(piece, 2, coefficient, first);
         }
         else
-            weight = curve_ratio(m, distance, length, arguments, call);
+            weight = curve_ratio(distance, length);
     }
     else
     {
-        (void)curve_project(m, original_piece, 2, old_coefficient, frame + 24, arguments, call);
-        result = curve_project(m, next_piece, 2, next_coefficient, frame + 40, arguments, call);
+        (void)curve_project(original_piece, 2, old_coefficient, first);
+        result = curve_project(next_piece, 2, next_coefficient, middle);
         distance = length - distance;
-        endpoint = frame + 24;
+        endpoint = first;
         smooth = rrj_s32(distance) < 0;
         if (smooth)
         {
-            weight = curve_extrapolation_weight(m, frame, distance, length, endpoint, 1, arguments, call);
-            piece = rrj_read32(m, record + 12);
-            arguments[0] = piece;
-            rrj_write32(m, frame + 260, record);
-            component = curve_signed_half(piece);
-            old_direction = rrj_read32(m, frame + 248);
-            if (!component || component == curve_signed_half(rrj_read32(m, record + 8) + 10) - 1)
-                record = curve_boundary(m, frame, arguments, call);
+            uint32_t preceding_direction;
+            weight = curve_extrapolation_weight(distance, length, endpoint, 1, middle);
+            piece = record[3];
+            saved_record = record;
+            preceding_direction = direction;
+            if (curve_endpoint(record, piece))
+                record = curve_boundary(saved_record, &routes, actor, &direction);
             else
-                rrj_write32(m, record + 12, piece + 52 * old_direction);
-            component = 0;
-            if (rrj_s32(old_direction) < 0)
-                component = rrj_s32(rrj_read32(m, frame + 248)) > 0;
-            piece = rrj_read32(m, record + 12) + 52 * component;
+                record[3] = piece + 52u * preceding_direction;
+            component = rrj_s32(preceding_direction) < 0 && rrj_s32(direction) > 0;
+            piece = record[3] + 52u * component;
             coefficient = curve_signed_byte(piece + 38) << 13;
-            result = curve_project(m, piece, 2, coefficient, frame + 56, arguments, call);
+            result = curve_project(piece, 2, coefficient, last);
         }
         else
-            weight = curve_ratio(m, distance, length, arguments, call);
+            weight = curve_ratio(distance, length);
     }
     if (!smooth)
+        result = sub_8002E6F8(middle, endpoint, position_output, rrj_s32(0x10000u - weight), rrj_s32(weight));
+    else
     {
-        arguments[0] = frame + 40;
-        arguments[1] = endpoint;
-        arguments[3] = 0x10000;
-        arguments[2] = rrj_read32(m, incoming_sp + 20);
-        arguments[3] -= weight;
-        rrj_write32(m, frame + 16, weight);
-        arguments[4] = weight;
-        result = call(m, 0x8002e6f8, arguments);
-    }
-    arguments[0] = weight;
-    if (smooth)
-    {
-        arguments[1] = weight;
-        square = call(m, 0x8001fc90, arguments);
+        square = (uint32_t)sub_8001FC90(weight, weight);
         half = (uint32_t)(rrj_s32(square) >> 1);
-        first_weight = half + 0x8000 - weight;
-        middle_weight = weight - (square - 0x8000);
-        for (component = 0; component < 12; component += 4)
+        first_weight = half + 0x8000u - weight;
+        middle_weight = weight - (square - 0x8000u);
+        for (component = 0; component < 3; ++component)
         {
-            arguments[1] = rrj_read32(m, frame + 24 + component);
-            arguments[0] = first_weight;
-            first_product = call(m, 0x8001fc90, arguments);
-            arguments[0] = middle_weight;
-            arguments[1] = rrj_read32(m, frame + 40 + component);
-            middle_product = call(m, 0x8001fc90, arguments);
-            arguments[0] = half;
-            arguments[1] = rrj_read32(m, frame + 56 + component);
-            result = call(m, 0x8001fc90, arguments);
-            output = rrj_read32(m, incoming_sp + 20);
-            rrj_write32(m, output + component, first_product + middle_product + result);
+            first_product = (uint32_t)sub_8001FC90(first_weight, first[component]);
+            middle_product = (uint32_t)sub_8001FC90(middle_weight, middle[component]);
+            result = (uint32_t)sub_8001FC90(half, last[component]);
+            rrj_put32((uint8_t *)position_output + 4u * component, first_product + middle_product + result);
         }
     }
-    piece = rrj_read32(m, frame + 256);
-    output = rrj_read32(m, incoming_sp + 16);
-    rrj_write32(m, output + 12, piece);
+    rrj_put32((uint8_t *)input_record + 12, saved_piece);
     return result;
 }
 
-uint32_t sub_8003A3CC(RRJMemory *m, uint32_t arguments[8], RRJBodylessRegistersCall call)
+uint32_t sub_8003A3CC(uint32_t arguments[8])
 {
+    FUNCTION_MARKER(0x8003A3CCu, "SLUS_010.53");
     uint32_t table, count, index = 0, random;
     if (curve_signed_half(0x800d6182) == UINT32_MAX)
         return UINT32_MAX;
-    arguments[0] = rrj_read32(m, arguments[0] + 428);
-    table = call(m, 0x8003f408, arguments);
+    arguments[0] = rrj_read32(arguments[0] + 428);
+    table = (uint32_t)sub_8003F408(arguments[0], arguments[1]);
     if (!table)
         return UINT32_MAX;
-    count = rrj_read32(m, table + 16);
+    count = rrj_read32(table + 16);
     if (rrj_s32(count) >= 2)
     {
-        random = call(m, 0x8001fc58, arguments);
-        count = rrj_read32(m, table + 16);
+        random = (uint32_t)sub_8001FC58();
+        count = rrj_read32(table + 16);
         index = count ? random % count : random;
     }
-    return rrj_read32(m, table + (index << 2) + 84);
+    return rrj_read32(table + (index << 2) + 84);
 }
 
-uint32_t sub_8002C928(RRJMemory *m, uint32_t incoming_sp, uint32_t arguments[8], RRJBodylessRegistersCall call)
+uint32_t sub_8002C928(uint32_t incoming_sp, uint32_t arguments[8], RRJBodylessRegistersCall call)
 {
+    FUNCTION_MARKER(0x8002C928u, "SLUS_010.53");
     uint32_t frame = incoming_sp - 32, slot = arguments[0], point = arguments[1], x, y, offset;
     arguments[3] = 0x800d7fc8;
     arguments[2] = arguments[3] + (slot << 2);
     x = r_u16(point);
     offset = r_u16(arguments[2] + 32);
     arguments[3] = 0x800d7ff0;
-    rrj_put16(rrj_at(m, frame + 16, 2), (uint16_t)(x + offset - 2));
+    rrj_put16(rrj_at(frame + 16, 2), (uint16_t)(x + offset - 2));
     y = r_u16(point + 2);
     arguments[1] = r_u16(arguments[2] + 34);
-    rrj_put16(rrj_at(m, frame + 20, 2), 5);
-    rrj_put16(rrj_at(m, frame + 22, 2), 5);
+    rrj_put16(rrj_at(frame + 20, 2), 5);
+    rrj_put16(rrj_at(frame + 22, 2), 5);
     y += arguments[1] - 2;
     arguments[1] = arguments[3] + 52 * slot;
     arguments[0] = frame + 16;
-    rrj_put16(rrj_at(m, frame + 18, 2), (uint16_t)y);
-    return call(m, 0x80048acc, arguments);
+    rrj_put16(rrj_at(frame + 18, 2), (uint16_t)y);
+    return call(rrj_host_context(), 0x80048acc, arguments);
 }
 
-uint32_t sub_8002CC74(RRJMemory *m, uint32_t incoming_sp, uint32_t arguments[8], RRJBodylessRegistersCall call)
+uint32_t sub_8002CC74(uint32_t incoming_sp, uint32_t arguments[8])
 {
-    uint32_t frame = incoming_sp - 48, mode = rrj_read32(m, incoming_sp + 20);
+    FUNCTION_MARKER(0x8002CC74u, "SLUS_010.53");
+    uint32_t frame = incoming_sp - 48, mode = rrj_read32(incoming_sp + 20);
     uint32_t first = arguments[0], second = arguments[1], rectangle = arguments[2], fourth = arguments[3];
-    uint32_t extra = rrj_read32(m, incoming_sp + 16), x, width, result;
+    uint32_t extra = rrj_read32(incoming_sp + 16), x, width, result;
     if (mode != 0 && mode != 1 && mode != 2)
     {
         arguments[0] = first;
@@ -434,13 +357,13 @@ uint32_t sub_8002CC74(RRJMemory *m, uint32_t incoming_sp, uint32_t arguments[8],
         arguments[2] = curve_signed_half(rectangle);
         arguments[3] = curve_signed_half(rectangle + 2);
         arguments[1] = second;
-        rrj_write32(m, frame + 16, fourth);
-        rrj_write32(m, frame + 20, extra);
+        rrj_write32(frame + 16, fourth);
+        rrj_write32(frame + 20, extra);
     }
     else
     {
         arguments[1] = second;
-        result = call(m, 0x8002d0d8, arguments);
+        result = (uint32_t)sub_8002D0D8(arguments[0], arguments[1]);
         arguments[0] = first;
         if (mode == 1)
         {
@@ -459,13 +382,13 @@ uint32_t sub_8002CC74(RRJMemory *m, uint32_t incoming_sp, uint32_t arguments[8],
             arguments[3] = curve_signed_half(rectangle + 2);
             result = (uint32_t)(rrj_s32(result) >> 1);
         }
-        rrj_write32(m, frame + 16, fourth);
-        rrj_write32(m, frame + 20, extra);
+        rrj_write32(frame + 16, fourth);
+        rrj_write32(frame + 20, extra);
         if (mode == 2)
             width = (uint32_t)(rrj_s32(width << 16) >> 17);
         arguments[2] = (uint32_t)(int32_t)(int16_t)(uint16_t)(x + width - result);
     }
     arguments[4] = fourth;
     arguments[5] = extra;
-    return call(m, 0x8002cdc8, arguments);
+    return (uint32_t)sub_8002CDC8(arguments[0], arguments[1], arguments[2], arguments[3], arguments[4], arguments[5]);
 }

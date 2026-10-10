@@ -3,6 +3,6 @@
 
 #include "race_leaf_batch_002.h"
 
-uint32_t sub_8009E8A4(RRJMemory *m, uint32_t delta, uint32_t enabled);
+uint32_t sub_8009E8A4(uint32_t delta, uint32_t enabled);
 
 #endif

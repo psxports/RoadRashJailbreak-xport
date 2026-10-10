@@ -49,5 +49,5 @@ void rrj_input_read(RRJMemory *m)
 
 void rrj_input_latch(RRJMemory *m)
 {
-    sub_8001CB3C_menu(m, critical);
+    sub_8001CB3C_menu(critical);
 }

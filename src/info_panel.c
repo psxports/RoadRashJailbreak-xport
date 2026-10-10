@@ -1,3 +1,4 @@
+#include "psx.h"
 #include "wip.h"
 /* Information-panel dispatcher, audited against F8006FAC8 MIPS. */
 #include "info_panel.h"
@@ -7,7 +8,7 @@
 
 static uint32_t h(RRJMemory *m, uint32_t a)
 {
-    return rrj_u16(rrj_at(m, a, 2));
+    return rrj_u16(rrj_at(a, 2));
 }
 
 static uint32_t b(RRJMemory *m, uint32_t a)
@@ -25,17 +26,18 @@ static uint32_t sb(uint32_t v)
     return v < 128 ? v : v | 0xffffff00;
 }
 
-uint32_t sub_F_8006FAC8(RRJMemory *m, uint32_t menu, uint32_t entry, RRJModeLabel label, RRJSpecialPanel special)
+uint32_t sub_F_8006FAC8(uint32_t menu, uint32_t entry, RRJModeLabel label, RRJSpecialPanel special)
 {
+    FUNCTION_MARKER(0x8006FAC8u, "RASHCDF.BIN");
     uint32_t font, rect = entry + 16, id, color, mode, link, desc, selector, fn = 0, a0 = menu, a1 = entry, a2 = menu;
-    if ((h(m, entry + 10) & 32) && !(h(m, menu) & 2))
+    if ((h(rrj_host_context(), entry + 10) & 32) && !(h(rrj_host_context(), menu) & 2))
         return 1;
-    if (!b(m, 0x800D8078 + 24 * rrj_read32(m, 0x8009C5C0)))
+    if (!b(rrj_host_context(), 0x800D8078 + 24 * rrj_read32(0x8009C5C0)))
         return 1;
-    if (!b(m, 0x800D8078 + 24 * rrj_read32(m, 0x8009C5BC)))
+    if (!b(rrj_host_context(), 0x800D8078 + 24 * rrj_read32(0x8009C5BC)))
         return 1;
-    selector = h(m, entry + 24);
-    if (h(m, entry + 10) & 8192)
+    selector = h(rrj_host_context(), entry + 24);
+    if (h(rrj_host_context(), entry + 10) & 8192)
     {
         switch (selector)
         {
@@ -109,12 +111,12 @@ uint32_t sub_F_8006FAC8(RRJMemory *m, uint32_t menu, uint32_t entry, RRJModeLabe
             case 45:
                 fn = 0x80071064;
                 a1 = rect;
-                a2 = sh(h(m, rrj_read32(m, 0x8009954C) + 8));
+                a2 = sh(h(rrj_host_context(), rrj_read32(0x8009954C) + 8));
                 break;
             case 46:
                 fn = 0x80071AF0;
                 a0 = rect;
-                a1 = sh(h(m, rrj_read32(m, 0x8009954C) + 8));
+                a1 = sh(h(rrj_host_context(), rrj_read32(0x8009954C) + 8));
                 break;
             case 47:
                 fn = 0x80070DD4;
@@ -136,34 +138,34 @@ uint32_t sub_F_8006FAC8(RRJMemory *m, uint32_t menu, uint32_t entry, RRJModeLabe
         {
             if (!special)
             {
-                RRJ_WIP(m, fn, "callee", "info_panel", "skip_panel_return_one", ((const uint32_t[]){a0, a1, a2}), 3);
+                RRJ_WIP(rrj_host_context(), fn, "callee", "info_panel", "skip_panel_return_one", ((const uint32_t[]){a0, a1, a2}), 3);
                 return 1;
             }
-            special(m, fn, a0, a1, a2);
+            special(rrj_host_context(), fn, a0, a1, a2);
             return 1;
         }
-        if (!h(m, 0x8009C5EC))
+        if (!h(rrj_host_context(), 0x8009C5EC))
             return 1;
-        font = rrj_read32(m, 0x8009C5B8);
+        font = rrj_read32(0x8009C5B8);
         w_u8(0x800D8078 + 24 * font + 3, 0);
-        font = rrj_read32(m, 0x8009C5B8);
-        color = rrj_read32(m, rect + 12);
-        id = sh(h(m, 0x8009C5EC));
-        mode = h(m, rect + 10);
+        font = rrj_read32(0x8009C5B8);
+        color = rrj_read32(rect + 12);
+        id = sh(h(rrj_host_context(), 0x8009C5EC));
+        mode = h(rrj_host_context(), rect + 10);
     }
     else
     {
-        desc = sub_F_80063C7C(m, selector, label);
+        desc = sub_F_80063C7C(selector, label);
         if (!desc)
             return 1;
-        font = rrj_read32(m, 0x8009C5B8);
+        font = rrj_read32(0x8009C5B8);
         w_u8(0x800D8078 + 24 * font + 3, 0);
-        font = rrj_read32(m, 0x8009C5B8);
-        id = sh(h(m, desc));
-        color = rrj_read32(m, desc + 4);
-        mode = sb(b(m, desc + 2));
+        font = rrj_read32(0x8009C5B8);
+        id = sh(h(rrj_host_context(), desc));
+        color = rrj_read32(desc + 4);
+        mode = sb(b(rrj_host_context(), desc + 2));
     }
-    link = rrj_read32(m, 0x8009CFC8) + 4 * sb(b(m, 0x8009C5E1)) + 4;
-    (void)sub_8002CB08(m, font, id, rect, link, color, mode, rrj_blink_text);
+    link = rrj_read32(0x8009CFC8) + 4 * sb(b(rrj_host_context(), 0x8009C5E1)) + 4;
+    (void)sub_8002CB08(font, id, rect, link, color, mode, rrj_blink_text);
     return 1;
 }

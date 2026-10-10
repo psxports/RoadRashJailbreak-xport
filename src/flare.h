@@ -7,13 +7,13 @@
  * Unlike NFS4's otz index, RRJ receives a pointer to a link/OT slot.
  * xy: 2 little-endian halfwords; color: 4 bytes; quad: 4 packed xy words.
  */
-uint32_t sub_8002AF9C(RRJMemory *, const void *quad, const void *color, void *link);
-uint32_t sub_8002B080(RRJMemory *, const void *quad, const void *color, void *link);
-uint32_t sub_8002B164(RRJMemory *, const void *quad, const void *color, void *link);
-uint32_t sub_8002B258(RRJMemory *, const void *quad, const void *color, uint32_t type, void *link);
-uint32_t sub_8002B3FC(RRJMemory *, const void *xy, const void *color, uint32_t width, uint32_t height, uint8_t type, void *link);
-uint32_t sub_8002B4A0(RRJMemory *, const void *xy, const void *color, uint32_t width, uint32_t height, void *link);
-uint32_t sub_8002B5B4(RRJMemory *, const void *xy, const void *color, uint32_t width, uint32_t height, void *link);
-uint32_t sub_8002B68C(RRJMemory *, const void *xy, const void *color, uint32_t width, uint32_t height, void *link);
-uint32_t sub_8002B878(RRJMemory *, const void *xy, const void *color, void *link);
+uint32_t sub_8002AF9C(const void *quad, const void *color, void *link);
+uint32_t sub_8002B080(const void *quad, const void *color, void *link);
+uint32_t sub_8002B164(const void *quad, const void *color, void *link);
+uint32_t sub_8002B258(const void *quad, const void *color, uint32_t type, void *link);
+uint32_t sub_8002B3FC(const void *xy, const void *color, uint32_t width, uint32_t height, uint8_t type, void *link);
+uint32_t sub_8002B4A0(const void *xy, const void *color, uint32_t width, uint32_t height, void *link);
+uint32_t sub_8002B5B4(const void *xy, const void *color, uint32_t width, uint32_t height, void *link);
+uint32_t sub_8002B68C(const void *xy, const void *color, uint32_t width, uint32_t height, void *link);
+uint32_t sub_8002B878(const void *xy, const void *color, void *link);
 #endif

@@ -37,16 +37,30 @@ static sint32 rrj_mmio_write(void *user, uint32 address, uint32 width, uint32 va
     return 1;
 }
 
+static RRJMemory *active_host_context;
+
+RRJMemory *rrj_host_context(void)
+{
+    if (!active_host_context)
+    {
+        fprintf(stderr, "Unbound Road Rash host device context\n");
+        abort();
+    }
+    return active_host_context;
+}
+
 void rrj_memory_bind(RRJMemory *memory)
 {
     if (!memory)
         return;
+    active_host_context = memory;
     xport_memory_bind_bios(memory->bios, memory->bios ? 512u * 1024u : 0u);
     xport_memory_bind_mmio(0x1f801100u, sizeof(memory->root_counters), rrj_mmio_read, rrj_mmio_write, memory);
 }
 
-void *rrj_at_slow(RRJMemory *memory, uint32_t address, size_t bytes)
+void *rrj_at_slow(uint32_t address, size_t bytes)
 {
+    RRJMemory *memory = rrj_host_context();
     const uint32_t physical = address & 0x1fffffff;
     if (physical >= 0x1f800000 && physical < 0x1f800400 && bytes <= 0x1f800400 - physical)
         return xport_guest_ptr(address, bytes);

@@ -45,13 +45,24 @@
       <AdditionalDependencies>user32.lib;gdi32.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
-  <ItemGroup><ClCompile Include="..\..\game.c" /><ClCompile Include="..\..\wip.c" /><ClCompile Include="..\..\fixed_math.c" />
+  <ItemGroup><ClCompile Include="..\..\game.c"><WholeProgramOptimization>false</WholeProgramOptimization></ClCompile><ClCompile Include="..\..\wip.c" /><ClCompile Include="..\..\fixed_math.c" />
     <ClCompile Include="..\..\psx_memory.c" /><ClCompile Include="..\..\packet.c" /><ClCompile Include="..\..\flare.c" />
     <ClCompile Include="..\..\platform_smoke.c" />
+    <ClCompile Include="..\..\first2_saved.c" />
+    <ClCompile Include="..\..\first2_dependencies.c" />
+    <ClCompile Include="..\..\first2_runtime_dependencies.c" />
+    <ClCompile Include="..\..\first2_camera_dependencies.c" />
+    <ClCompile Include="..\..\first2_camera_surface.c" />
+    <ClCompile Include="..\..\first2_render_dependencies.c" />
+    <ClCompile Include="..\..\solo_resource_dependencies.c" />
+    <ClCompile Include="..\..\solo_file_dependencies.c" />
+    <ClCompile Include="..\..\solo_resource_complete.c" />
+    <ClCompile Include="..\..\..\..\xport\src\psx_press.c" />
     <ClCompile Include="..\..\..\..\xport\src\platform\win\main.c"><ObjectFileName>$(IntDir)xport_main.obj</ObjectFileName></ClCompile>
     <ClCompile Include="..\..\..\..\xport\src\psx.c"><ObjectFileName>$(IntDir)xport_psx.obj</ObjectFileName><ForcedIncludeFiles>$(ProjectDir)..\..\sdk_build_stubs.h;%(ForcedIncludeFiles)</ForcedIncludeFiles></ClCompile>
     <ClCompile Include="..\..\..\..\xport\src\psx_gpu.c"><ObjectFileName>$(IntDir)xport_psx_gpu.obj</ObjectFileName><Optimization>MaxSpeed</Optimization><BasicRuntimeChecks>Default</BasicRuntimeChecks></ClCompile>
 <ClCompile Include="..\..\..\..\xport\src\psx_spu.c"><ObjectFileName>$(IntDir)xport_psx_spu.obj</ObjectFileName><ForcedIncludeFiles>$(ProjectDir)..\..\sdk_build_stubs.h;%(ForcedIncludeFiles)</ForcedIncludeFiles></ClCompile>
+    <ClCompile Include="..\..\..\..\xport\src\psx_xa.c"><ObjectFileName>$(IntDir)xport_psx_xa.obj</ObjectFileName></ClCompile>
     <ClCompile Include="..\..\..\..\xport\src\xport_trace.c" />
 
 <ClCompile Include="..\..\gpu.c" />
@@ -79,6 +90,8 @@
     <ClCompile Include="..\..\race_leaf_batch_002.c" />
     <ClCompile Include="..\..\race_leaf_batch_003.c" />
     <ClCompile Include="..\..\race_leaf_batch_004.c" />
+    <ClCompile Include="..\..\game_main.c" />
+    <ClInclude Include="..\..\game_main.h" />
     <ClCompile Include="..\..\race_leaf_80080D1C.c" />
     <ClCompile Include="..\..\race_leaf_batch_005.c" />
     <ClCompile Include="..\..\race_leaf_batch_006.c" />
@@ -144,6 +157,12 @@
     <ClInclude Include="..\..\psx_memory.h" /><ClInclude Include="..\..\packet.h" /><ClInclude Include="..\..\flare.h" />
     <ClInclude Include="..\..\platform_smoke.h" /><ClInclude Include="..\..\..\..\xport\src\xport_trace.h" /><ClInclude Include="..\..\..\..\xport\src\psx.h" /><ClInclude Include="..\..\..\..\xport\src\psx_gpu.h" /><ClInclude Include="..\..\..\..\xport\src\psx_spu.h" />
     <ClInclude Include="..\..\gpu.h" />
+    <ClInclude Include="..\..\first2_camera_dependencies.h" />
+    <ClInclude Include="..\..\solo_resource_dependencies.h" />
+    <ClInclude Include="..\..\solo_file_dependencies.h" />
+    <ClInclude Include="..\..\solo_resource_complete.h" />
+    <ClInclude Include="..\..\first2_camera_surface.h" />
+    <ClInclude Include="..\..\first2_render_dependencies.h" />
     <ClInclude Include="..\..\menu_navigation.h" />
     <ClInclude Include="..\..\audio.h" />
     <ClInclude Include="..\..\menu_input.h" /><ClInclude Include="..\..\submenu.h" /><ClInclude Include="..\..\menu_flags.h" /><ClInclude Include="..\..\menu_reset.h" />
@@ -198,5 +217,10 @@
   <ItemDefinitionGroup Condition="'$(LockstepDebug)'=='true'">
     <ClCompile><PreprocessorDefinitions>LOCKSTEP_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions><Optimization>Disabled</Optimization><InlineFunctionExpansion>Disabled</InlineFunctionExpansion><OmitFramePointers>false</OmitFramePointers></ClCompile>
   </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\..\xport\src\psx_mdec.c" />
+    <ClInclude Include="..\..\..\..\xport\src\psx_mdec.h" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+<ItemGroup><ClCompile Include="..\..\game_link_stubs.c" /></ItemGroup>
 </Project>

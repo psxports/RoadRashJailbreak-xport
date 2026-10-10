@@ -1,9 +1,11 @@
+#include "psx.h"
 /* IDA draft reduced to ID/address switch by exact MIPS interval audit.
  * See status/menu/resource-lookup/audit.json; second original argument unused. */
 #include "resource_lookup.h"
 
 uint32_t sub_F_8007A6C0(uint32_t id, uint32_t unused)
 {
+    FUNCTION_MARKER(0x8007A6C0u, "RASHCDF.BIN");
     switch (id)
     {
         case 0x4E4E5442:

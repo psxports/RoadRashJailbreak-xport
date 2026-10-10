@@ -2,12 +2,21 @@
  * Default launch enters the translated State1 menu; probes are explicit modes.
  */
 #include "fixed_math.h"
+#include "draft_quick.h"
+#include "first2_runtime_dependencies.h"
+#include "first2_camera_dependencies.h"
+#include "first2_camera_surface.h"
+#include "first2_render_dependencies.h"
+#include "solo_resource_dependencies.h"
+#include "solo_file_dependencies.h"
+#include "solo_resource_complete.h"
 #include "flare.h"
 #include "packet.h"
 #include "platform_smoke.h"
 #include "psx.h"
 #include "psx_gpu.h"
 #include "psx_spu.h"
+#include "psx_press.h"
 #include "xport_trace.h"
 #include "menu.h"
 #include "gpu.h"
@@ -24,6 +33,11 @@
 #include "race_pause.h"
 #include "race_pause_frontier.h"
 #include "race_leaf.h"
+#include "race_bodyless_batch_002.h"
+#include "race_bodyless_batch_003.h"
+#include "race_bodyless_batch_004.h"
+#include "race_bodyless_batch_007.h"
+#include "race_bodyless_batch_008.h"
 #include "race_leaf_frontier.h"
 #include "race_leaf_batch_000.h"
 #include "race_leaf_batch_001.h"
@@ -117,15 +131,15 @@ static void probe_screen_env(RRJMemory *m, uint32_t fn, uint32_t address, uint32
     fprintf((FILE *)m->sdk_user, "%08X %08X %08X %08X %08X %08X\n", fn, address, x, y, w, h);
     if (screen_probe_mode == 1 && screen_probe_env_index == 0)
     {
-        rrj_write32(m, 0x80160008, 0x13579BDF);
-        rrj_write32(m, 0x8016000C, 0x2468ACE0);
-        rrj_write32(m, 0x8005B470, 0x80160000);
+        rrj_write32(0x80160008, 0x13579BDF);
+        rrj_write32(0x8016000C, 0x2468ACE0);
+        rrj_write32(0x8005B470, 0x80160000);
     }
     if (screen_probe_mode == 2 && screen_probe_env_index == 1)
     {
-        uint32_t context = rrj_read32(m, 0x8005B470);
-        rrj_write32(m, context + 8, 0x31415926);
-        rrj_write32(m, context + 12, 0x27182818);
+        uint32_t context = rrj_read32(0x8005B470);
+        rrj_write32(context + 8, 0x31415926);
+        rrj_write32(context + 12, 0x27182818);
     }
     ++screen_probe_env_index;
 }
@@ -139,37 +153,37 @@ static uint32_t probe_dispatch_critical(RRJMemory *, uint32_t, uint32_t, uint32_
 
 static uint32_t probe_slot_service(RRJMemory *m, uint32_t fn, const uint32_t args[6])
 {
-    if (fn == 0x80033F14 && rrj_read32(m, 0x801E07F0) == 0x47454F4D)
-        return sub_80033F14(m, args[0], args[1], args[2]);
-    if (rrj_read32(m, 0x801E07DC) == 0x534C4F54)
+    if (fn == 0x80033F14 && rrj_read32(0x801E07F0) == 0x47454F4D)
+        return sub_80033F14(args[0], args[1], args[2]);
+    if (rrj_read32(0x801E07DC) == 0x534C4F54)
     {
         if (fn == 0x800324CC)
-            return sub_800324CC(m, args[0], args[1], args[2]);
+            return sub_800324CC(args[0], args[1], args[2]);
         if (fn == 0x800335B4)
-            return sub_800335B4(m, args[0], args[1], args[2]);
+            return sub_800335B4(args[0], args[1], args[2]);
         if (fn == 0x80033B50)
-            return sub_80033B50(m, args[0], args[1], args[2], args[3], probe_slot_service);
-        if (rrj_read32(m, 0x801E07EC) == 0x55504C44)
+            return sub_80033B50(args[0], args[1], args[2], args[3], probe_slot_service);
+        if (rrj_read32(0x801E07EC) == 0x55504C44)
         {
             if (fn == 0x8002227C)
-                return sub_8002227C(m, args[0], args[1], args[2], args[3], args[4], record_image);
+                return sub_8002227C(args[0], args[1], args[2], args[3], args[4], record_image);
             if (fn == 0x80031008)
-                return sub_80031008(m, args[0], probe_dispatch_critical);
+                return sub_80031008(args[0], probe_dispatch_critical);
             if (fn == 0x800333F4)
-                return sub_800333F4(m, args[0], args[1], probe_slot_service);
+                return sub_800333F4(args[0], args[1], probe_slot_service);
         }
         if (fn == 0x8002227C || fn == 0x80031008)
         {
-            uint32_t mode = rrj_read32(m, 0x801E07E0), slot = 0x800D9268 + 48 * rrj_read32(m, 0x801E07E8);
+            uint32_t mode = rrj_read32(0x801E07E0), slot = 0x800D9268 + 48 * rrj_read32(0x801E07E8);
             if (fn == 0x8002227C && mode == 1)
-                rrj_write32(m, slot + 8, 0x89ABCDEF);
+                rrj_write32(slot + 8, 0x89ABCDEF);
             if (fn == 0x8002227C && mode == 2)
             {
-                rrj_write32(m, slot + 12, 0x801E0C1C);
-                rrj_write32(m, slot + 16, 0x801E0C20);
+                rrj_write32(slot + 12, 0x801E0C1C);
+                rrj_write32(slot + 16, 0x801E0C20);
             }
             if (fn == 0x80031008 && mode == 2)
-                rrj_write32(m, slot + 16, 0x801E0C80);
+                rrj_write32(slot + 16, 0x801E0C80);
         }
     }
     unsigned i;
@@ -181,23 +195,23 @@ static uint32_t probe_slot_service(RRJMemory *m, uint32_t fn, const uint32_t arg
     fputc('\n', (FILE *)m->sdk_user);
     if (fn == 0x800324CC)
     {
-        uint32_t mode = rrj_read32(m, 0x801E07D8);
+        uint32_t mode = rrj_read32(0x801E07D8);
         if (mode == 1)
         {
-            rrj_write32(m, args[0] + 12, 1);
-            rrj_write32(m, args[0] + 16, 2);
+            rrj_write32(args[0] + 12, 1);
+            rrj_write32(args[0] + 16, 2);
         }
         if (mode == 2)
         {
-            rrj_write32(m, args[0] + 12, 0);
-            rrj_write32(m, args[0] + 16, 0);
+            rrj_write32(args[0] + 12, 0);
+            rrj_write32(args[0] + 16, 0);
         }
     }
     if (fn == 0x800335B4)
     {
         if (slot_find_count >= 2)
             abort();
-        return rrj_read32(m, 0x801E07D0 + 4 * slot_find_count++);
+        return rrj_read32(0x801E07D0 + 4 * slot_find_count++);
     }
     return 0;
 }
@@ -207,23 +221,23 @@ static uint32_t object_dispatch_args[4];
 static uint32_t probe_object_dispatch(RRJMemory *m, uint32_t fn, const uint32_t args[6])
 {
     if (object_dispatch_composed >= 6 && fn == 0x8003CEC4)
-        return sub_8003CEC4(m, args[0], args[1], args[2], probe_reverb);
+        return sub_8003CEC4(args[0], args[1], args[2], probe_reverb);
     if (object_dispatch_composed >= 5 && fn == 0x8003CEC4)
         return rrj_probe_segment_load(m, args[0], args[1], args[2], probe_pad_sdk);
     if (object_dispatch_composed >= 4 && fn == 0x80023960)
-        return sub_80023960(m, args[0], args[1]);
+        return sub_80023960(args[0], args[1]);
     if (object_dispatch_composed >= 4 && fn == 0x800136BC)
-        return sub_800136BC(m, args[0], args[1], args[2]);
+        return sub_800136BC(args[0], args[1], args[2]);
     if (object_dispatch_composed >= 3 && fn == 0x80032A20)
-        return sub_80032A20(m, args);
+        return sub_80032A20(args);
     if (object_dispatch_composed >= 2 && fn == 0x80031E1C)
-        return sub_80031E1C(m, args[0], args[1], args[2]);
+        return sub_80031E1C(args[0], args[1], args[2]);
     if (object_dispatch_composed)
     {
         if (fn == 0x80032C6C)
-            return sub_80032C6C(m, args, probe_slot_service);
+            return sub_80032C6C(args, probe_slot_service);
         if (fn == 0x80032CC8)
-            return sub_80032CC8(m, args, probe_slot_service);
+            return sub_80032CC8(args, probe_slot_service);
     }
     unsigned i;
     if (!m->sdk_user)
@@ -235,9 +249,9 @@ static uint32_t probe_object_dispatch(RRJMemory *m, uint32_t fn, const uint32_t 
     if (fn != 0x80031E1C && fn != 0x80023960)
     {
         if (object_dispatch_args[3] == 1)
-            rrj_write32(m, object_dispatch_args[0], 0);
+            rrj_write32(object_dispatch_args[0], 0);
         if (object_dispatch_args[3] == 2)
-            rrj_write32(m, object_dispatch_args[0] + 20, 0x801E0180);
+            rrj_write32(object_dispatch_args[0] + 20, 0x801E0180);
     }
     return object_dispatch_args[2];
 }
@@ -260,9 +274,9 @@ static uint32_t probe_object_cleanup(RRJMemory *m, uint32_t fn, uint32_t a0, uin
     if (fn == 0x80043DA4)
     {
         if (cleanup_mode == 1)
-            rrj_write32(m, 0x800541D0, 1);
+            rrj_write32(0x800541D0, 1);
         if (cleanup_mode == 2)
-            rrj_write32(m, 0x8005ACBC, 0x801E0080);
+            rrj_write32(0x8005ACBC, 0x801E0080);
     }
     return cleanup_reply;
 }
@@ -273,24 +287,24 @@ static uint32_t probe_object_queue(RRJMemory *m, uint32_t fn, uint32_t a0, uint3
 {
     uint32_t result = 0;
     if (queue_composed >= 3 && fn == 0x800313EC)
-        return sub_800313EC(m, a0, probe_object_queue);
+        return sub_800313EC(a0, probe_object_queue);
     if (queue_composed >= 2)
     {
         if (fn == 0x80031B4C)
-            return sub_80031B4C(m, a0);
+            return sub_80031B4C(a0);
         if (fn == 0x800319F8)
-            return sub_800319F8(m, a0, a1);
+            return sub_800319F8(a0, a1);
     }
     if (queue_composed)
     {
         if (fn == 0x80031D70)
-            return sub_80031D70(m, probe_object_queue);
+            return sub_80031D70(probe_object_queue);
         if (fn == 0x80031BF8)
-            return sub_80031BF8(m, a0, a1);
+            return sub_80031BF8(a0, a1);
         if (fn == 0x800320CC)
-            return sub_800320CC(m, a0);
+            return sub_800320CC(a0);
         if (fn == 0x800320AC)
-            return sub_800320AC(m);
+            return sub_800320AC();
     }
     if (!m->sdk_user)
         abort();
@@ -301,20 +315,20 @@ static uint32_t probe_object_queue(RRJMemory *m, uint32_t fn, uint32_t a0, uint3
             result = 0x801E1000 + 64 * queue_index++;
     }
     if (fn == 0x80031BF8)
-        result = rrj_read32(m, a0 + 12);
+        result = rrj_read32(a0 + 12);
     if (fn == 0x800313EC && queue_args[1] == 1)
     {
-        rrj_write32(m, a0 + 32, 0x87654321);
-        rrj_write32(m, rrj_read32(m, a0 + 20) + 28, 0xDEADBEEF);
+        rrj_write32(a0 + 32, 0x87654321);
+        rrj_write32(rrj_read32(a0 + 20) + 28, 0xDEADBEEF);
     }
     if (fn == 0x80031604 && queue_args[1] == 2)
-        rrj_write32(m, rrj_read32(m, 0x8005ACBC) + 0xA58, 0);
+        rrj_write32(rrj_read32(0x8005ACBC) + 0xA58, 0);
     if (fn == 0x80031604 && queue_args[1] == 3)
-        rrj_write32(m, 0x8005ACBC, 0x801E0100);
+        rrj_write32(0x8005ACBC, 0x801E0100);
     if (fn == 0x800320CC && queue_args[1] == 4)
-        rrj_write32(m, 0x8005AED8, 1);
+        rrj_write32(0x8005AED8, 1);
     if (fn == 0x800320CC && queue_args[1] == 5)
-        rrj_write32(m, 0x8005AED8, 0);
+        rrj_write32(0x8005AED8, 0);
     if (fn == 0x800320AC)
         result = queue_args[2];
     return result;
@@ -330,11 +344,11 @@ static uint32_t probe_player_update(RRJMemory *m, uint32_t fn, uint32_t a0, uint
     if (fn == 0x800312D0)
     {
         if (player_update_args[1] == 1)
-            rrj_write32(m, rrj_read32(m, 0x8005B2F8) + 48, 1);
+            rrj_write32(rrj_read32(0x8005B2F8) + 48, 1);
         if (player_update_args[1] == 2)
-            rrj_write32(m, rrj_read32(m, 0x8005B2F8) + 48, 3);
+            rrj_write32(rrj_read32(0x8005B2F8) + 48, 3);
         if (player_update_args[1] == 3)
-            rrj_write32(m, 0x8005AE34, 0x801E0080);
+            rrj_write32(0x8005AE34, 0x801E0080);
     }
     return player_update_args[0];
 }
@@ -342,8 +356,9 @@ static uint32_t probe_player_update(RRJMemory *m, uint32_t fn, uint32_t a0, uint
 static uint32_t race_pause_replies[2];
 static uint32_t race_check_replies[4], race_check_index;
 
-static uint32_t probe_race_player_check(RRJMemory *m, uint32_t player)
+static uint32_t probe_race_player_check(uint32_t player)
 {
+    RRJMemory *m = rrj_host_context();
     if (!m->sdk_user || race_check_index >= 4)
         abort();
     fprintf((FILE *)m->sdk_user, "8008B99C %08X 00000000 00000000\n", player);
@@ -370,9 +385,9 @@ static uint32_t probe_race_frame(RRJMemory *m, uint32_t fn, const uint32_t args[
         fprintf((FILE *)m->sdk_user, " %08X", args[i]);
     fputc('\n', (FILE *)m->sdk_user);
     if (race_frame_args[1] == 1 && fn == 0x80018C1C)
-        w_u8(rrj_read32(m, 0x8005B2F8) + 1, (uint8_t)race_frame_args[2]);
+        w_u8(rrj_read32(0x8005B2F8) + 1, (uint8_t)race_frame_args[2]);
     if (race_frame_args[1] == 2 && fn == 0x800C8CD4)
-        rrj_write32(m, rrj_read32(m, 0x8005B2F8) + 48, 1);
+        rrj_write32(rrj_read32(0x8005B2F8) + 48, 1);
     return race_frame_args[0];
 }
 
@@ -386,12 +401,12 @@ static uint32_t probe_race_service(RRJMemory *m, uint32_t fn, uint32_t a, uint32
     if (race_service_args[0] == 1)
     {
         if (fn == 0x8009C308)
-            rrj_write32(m, 0x8005B318, race_service_args[2]);
+            rrj_write32(0x8005B318, race_service_args[2]);
         if (fn == 0x800A2898 || fn == 0x800A2A64)
-            rrj_write32(m, 0x8005B254, race_service_args[2]);
+            rrj_write32(0x8005B254, race_service_args[2]);
     }
     if (race_service_args[0] == 2 && fn == 0x8009B474 && a == 0)
-        rrj_write32(m, 0x8005B318, race_service_args[2]);
+        rrj_write32(0x8005B318, race_service_args[2]);
     return race_service_args[1];
 }
 
@@ -413,13 +428,13 @@ static uint32_t probe_race_global(RRJMemory *m, uint32_t fn, uint32_t a)
         switch (fn)
         {
             case 0x8008AD38:
-                return sub_G_8008AD38(m, a, probe_race_global);
+                return sub_G_8008AD38(a, probe_race_global);
             case 0x8008CD88:
-                return sub_G_8008CD88(m, a, probe_race_composed_service);
+                return sub_G_8008CD88(a, probe_race_composed_service);
             case 0x8008AC80:
-                return sub_G_8008AC80(m, a, probe_race_composed_service);
+                return sub_G_8008AC80(a, probe_race_composed_service);
             case 0x8008ACE8:
-                return sub_G_8008ACE8(m, a, probe_race_composed_service);
+                return sub_G_8008ACE8(a, probe_race_composed_service);
             default:
                 return probe_race_composed_service(m, fn, a, 0);
         }
@@ -493,8 +508,9 @@ static uint32_t probe_video_open(RRJMemory *m, uint32_t format, uint32_t name)
 
 static uint32_t vblank_replies[2];
 
-static uint32_t probe_attract_sound(RRJMemory *m, uint32_t event)
+static uint32_t probe_attract_sound(uint32_t event)
 {
+    RRJMemory *m = rrj_host_context();
     if (!m->sdk_user)
         abort();
     fprintf((FILE *)m->sdk_user, "8007EAC0 %08X 00000000\n", event);
@@ -517,7 +533,7 @@ static void probe_loop(RRJMemory *m, uint32_t fn, uint32_t a0, uint32_t a1)
         abort();
     fprintf((FILE *)m->sdk_user, "%08X %08X %08X\n", fn, a0, a1);
     if (fn == 0x800803FC && --probe_loop_remaining == 0)
-        w_u8(rrj_read32(m, 0x8005B2F8), 3);
+        w_u8(rrj_read32(0x8005B2F8), 3);
 }
 
 static uint32_t probe_vblank(RRJMemory *m, uint32_t fn, uint32_t arg)
@@ -555,16 +571,16 @@ static uint32_t record_image(RRJMemory *memory, const uint8_t rect[8], uint32_t 
 static uint32_t item_resource(RRJMemory *memory, uint32_t function, uint32_t descriptor, uint32_t id)
 {
     if (function == 0x8007A400)
-        return sub_F_8007A400(memory, descriptor, id, memory->sdk_user ? record_image : rrj_gpu_upload);
+        return sub_F_8007A400(descriptor, id, memory->sdk_user ? record_image : rrj_gpu_upload);
     RRJ_WIP3(memory, function, "menu_resource", descriptor, id, 0);
     return 0;
 }
 
 /* Explicit unit-test interception of the GAME sound callee. Log the selected
  * halfword before the caller's store; do not install this in live gameplay. */
-static uint32_t probe_navigation_sound(RRJMemory *memory, uint32_t event)
+static uint32_t probe_navigation_sound(uint32_t event)
 {
-    rrj_sdk_call(memory, 0x8007EAC0, event, rrj_u16(rrj_at(memory, 0x801E0004, 2)));
+    rrj_sdk_call(rrj_host_context(), 0x8007EAC0, event, rrj_u16(rrj_at(0x801E0004, 2)));
     return 0x12345678;
 }
 
@@ -623,26 +639,11 @@ static int read_checkpoint_gte(FILE *stream, uint32_t size, uint32_t registers[6
 
 static void restore_checkpoint_gte(const uint32 registers[64])
 {
-    const uint32 *control = registers + 32;
-    MATRIX matrix;
-
-    memset(&matrix, 0, sizeof(matrix));
-    matrix.m[0][0] = (sint16)control[0];
-    matrix.m[0][1] = (sint16)(control[0] >> 16);
-    matrix.m[0][2] = (sint16)control[1];
-    matrix.m[1][0] = (sint16)(control[1] >> 16);
-    matrix.m[1][1] = (sint16)control[2];
-    matrix.m[1][2] = (sint16)(control[2] >> 16);
-    matrix.m[2][0] = (sint16)control[3];
-    matrix.m[2][1] = (sint16)(control[3] >> 16);
-    matrix.m[2][2] = (sint16)control[4];
-    matrix.t[0] = (sint32)control[5];
-    matrix.t[1] = (sint32)control[6];
-    matrix.t[2] = (sint32)control[7];
-    SetRotMatrix(&matrix);
-    SetTransMatrix(&matrix);
-    SetGeomOffset((sint32)control[24], (sint32)control[25]);
-    gte_write_h((uint16)control[26]);
+    if (!psx_gte_import_control_registers(registers + 32))
+    {
+        fprintf(stderr, "Cannot restore checkpoint GTE control registers\n");
+        abort();
+    }
 }
 
 static int read_file(const char *path, void *data, size_t size);
@@ -682,6 +683,102 @@ static int load_race_checkpoint(RRJMemory *m, const char *path, uint32_t *ordina
 }
 
 static uint32_t trace_race_call(RRJMemory *m, uint32_t target, const uint32_t args[8]);
+static uint32_t live_spu_pending_callback;
+
+static void live_spu_restore(RRJMemory *m)
+{
+    SpuHeapBinding heap = {0};
+    SpuNativeTransferGuestBinding transfer = {0};
+    uint32_t count = rrj_read32(0x8005A47Cu);
+    uint32_t shift = rrj_read32(0x8005A444u) & 31u;
+
+    if (count >= 0x40000u)
+    {
+        fputs("Native SPU heap capacity exceeds guest RAM\n", stderr);
+        abort();
+    }
+    heap.entries = (uint32_t *)rrj_at(rrj_read32(0x8005A484u), (count + 1u) * 8u);
+    heap.last_index = (uint32_t *)rrj_at(0x8005A480u, 4);
+    heap.capacity = count + 1u;
+    heap.limit = count;
+    heap.address_shift = shift;
+    heap.alignment_mask = rrj_read32(0x8005A44Cu);
+    heap.reserved_bytes = rrj_read32(0x8005A3B4u) ? (0x10000u - rrj_read32(0x8005A3B8u)) << shift : 0u;
+    transfer.requested_mode = 0x8005A3ACu;
+    transfer.normalized_mode = 0x8005A438u;
+    transfer.address_units = 0x8005A434u;
+    transfer.completion = 0x8005A450u;
+    transfer.completion_callback = 0x8005A454u;
+    transfer.source_address = 0x8005A470u;
+    transfer.dma_blocks = 0x8005A474u;
+    transfer.address_shift = shift;
+    if (!spu_bind_heap(&heap) || !spu_bind_native_transfer_guest(&transfer))
+    {
+        fputs("Native SPU saved heap/transfer binding failed\n", stderr);
+        abort();
+    }
+    live_spu_pending_callback = 0;
+}
+
+static void live_spu_poll(RRJMemory *m)
+{
+    uint32_t callback = live_spu_pending_callback;
+    uint32_t args[8] = {0xF0000000u, 0, 0, 0, 0, 0, 0, 0};
+
+    if (!callback)
+        return;
+    if (spu_transfer_failed())
+    {
+        fputs("Native SPU transfer completion failed\n", stderr);
+        abort();
+    }
+    if (!SpuIsTransferCompleted(0))
+        return;
+    live_spu_pending_callback = 0;
+    (void)trace_race_call(m, callback, args);
+}
+
+static uint32_t trace_race_mutable_call(RRJMemory *m, uint32_t target, uint32_t args[8])
+{
+    return trace_race_call(m, target, args);
+}
+
+uint32_t rrj_draft_call(RRJMemory *m, uint32_t target, const uint32_t *args, uint32_t count)
+{
+    uint32_t wide[8] = {0};
+    uint32_t i;
+    if (count > 8 || (count && !args))
+    {
+        fprintf(stderr, "Missing draft ABI: target=%08X argc=%u\n", target, count);
+        abort();
+    }
+    for (i = 0; i < count; ++i)
+        wide[i] = args[i];
+    return trace_race_call(m, target, wide);
+}
+
+uint64_t rrj_draft_call64(RRJMemory *m, uint32_t target, const uint32_t *args, uint32_t count)
+{
+    if (args && target == 0x8001FC90u && count == 2)
+        return (uint64_t)sub_8001FC90((int32_t)args[0], (int32_t)args[1]);
+    if (args && target == 0x8002EB78u && count == 5)
+        return sub_8002EB78(args[0], args[1], args[2], args[3], args[4]);
+    fprintf(stderr, "Missing draft 64-bit ABI: target=%08X argc=%u\n", target, count);
+    abort();
+}
+
+uint32_t rrj_draft_local_alloc(RRJMemory *m, uint32_t bytes)
+{
+    /* TODO Bind addressable native locals without reserving live guest memory */
+    fprintf(stderr, "Missing draft local storage: bytes=%u\n", bytes);
+    abort();
+}
+
+void rrj_draft_local_free(RRJMemory *m, uint32_t address)
+{
+    fprintf(stderr, "Missing draft local storage release: address=%08X\n", address);
+    abort();
+}
 
 static uint32_t trace_object_dispatch_call(RRJMemory *m, uint32_t target, const uint32_t args[6])
 {
@@ -720,7 +817,7 @@ static uint32_t trace_race_global_call(RRJMemory *m, uint32_t target, uint32_t a
 
 static uint32_t trace_race_poll(RRJMemory *m)
 {
-    return sub_8001B700(m, trace_race_global_call);
+    return sub_8001B700(trace_race_global_call);
 }
 
 static uint32_t trace_race_service_call(RRJMemory *m, uint32_t target, uint32_t first, uint32_t second)
@@ -744,60 +841,223 @@ static uint32_t trace_race_player_call(RRJMemory *m, uint32_t target, uint32_t f
 static uint32_t trace_race_call(RRJMemory *m, uint32_t target, const uint32_t args[8])
 {
     rrj_trace_dispatch_target(target);
+    if (target == 0x8001A0C0u)
+        return sub_8001A0C0(args[0], args[1], args[2], trace_race_mutable_call);
+    if (target == 0x8001EE28u)
+        return sub_8001EE28(args[0], trace_race_call);
+    if (target == 0x8001A2E4u)
+        return sub_8001A2E4(args[0]);
+    if (target == 0x800138E8u)
+        return sub_800138E8(args[0], args[1]);
+    if (target == 0x800136BCu)
+        return sub_800136BC(args[0], args[1], args[2]);
+    if (target == 0x800319F8u)
+        return sub_800319F8(args[0], args[1]);
+    if (target == 0x8002227Cu)
+        return sub_8002227C(args[0], args[1], args[2], args[3], args[4], rrj_gpu_upload);
+    if (target == 0x80031008u)
+        return sub_80031008(args[0], trace_race_player_call);
+    if (target == 0x800333F4u)
+        return sub_800333F4(args[0], args[1], trace_object_dispatch_call);
+    if (target == 0x80033F14u)
+        return sub_80033F14(args[0], args[1], args[2]);
+    if (target == 0x8001ED28u)
+        return sub_8001ED28(args[0], args[1], args[2], args[3], args[4], args[5], trace_race_call);
+    if (target == 0x8001E938u)
+        return sub_8001E938(args[0], args[1], args[2], args[3], args[4], trace_race_call);
+    if (target == 0x8001EAA4u)
+        return sub_8001EAA4(args[0], args[1]);
+    if (target == 0x8001E328u)
+        return sub_8001E328(trace_race_call);
+    if (target == 0x8001E418u)
+        return sub_8001E418(args[0], trace_race_call);
+    if (target == 0x80016464u)
+        return sub_80016464(args[0], trace_race_call);
+    if (target == 0x80030FA0u)
+    {
+        uint32_t values[8];
+        memcpy(values, args, sizeof(values));
+        return sub_80030FA0(values, trace_race_mutable_call);
+    }
+    if (target == 0x80030FD0u)
+        return sub_80030FD0(args[0], trace_race_call);
+    if (target == 0x8004F3C8u && rrj_trace_runtime_is_live())
+    {
+        int32_t result = SpuMalloc((int32_t)args[0]);
+        if (spu_heap_failed())
+        {
+            fputs("Native SpuMalloc saved heap service failed\n", stderr);
+            abort();
+        }
+        return (uint32_t)result;
+    }
+    if (target == 0x80050F88u && rrj_trace_runtime_is_live())
+    {
+        uint32_t result = SpuSetTransferStartAddr(args[0]);
+        if (spu_transfer_failed())
+        {
+            fputs("Native SpuSetTransferStartAddr service failed\n", stderr);
+            abort();
+        }
+        return result;
+    }
+    if (target == 0x80050F28u && rrj_trace_runtime_is_live())
+    {
+        uint32_t bytes = args[1] > 0x7EFF0u ? 0x7EFF0u : args[1];
+        uint32_t span = rrj_read32(0x8005A438u) == 1u ? (bytes + 1u) & ~1u : (bytes + 63u) & ~63u;
+        uint32_t callback = rrj_read32(0x8005A454u);
+        uint32_t result = SpuWrite(rrj_at(args[0], span ? span : 1u), bytes);
+        if (spu_transfer_failed() || live_spu_pending_callback)
+        {
+            fputs("Native SpuWrite transfer failed or completion still pending\n", stderr);
+            abort();
+        }
+        if (!callback)
+        {
+            fputs("Missing native SPU BIOS completion event F0000009/20\n", stderr);
+            abort();
+        }
+        live_spu_pending_callback = callback;
+        return result;
+    }
+    if (target == 0x80050EC8u && rrj_trace_runtime_is_live())
+    {
+        fputs("Missing native SpuRead SDK adapter\n", stderr);
+        abort();
+    }
+    if (target == 0x800C2218u)
+        return first2_800C2218(args[0], args[1], (int32_t)args[2]);
+    if (target == 0x8003D844u)
+        return rrj_draft_8003D844(args[0], args[1]);
+    if (target == 0x80032938u)
+        return rrj_draft_80032938(args[0], args[1]);
+    if (target == 0x80038550u)
+        return rrj_draft_80038550(args[0], args[1], args[2], args[3], args[4]);
+    if (target == 0x8003CB6Cu)
+        return rrj_draft_8003CB6C(args[0], args[1]);
+    if (target == 0x80017CF0u)
+        return rrj_draft_80017CF0(args[0], args[1], args[2], args[3]);
+    if (target == 0x80017B6Cu)
+        return rrj_draft_80017B6C(args[0], args[1], args[2], args[3]);
+    if (target == 0x8003E338u)
+        return rrj_draft_8003E338(args[0]);
+    if (target == 0x8002DF14u)
+        return rrj_draft_8002DF14(args[0]);
+    if (target == 0x8002E010u)
+        return rrj_draft_8002E010(args[0]);
+    if (target == 0x8002DFC0u)
+        return rrj_draft_8002DFC0(args[0], args[1]);
+    if (target == 0x8001C298u)
+        return rrj_draft_8001C298();
+    if (target == 0x8001BBC0u)
+        return rrj_draft_8001BBC0();
+    if (target == 0x800245B4u)
+    {
+        fprintf(stderr, "Missing incoming-result carrier for 800245B4\n");
+        abort();
+    }
+    if (target == 0x8003D39Cu)
+        return rrj_draft_8003D39C(args[0], args[1]);
+    if (target == 0x80039A08u)
+        return sub_80039A08(args[0]);
+    if (target == 0x8003CFCCu)
+        return sub_8003CFCC(args[0], args[1]);
+    if (target == 0x80039F68u)
+        return sub_80039F68(args[0]);
+    if (target == 0x8008C000u)
+        return sub_8008C000(args[0], args[1]);
+    if (target == 0x80034D38u)
+        return (uint32_t)sub_80034D38((int32_t)args[0], args[1], args[2]);
+    if (target == 0x800144B8u)
+        return sub_800144B8(args[0]);
+    if (target == 0x800394F0u)
+        return sub_800394F0(rrj_at(args[0], 32), args[1]);
+    if (target == 0x8001E0B4u)
+        return sub_8001E0B4(args[0], args[1], args[2]);
+    if (target == 0x80037A30u)
+        return sub_80037A30(args[0], rrj_at(args[1], 32), rrj_at(args[2], 96), rrj_at(args[3], 12), args[4]);
+    if (target == 0x8001FEB4u)
+        return sub_8001FEB4((int32_t)args[0]);
+    if (target == 0x8001FC90u)
+        return (uint32_t)sub_8001FC90((int32_t)args[0], (int32_t)args[1]);
+    if (target == 0x80010028u)
+        return sub_80010028(args[0], args[1]);
+    if (target == 0x8002E468u)
+        return sub_8002E468(args[0]);
+    if (target == 0x80017BA0u)
+        return sub_80017BA0((int32_t)args[0], (int32_t)args[1], args[2], args[3]);
+    if (target == 0x80039AFCu)
+        return sub_80039AFC(args[0]);
+    if (target == 0x8003EB58u)
+        return sub_8003EB58(args[0], args[1], args[2], args[3], args[4]);
+    if (target == 0x8004CF74u)
+        return sub_8004CF74(args[0]);
+    if (target == 0x8001408Cu)
+        return sub_8001408C(args[0], args[1], args[2], trace_race_call);
+    if (target == 0x80048A6Cu)
+    {
+        PSX_RECT *rectangle = (PSX_RECT *)rrj_at(args[0], sizeof(PSX_RECT));
+        size_t bytes = rectangle->w > 0 && rectangle->h > 0 ? (size_t)rectangle->w * (size_t)rectangle->h * 2u : 1u;
+        return (uint32_t)LoadImagePSX(rectangle, (uint32 *)rrj_at(args[1], bytes));
+    }
     if (target == 0x800150EC)
-        return sub_800150EC(m, trace_race_call);
+        return sub_800150EC(trace_race_call);
     if (target == 0x80022EEC)
-        return sub_80022EEC(m, trace_race_call);
+        return sub_80022EEC(trace_race_call);
     if (target == 0x800315E8)
-        return sub_800315E8(m, args[0]);
+        return sub_800315E8(args[0]);
     if (target == 0x80031540)
-        return sub_80031540(m, args[0]);
+        return sub_80031540(args[0]);
     if (target == 0x80031CD4)
-        return sub_80031CD4(m, args[0], trace_race_call);
+        return sub_80031CD4(args[0], trace_race_call);
     if (target == 0x80030894)
-        return sub_80030894(m, args[0], args[1], args[2], trace_race_call);
+        return sub_80030894(args[0], args[1], args[2], trace_race_call);
     if (target == 0x80090270)
-        return sub_80090270(m);
+        return sub_80090270();
     if (target == 0x80031604)
-        return sub_80031604(m, args[0], args[1], trace_object_dispatch_call, trace_race_player_call);
+        return sub_80031604(args[0], args[1], trace_object_dispatch_call, trace_race_player_call);
     if (target == 0x80031BF8)
-        return sub_80031BF8(m, args[0], args[1]);
+        return sub_80031BF8(args[0], args[1]);
     if (target == 0x80031B4C)
-        return sub_80031B4C(m, args[0]);
+        return sub_80031B4C(args[0]);
     if (target == 0x80031E1C)
-        return sub_80031E1C(m, args[0], args[1], args[2]);
+        return sub_80031E1C(args[0], args[1], args[2]);
     if (target == 0x80032A20)
-        return sub_80032A20(m, args);
+        return sub_80032A20(args);
     if (target == 0x80032C6C)
-        return sub_80032C6C(m, args, trace_object_dispatch_call);
+        return sub_80032C6C(args, trace_object_dispatch_call);
+    if (target == 0x80032CC8u)
+        return sub_80032CC8(args, trace_object_dispatch_call);
+    if (target == 0x8003CEC4u)
+        return sub_8003CEC4(args[0], args[1], args[2], rrj_spu_reverb);
     if (target == 0x800324CC)
-        return sub_800324CC(m, args[0], args[1], args[2]);
+        return sub_800324CC(args[0], args[1], args[2]);
     if (target == 0x800335B4)
-        return sub_800335B4(m, args[0], args[1], args[2]);
+        return sub_800335B4(args[0], args[1], args[2]);
     if (target == 0x80023960)
-        return sub_80023960(m, args[0], args[1]);
+        return sub_80023960(args[0], args[1]);
     if (target == 0x800151EC)
-        return sub_800151EC(m);
+        return sub_800151EC();
     if (target == 0x8009C308)
-        return sub_8009C308(m, trace_race_call);
+        return sub_8009C308(trace_race_call);
     if (target == 0x800B8018)
-        return sub_800B8018(m, args[0], trace_race_global_call);
+        return sub_800B8018(args[0], trace_race_global_call);
     if (target == 0x800B8020)
-        return sub_800B8020(m, args[0], trace_race_call);
+        return sub_800B8020(args[0], trace_race_call);
     if (target == 0x8009B474)
-        return sub_8009B474(m, (int32_t)args[0], args[1], trace_race_call);
+        return sub_8009B474((int32_t)args[0], args[1], trace_race_call);
     if (target == 0x8009E89C)
-        return sub_8009E89C(m, args[0], trace_race_call);
+        return sub_8009E89C(args[0]);
     if (target == 0x8009E8A4)
-        return sub_8009E8A4(m, args[0], args[1]);
+        return sub_8009E8A4(args[0], args[1]);
     if (target == 0x8009CFF4)
-        return sub_8009CFF4(m, args[0], trace_race_call);
+        return sub_8009CFF4(args[0], trace_race_call);
     if (target == 0x800C45D8)
-        return sub_800C45D8(m, args[0], args[1]);
+        return sub_800C45D8(args[0], args[1]);
     if (target == 0x8005C418)
-        return sub_8005C418(m, args[0]);
+        return sub_8005C418(args[0]);
     if (target == 0x8005C8F4)
-        return sub_8005C8F4(m, args[0]);
+        return sub_8005C8F4(args[0]);
     if (target == 0x80044894)
         return 0;
     if (target == 0x800487C0)
@@ -806,389 +1066,407 @@ static uint32_t trace_race_call(RRJMemory *m, uint32_t target, const uint32_t ar
     {
         if (rrj_trace_runtime_is_live())
         {
-            unsigned x = rrj_u16(rrj_at(m, args[0], 2));
-            unsigned y = rrj_u16(rrj_at(m, args[0] + 2, 2));
-            unsigned w = rrj_u16(rrj_at(m, args[0] + 4, 2));
-            unsigned h = rrj_u16(rrj_at(m, args[0] + 6, 2));
-            unsigned ox = rrj_u16(rrj_at(m, args[0] + 8, 2));
-            unsigned oy = rrj_u16(rrj_at(m, args[0] + 10, 2));
-
-            live_origin_x = (int)x;
-            live_origin_y = (int)y;
-            rrj_gpu_environment(0xe3000000 | x | (y << 10), x, y);
-            rrj_gpu_environment(0xe4000000 | (x + w - 1) | ((y + h - 1) << 10), x, y);
-            rrj_gpu_environment(0xe5000000 | (ox & 2047) | ((oy & 2047) << 11), x, y);
+            DRAWENV *environment = (DRAWENV *)rrj_at(args[0], sizeof(DRAWENV));
+            live_origin_x = environment->clip.x;
+            live_origin_y = environment->clip.y;
+            PutDrawEnv(environment);
         }
         return args[0];
     }
     if (target == 0x80048FF0)
+    {
+        if (rrj_trace_runtime_is_live())
+            PutDispEnv((DISPENV *)rrj_at(args[0], sizeof(DISPENV)));
         return args[0];
+    }
     if (target == 0x80048CAC)
-        return (uint32_t)(uintptr_t)ClearOTagR((uint32 *)rrj_at(m, args[0], 4 * args[1]), (sint32)args[1]);
+    {
+        rrj_gpu_clear_ot(m, args[0], args[1]);
+        return args[0];
+    }
     if (target == 0x80075EE0)
-        return sub_80075EE0(m, (int32_t)args[0], trace_race_call, rrj_spu_reverb);
+        return sub_80075EE0((int32_t)args[0], trace_race_call, rrj_spu_reverb);
     if (target == 0x8008F068)
-        return sub_8008F068(m, (int32_t)args[0], trace_race_call);
+        return sub_8008F068((int32_t)args[0]);
     if (target == 0x800A2898)
-        return sub_800A2898(m, (int32_t)args[0], trace_race_call);
+        return sub_800A2898((int32_t)args[0], trace_race_call);
     if (target == 0x800A2A64)
-        return sub_800A2A64(m, (int32_t)args[0], trace_race_call);
+        return sub_800A2A64((int32_t)args[0], trace_race_call);
     if (target == 0x800A4774)
-        return sub_800A4774(m, (int32_t)args[0], trace_race_call);
+        return sub_800A4774((int32_t)args[0], trace_race_call);
     if (target == 0x8007B840)
-        return sub_8007B840(m, (int32_t)args[0], trace_race_call);
+        return sub_8007B840((int32_t)args[0], trace_race_call);
     if (target == 0x80079B20)
-        return sub_80079B20(m, args[0], (int32_t)args[1], trace_race_call);
+        return sub_80079B20(args[0], (int32_t)args[1], trace_race_call);
     if (target == 0x80078DB4)
-        return sub_80078DB4(m, args[0]);
+        return sub_80078DB4(args[0]);
     if (target == 0x8007AC04)
-        return sub_8007AC04(m, args[0]);
+        return sub_8007AC04(args[0]);
     if (target == 0x80095724)
-        return sub_80095724(m, args[0], args[1], trace_race_call);
+        return sub_80095724(args[0], args[1], trace_race_call);
     if (target == 0x800A8C78)
-        return sub_800A8C78(m, args[0], (int32_t)args[1], (int32_t)args[2]);
+        return sub_800A8C78(args[0], (int32_t)args[1], (int32_t)args[2]);
     if (target == 0x800A8FE8)
-        return sub_800A8FE8(m, args[0]);
+        return sub_800A8FE8(args[0]);
     if (target == 0x800B3AD0)
-        return sub_800B3AD0(m, args[0], args[1], trace_race_call);
+        return sub_800B3AD0(args[0], args[1], trace_race_call);
     if (target == 0x800B12A0)
-        return sub_800B12A0(m, args[0], args[1], args[2], (int32_t)args[3], args[4], args[5]);
+        return sub_800B12A0(args[0], args[1], args[2], (int32_t)args[3], args[4], args[5]);
     if (target == 0x800B6F40)
-        return sub_800B6F40(m, args[0], args[1], args[2], args[3], args[4]);
+        return sub_800B6F40(args[0], args[1], args[2], args[3], args[4]);
     if (target == 0x800CB304)
-        return sub_800CB304(m, (int32_t)args[0], trace_race_call);
+        return sub_800CB304((int32_t)args[0]);
     if (target == 0x800CB4F8)
-        return sub_800CB4F8(m, (int32_t)args[0], trace_race_call);
+        return sub_800CB4F8((int32_t)args[0], trace_race_call);
     if (target == 0x800CAAF0)
-        return sub_800CAAF0(m, args[0], trace_race_call);
-    if (target == 0x800CAB5C)
-        return sub_800CAB5C(m, args[0], trace_race_call);
+        return sub_800CAAF0(args[0], trace_race_call);
     if (target == 0x8005BE58)
-        return sub_8005BE58(m, args[0]);
+        return sub_8005BE58(args[0]);
     if (target == 0x800CB02C)
-        return sub_800CB02C(m, args[0]);
+        return sub_800CB02C(args[0]);
     if (target == 0x800A13C4)
-        return sub_800A13C4(m, (int32_t)args[0], trace_race_call);
+        return sub_800A13C4((int32_t)args[0], trace_race_call);
     if (target == 0x80090814)
-        return sub_80090814(m, (int32_t)args[0], trace_race_call);
+        return sub_80090814((int32_t)args[0], trace_race_call);
     if (target == 0x80090D84)
-        return sub_80090D84(m, args[0], trace_race_call, rrj_spu_reverb);
+        return sub_80090D84(args[0], trace_race_call, rrj_spu_reverb);
     if (target == 0x80091468)
-        return sub_80091468(m, args[0], trace_race_call);
+        return sub_80091468(args[0]);
     if (target == 0x800C5078)
-        return sub_800C5078(m, args[0], trace_race_call);
+        return sub_800C5078(args[0], trace_race_call);
     if (target == 0x800C47CC)
-        return sub_800C47CC(m, args[0], trace_race_call);
+        return sub_800C47CC(args[0]);
     if (target == 0x800C4860)
-        return sub_800C4860(m, args[0], trace_race_call);
+        return sub_800C4860(args[0]);
     if (target == 0x800C4B30)
-        return sub_800C4B30(m, args[0], trace_race_call);
+        return sub_800C4B30(args[0]);
     if (target == 0x800C4BA0)
-        return sub_800C4BA0(m, args[0], trace_race_call);
+        return sub_800C4BA0(args[0]);
     if (target == 0x800C4E18)
-        return sub_800C4E18(m, args[0], trace_race_call);
+        return sub_800C4E18(args[0]);
     if (target == 0x800881B4)
-        return sub_800881B4(m, args[0], (int32_t)args[1], trace_race_call);
+        return sub_800881B4(args[0], (int32_t)args[1], trace_race_call);
+    if (target == 0x80086584)
+        return sub_80086584(args[0], args[1], args[2], args[3]);
+    if (target == 0x800863EC)
+        return sub_800863EC(args[0]);
+    if (target == 0x8008AAB0)
+        return sub_8008AAB0(args[0]);
+    if (target == 0x800A8DF0)
+        return sub_800A8DF0(args[0], rrj_at(args[1], 12), args[2]);
+    if (target == 0x800657A8)
+        return sub_800657A8(trace_race_call);
+    if (target == 0x800662B4)
+        return 0;
     if (target == 0x800A421C)
-        return sub_800A421C(m, args[0], trace_race_call);
+        return sub_800A421C(args[0], trace_race_call);
     if (target == 0x800853E4)
-        return sub_800853E4(m, args[0], args[1]);
+        return sub_800853E4(args[0], args[1]);
     if (target == 0x80086E1C)
-        return sub_80086E1C(m, args[0], trace_race_call);
+        return sub_80086E1C(args[0], trace_race_call);
     if (target == 0x8003775C)
-        return sub_8003775C(m, args[0], args[1], args[2]);
+        return sub_8003775C(args[0], args[1], args[2]);
     if (target == 0x800374D4)
-        return sub_800374D4(m, args[0], args[1]);
+        return sub_800374D4(args[0], args[1]);
     if (target == 0x80088140)
-        return sub_80088140(m, args[0]);
+        return sub_80088140(args[0]);
     if (target == 0x8008CFDC)
-        return sub_8008CFDC(m, trace_race_call);
+        return sub_8008CFDC();
     if (target == 0x8008DBCC)
-        return sub_8008DBCC(m, args[0]);
+        return sub_8008DBCC(args[0]);
     if (target == 0x800667C4)
-        return sub_800667C4(m, args[0], args[1]);
+        return sub_800667C4(args[0], args[1]);
     if (target == 0x8005E1D8)
-        return sub_8005E1D8(m, args[0], trace_race_call);
+        return sub_8005E1D8(args[0]);
     if (target == 0x8005D2A8)
-        return sub_8005D2A8(m, args[0], trace_race_call);
+        return sub_8005D2A8(args[0]);
     if (target == 0x8005E5A4)
-        return sub_8005E5A4(m, args[0], args[1], trace_race_call);
+        return sub_8005E5A4(args[0], args[1]);
     if (target == 0x8005E558)
-        return sub_8005E558(m, args[0], args[1], args[2]);
+        return sub_8005E558(args[0], args[1], args[2]);
     if (target == 0x8005D63C)
-        return sub_8005D63C(m, args[0], trace_race_call);
+        return sub_8005D63C(args[0]);
     if (target == 0x80066A60)
-        return sub_80066A60(m, args[0], args[1]);
+        return sub_80066A60(args[0], args[1]);
     if (target == 0x800714FC)
-        return sub_800714FC(m, args[0], args[1], args[2]);
+        return sub_800714FC(args[0], args[1], args[2]);
     if (target == 0x8001B44C)
-        return sub_8001B44C(m, args[0], args[1], args[2], args[3]);
+        return sub_8001B44C(args[0], args[1], args[2], args[3]);
     if (target == 0x80071BCC)
-        return sub_80071BCC(m, args[0], trace_race_call, rrj_spu_reverb);
+        return sub_80071BCC(args[0], trace_race_call, rrj_spu_reverb);
     if (target == 0x8001005C)
-        return sub_8001005C(m, args[0], args[1]);
+        return sub_8001005C(args[0], args[1]);
     if (target == 0x8005CB04)
-        return sub_8005CB04(m, args[0], args[1], trace_race_call);
+        return sub_8005CB04(args[0], args[1]);
     if (target == 0x8005C58C)
-        return sub_8005C58C(m, args[0], args[1], trace_race_call);
+        return sub_8005C58C(args[0], args[1]);
     if (target == 0x8005C52C)
-        return sub_8005C52C(m, args[0]);
+        return sub_8005C52C(args[0]);
     if (target == 0x8005C4EC)
-        return sub_8005C4EC(m, args[0], args[1]);
+        return sub_8005C4EC(args[0], args[1]);
     if (target == 0x80011C4C)
-        return sub_80011C4C(m, trace_race_call);
+        return sub_80011C4C(trace_race_call);
     if (target == 0x8002305C)
-        return sub_8002305C(m, trace_race_pause_call);
+        return sub_8002305C(trace_race_pause_call);
     if (target == 0x800237B8)
-        return sub_800237B8(m, trace_race_player_call);
+        return sub_800237B8(trace_race_player_call);
     if (target == 0x80023A14)
-        return sub_80023A14(m, trace_race_call);
+        return sub_80023A14();
     if (target == 0x80023DB8)
-        return sub_80023DB8(m, args[0]);
+        return sub_80023DB8(args[0]);
     if (target == 0x80023FBC)
-        return sub_80023FBC(m, trace_race_call);
+        return sub_80023FBC();
     if (target == 0x80023CAC)
-        return sub_80023CAC(m, trace_race_call);
+        return sub_80023CAC(trace_race_call);
     if (target == 0x800247E8)
-        return sub_800247E8(m, trace_race_call);
+        return sub_800247E8(trace_race_call);
     if (target == 0x80022C64)
-        return sub_80022C64(m);
+        return sub_80022C64();
     if (target == 0x80012524)
-        return sub_80012524(m, trace_race_service_call);
+        return sub_80012524(trace_race_service_call);
     if (target == 0x8001264C)
-        return sub_8001264C(m);
+        return sub_8001264C();
     if (target == 0x80018E54)
-        return sub_80018E54(m, args[0], trace_race_call);
+        return sub_80018E54(args[0]);
     if (target == 0x80043E24)
-        return sub_80043E24(m);
+        return sub_80043E24();
     if (target == 0x80043DC4)
-        return sub_80043DC4(m, args[0]);
+        return sub_80043DC4(args[0]);
     if (target == 0x800C89A0)
-        return sub_800C89A0(m);
+        return sub_800C89A0();
     if (target == 0x800C8B24)
-        return sub_800C8B24(m, args[0], trace_race_call);
+        return sub_800C8B24(args[0], trace_race_call);
     if (target == 0x80064B9C)
-        return sub_80064B9C(m, args[0], trace_race_call);
+        return sub_80064B9C(args[0], trace_race_call);
     if (target == 0x800650D0)
-        return sub_800650D0(m, args[0], trace_race_call);
+        return sub_800650D0(args[0], trace_race_call);
     if (target == 0x800654B4)
-        return sub_800654B4(m, (int32_t)args[0], (int32_t)args[1]);
+        return sub_800654B4((int32_t)args[0], (int32_t)args[1]);
     if (target == 0x800656A8)
-        return sub_800656A8(m, (int32_t)args[0], (int32_t)args[1], (int32_t)args[2], (int32_t)args[3]);
+        return sub_800656A8((int32_t)args[0], (int32_t)args[1], (int32_t)args[2], (int32_t)args[3]);
     if (target == 0x800662BC)
-        return sub_800662BC(m, trace_race_call);
+        return sub_800662BC(trace_race_call);
     if (target == 0x80065174)
-        return sub_80065174(m, trace_race_call);
+        return sub_80065174(trace_race_call);
     if (target == 0x800662C4)
-        return sub_800662C4(m, args[0], trace_race_call);
+        return sub_800662C4(args[0], trace_race_call);
     if (target == 0x80020400)
-        return sub_80020400(m, args[0], args[1]);
+        return sub_80020400(args[0], args[1]);
     if (target == 0x800644F4)
-        return sub_800644F4(m, trace_race_call);
+        return sub_800644F4(trace_race_call);
     if (target == 0x800644FC)
-        return sub_800644FC(m, args[0], trace_race_call);
+        return sub_800644FC(args[0], trace_race_call);
     if (target == 0x8006396C)
-        return sub_8006396C(m);
+        return sub_8006396C();
     if (target == 0x80063C5C)
-        return sub_80063C5C(m, args[0]);
+        return sub_80063C5C(args[0]);
     if (target == 0x8002C4F8)
-        return sub_8002C4F8(m, args[0], args[1], args[2]);
+        return sub_8002C4F8(args[0], args[1], args[2]);
     if (target == 0x80021988)
-        return sub_80021988(m, (int32_t)args[0], (int32_t)args[1], trace_race_call);
+        return sub_80021988((int32_t)args[0], (int32_t)args[1], trace_race_call);
     if (target == 0x8002AF80)
-        return sub_8002AF80(m, args[0]);
+        return sub_8002AF80(args[0]);
     if (target == 0x8002BAE8)
-        return sub_8002BAE8(m, args[0], args[1], args[2]);
+        return sub_8002BAE8(args[0], args[1], args[2]);
     if (target == 0x8002BE14)
-        return sub_8002BE14(m, args[0], args[1], args[2]);
+        return sub_8002BE14(args[0], args[1], args[2]);
     if (target == 0x800C8CD4)
-        return sub_800C8CD4(m, args[0], trace_race_call);
+        return sub_800C8CD4(args[0], trace_race_call);
     if (target == 0x8004D184)
-        return sub_8004D184(m, (int32_t)args[0], (int32_t)args[1]);
+        return sub_8004D184((int32_t)args[0], (int32_t)args[1]);
     if (target == 0x8001E084)
-        return sub_8001E084(m);
+        return sub_8001E084();
     if (target == 0x8001C304)
-        return sub_8001C304(m, (int32_t)args[0], (int32_t)args[1], (int32_t)args[2], (int32_t)args[3], args[6]);
+        return sub_8001C304((int32_t)args[0], (int32_t)args[1], (int32_t)args[2], (int32_t)args[3], args[6]);
     if (target == 0x8005FA68)
-        return sub_8005FA68(m, args[0], args[1], args[2], args[3]);
+        return sub_8005FA68(args[0], args[1], args[2], args[3]);
     if (target == 0x800C5618)
-        return sub_800C5618(m, args[0]);
+        return sub_800C5618(args[0]);
     if (target == 0x8005FAC4)
-        return sub_8005FAC4(m, args[0], args[1], args[2]);
+        return sub_8005FAC4(args[0], args[1], args[2]);
     if (target == 0x80095410)
-        return sub_80095410(m, args[0]);
+        return sub_80095410(args[0]);
     if (target == 0x8008B84C)
-        return sub_8008B84C(m, args[0]);
+        return sub_8008B84C(args[0]);
     if (target == 0x8005F9B0)
-        return sub_8005F9B0(m, args[0], (int32_t)args[1], (int32_t)args[2], (int32_t)args[3]);
+        return sub_8005F9B0(args[0], (int32_t)args[1], (int32_t)args[2], (int32_t)args[3]);
     if (target == 0x800C5558)
-        return sub_800C5558(m, args[0]);
+        return sub_800C5558(args[0]);
     if (target == 0x8005F834)
-        return sub_8005F834(m, args[0], args[1], args[2]);
+        return sub_8005F834(args[0], args[1], args[2]);
     if (target == 0x80063408)
-        return sub_80063408(m, args[0], args[1], args[2], args[3], args[4]);
+        return sub_80063408(args[0], args[1], args[2], args[3], args[4]);
     if (target == 0x800C5168)
-        return sub_800C5168(m, args[0], args[1], args[2], args[3]);
+        return sub_800C5168(args[0], args[1], args[2], args[3]);
     if (target == 0x8001FE80)
-        return sub_8001FE80(m, (int32_t)args[0], args[1], args[2]);
+        return sub_8001FE80((int32_t)args[0], args[1], args[2]);
     if (target == 0x8002DEC8)
-        return sub_8002DEC8(m, args[0], (int32_t)args[1]);
+        return sub_8002DEC8(args[0], (int32_t)args[1]);
     if (target == 0x8002DE40)
-        return sub_8002DE40(m, (int32_t)args[0], args[1]);
+        return sub_8002DE40((int32_t)args[0], args[1]);
     if (target == 0x800C5380)
-        return sub_800C5380(m, args[0], (int32_t)args[1], args[2], args[3]);
+        return sub_800C5380(args[0], (int32_t)args[1], args[2], args[3]);
     if (target == 0x80013E64)
-        return sub_80013E64(m, args[0]);
+        return sub_80013E64(args[0]);
     if (target == 0x80013AF8)
-        return sub_80013AF8(m, args[0], args[1]);
+        return sub_80013AF8(args[0], args[1]);
     if (target == 0x800C569C)
-        return sub_800C569C(m, args[0], args[1], (int32_t)args[2], args[3]);
+        return sub_800C569C(args[0], args[1], (int32_t)args[2], args[3]);
     if (target == 0x800C52A8)
-        return sub_800C52A8(m, args[0], args[1], args[2]);
+        return sub_800C52A8(args[0], args[1], args[2]);
     if (target == 0x800C52A0)
-        return sub_800C52A0(m, args[0], args[1]);
+        return sub_800C52A0(args[0], args[1]);
     if (target == 0x80061E50)
-        return sub_80061E50(m, args[0], args[1], args[2]);
+        return sub_80061E50(args[0], args[1], args[2]);
     if (target == 0x8005FE58)
-        return sub_8005FE58(m, args[0], args[1], args[2], args[3]);
+        return sub_8005FE58(args[0], args[1], args[2], args[3]);
     if (target == 0x80016528)
-        return sub_80016528(m, trace_race_call);
+        return sub_80016528();
     if (target == 0x8005FF84)
-        return sub_8005FF84(m, args[0], args[1], args[2], args[3], trace_race_call);
+        return sub_8005FF84(args[0], args[1], args[2], args[3]);
     if (target == 0x80060178)
-        return sub_80060178(m, args[0], args[1], args[2], args[3]);
+        return sub_80060178(args[0], args[1], args[2], args[3]);
     if (target == 0x800603E4)
-        return sub_800603E4(m, args[0], args[1], args[2], args[3]);
+        return sub_800603E4(args[0], args[1], args[2], args[3]);
     if (target == 0x800606F0)
-        return sub_800606F0(m, args[0], args[1], args[2], args[3], args[4], args[5], args[6]);
+        return sub_800606F0(args[0], args[1], args[2], args[3], args[4], args[5], args[6]);
     if (target == 0x800606F8)
-        return sub_800606F8(m, args[0], args[1], args[2], args[3], args[4], args[5], args[6], rrj_read32(m, 0x8005B2F8u));
+        return sub_800606F8(args[0], args[1], args[2], args[3], args[4], args[5], args[6], rrj_read32(0x8005B2F8u));
     if (target == 0x80060C10)
-        return sub_80060C10(m, args[0], args[1], args[2], args[3], args[4], args[5], args[6]);
+        return sub_80060C10(args[0], args[1], args[2], args[3], args[4], args[5], args[6]);
     if (target == 0x80060C18)
-        return sub_80060C18(m, args[0], args[1], args[2], args[3], args[4], args[5], args[6], rrj_read32(m, 0x8005ACDCu));
+        return sub_80060C18(args[0], args[1], args[2], args[3], args[4], args[5], args[6], rrj_read32(0x8005ACDCu));
     if (target == 0x8006148C)
-        return sub_8006148C(m, args[0], args[1], args[2], args[3], args[4], args[5], args[6]);
+        return sub_8006148C(args[0], args[1], args[2], args[3], args[4], args[5], args[6]);
     if (target == 0x80061494)
-        return sub_80061494(m, args[0], args[1], args[2], args[3], args[4], args[5], args[6], rrj_read32(m, 0x8005ACDCu));
+        return sub_80061494(args[0], args[1], args[2], args[3], args[4], args[5], args[6], rrj_read32(0x8005ACDCu));
     if (target == 0x80061F6C)
-        return sub_80061F6C(m, args[0], args[1], args[2], args[3], args[4]);
+        return sub_80061F6C(args[0], args[1], args[2], args[3], args[4]);
     if (target == 0x80062368)
-        return sub_80062368(m, args[0], args[1], args[2], args[3], args[4]);
+        return sub_80062368(args[0], args[1], args[2], args[3], args[4]);
     if (target == 0x80062610)
-        return sub_80062610(m, args[0], args[1], args[2], args[3]);
+        return sub_80062610(args[0], args[1], args[2], args[3]);
     if (target == 0x80062618)
-        return sub_80062618(m, args[0], args[1], args[2], rrj_read32(m, 0x8005B2F8u));
+        return sub_80062618(args[0], args[1], args[2], rrj_read32(0x8005B2F8u));
     if (target == 0x80062C40)
-        return sub_80062C40(m, args[0], args[1], args[2], args[3], args[4]);
+        return sub_80062C40(args[0], args[1], args[2], args[3], args[4]);
     if (target == 0x80062D9C)
-        return sub_80062D9C(m, args[0], args[1], args[2], args[3]);
+        return sub_80062D9C(args[0], args[1], args[2], args[3]);
     if (target == 0x8004CE44)
-        return sub_8004CE44(m, args[0], args[1], args[2], args[3], args[4]);
+        return sub_8004CE44(args[0], args[1], args[2], args[3], args[4]);
     if (target == 0x80062F34)
-        return sub_80062F34(m, args[0], args[1], args[2], args[3]);
+        return sub_80062F34(args[0], args[1], args[2], args[3]);
     if (target == 0x80063530)
-        return sub_80063530(m, args[0], args[1], args[2], args[3], args[4], args[5], args[6]);
+        return sub_80063530(args[0], args[1], args[2], args[3], args[4], args[5], args[6]);
     if (target == 0x800636F0)
-        return sub_800636F0(m, args[0], args[1], args[2], args[3], args[4]);
+        return sub_800636F0(args[0], args[1], args[2], args[3], args[4]);
     if (target == 0x8005F030)
-        return sub_8005F030(m, args[0], args[1], args[2], args[3], args[4], args[5]);
+        return sub_8005F030(args[0], args[1], args[2], args[3], args[4], args[5]);
     if (target == 0x8005FB4C)
-        return sub_8005FB4C(m, args[0], args[1], args[2], args[3], args[4], args[5], args[6]);
+        return sub_8005FB4C(args[0], args[1], args[2], args[3], args[4], args[5], args[6]);
     if (target == 0x8003B9A8)
-        return sub_8003B9A8(m, (int32_t)args[0], args[1]);
+        return sub_8003B9A8((int32_t)args[0], args[1]);
     if (target == 0x8003BC48)
-        return sub_8003BC48(m, (int32_t)args[0], (int32_t)args[1], args[2], (int32_t)args[3]);
+        return sub_8003BC48((int32_t)args[0], (int32_t)args[1], args[2], (int32_t)args[3]);
     if (target == 0x8003C590)
-        return sub_8003C590(m, args[0]);
+        return sub_8003C590(args[0]);
     if (target == 0x8005E848 || target == 0x8005E850)
-        return sub_8005E848(m, trace_race_call);
+        return sub_G_8005E848();
     if (target == 0x8002CA5C)
-        return sub_8002CA5C(m);
+        return sub_8002CA5C();
     if (target == 0x80043F00)
-        return sub_80043F00(m, args[0]);
+        return sub_80043F00(args[0]);
     if (target == 0x800270F0)
-        return sub_800270F0(m, args[0]);
+        return sub_800270F0(args[0]);
     if (target == 0x8004F0A8)
-        return sub_8004F0A8(m, (int32_t)args[0], args[1]);
+        return sub_8004F0A8((int32_t)args[0], args[1]);
     if (target == 0x80051A38)
-        return sub_80051A38(m, (int32_t)args[0], (int32_t)args[1], (int32_t)args[2], (int32_t)args[3]);
+        return sub_80051A38((int32_t)args[0], (int32_t)args[1], (int32_t)args[2], (int32_t)args[3]);
     if (target == 0x800506A8)
-        return sub_800506A8(m, args[0], args[1], args[2], args[3]);
+        return sub_800506A8(args[0], args[1], args[2], args[3]);
     if (target == 0x80051088)
-        return sub_80051088(m, args[0], args[1]);
+        return sub_80051088(args[0], args[1]);
     if (target == 0x8001F900)
-        return sub_8001F900(m, args[0], args[1]);
+        return sub_8001F900(args[0], args[1]);
     if (target == 0x80051C38)
-        return sub_80051C38(m, args[0], args[1]);
+        return sub_80051C38(args[0], args[1]);
     if (target == 0x8001F874)
-        return sub_8001F874(m, (int32_t)args[0], args[1]);
+        return sub_8001F874((int32_t)args[0], args[1]);
     if (target == 0x80016768)
-        return sub_80016768(m, args[0], args[1], args[2], args[3], args[4], args[5]);
+        return sub_80016768(args[0], args[1], args[2], args[3], args[4], args[5]);
     if (target == 0x800167A4)
-        return sub_800167A4(m, args[0], rrj_spu_reverb);
+        return sub_800167A4(args[0]);
     if (target == 0x8001B244)
-        return sub_8001B244(m, args[0], rrj_spu_reverb);
+        return sub_8001B244(args[0]);
     if (target == 0x80027778)
-        return sub_80027778(m, args[0], args[1], args[2], args[3]);
+        return sub_80027778(args[0], args[1], args[2], args[3]);
     if (target == 0x80027974)
-        return sub_80027974(m, args[0], args[1], args[2]);
+        return sub_80027974(args[0], args[1], args[2]);
     if (target == 0x800179D8)
-        return sub_800179D8(m, args[0], args[1], trace_race_call);
+        return sub_800179D8(args[0], args[1]);
     if (target == 0x800169D0)
-        return sub_800169D0(m, args[0], rrj_spu_reverb);
+        return sub_800169D0(args[0], rrj_spu_reverb);
     if (target == 0x80016E4C)
-        return sub_80016E4C(m, args[0], trace_race_call, rrj_spu_reverb);
+        return sub_80016E4C(args[0], trace_race_call);
     if (target == 0x800184AC)
-        return sub_800184AC(m, args[0], trace_race_call, rrj_spu_reverb);
+        return sub_800184AC(args[0], trace_race_call, rrj_spu_reverb);
     if (target == 0x80018FAC)
-        return sub_80018FAC(m, trace_race_call, rrj_spu_reverb);
+        return sub_80018FAC(trace_race_call, rrj_spu_reverb);
     if (target == 0x80018C1C)
-        return sub_80018C1C(m, args[0], trace_race_call);
+        return sub_80018C1C(args[0]);
     if (target == 0x800505F8)
-        return sub_800505F8(m, args[0]);
+        return sub_800505F8(args[0]);
     if (target == 0x8001C3F4)
-        return sub_8001C3F4(m);
+        return sub_8001C3F4();
     if (target == 0x8001C428)
-        return sub_8001C428(m);
+        return sub_8001C428();
     if (target == 0x8001C408)
-        return sub_8001C408(m, trace_race_poll);
+        return sub_8001C408(trace_race_poll);
     if (target == 0x8001C5F8)
-        return sub_8001C5F8(m, trace_race_sdk_call);
+        return sub_8001C5F8(trace_race_sdk_call);
     if (target == 0x80020E30)
-        return sub_80020E30(m, args[0], trace_race_call);
+        return sub_80020E30(args[0]);
     if (target == 0x8002D2F4)
-        return sub_8002D2F4(m, trace_race_call);
+        return sub_8002D2F4();
     if (target == 0x8001DDC4)
-        return sub_8001DDC4(m, args[0], args[1], trace_race_pad_sdk);
+        return sub_8001DDC4(args[0], args[1], trace_race_pad_sdk);
     if (target == 0x8001B700)
-        return sub_8001B700(m, trace_race_global_call);
+        return sub_8001B700(trace_race_global_call);
     if (target == 0x8001FD24)
-        return (uint32_t)sub_8001FD24(m, args[0], args[1], args[2], args[3]);
+        return (uint32_t)sub_8001FD24(args[0], args[1], args[2], args[3]);
     if (target == 0x8001F7EC)
-        return sub_8001F7EC(m, args[0], rrj_spu_reverb);
+        return sub_8001F7EC(args[0]);
     if (target == 0x80019C54)
-        return sub_80019C54(m, args[0], args[1], trace_race_call);
+        return sub_80019C54(args[0], args[1]);
     if (target == 0x80019990)
-        return sub_80019990(m, trace_race_call, rrj_spu_setup, rrj_spu_command);
+        return sub_80019990(trace_race_call, rrj_spu_setup, rrj_spu_command);
     if (target == 0x8004CE14)
     {
         uint32_t result = (args[2] ? 0xE1000200u : 0xE1000000u) | (args[3] & 0x9FFu) | (args[1] ? 0x400u : 0);
 
         w_u8(args[0] + 3, 1);
-        rrj_write32(m, args[0] + 4, result);
+        rrj_write32(args[0] + 4, result);
         return result;
     }
     if (target == 0x8002F2E8)
-        return sub_8002F2E8(m, args[0], trace_race_call);
+        return sub_8002F2E8(args[0], trace_race_call);
     if (target == 0x8002F17C)
-        return sub_8002F17C(m, args[0], trace_race_call);
+        return sub_8002F17C(args[0], trace_race_call);
     if (target == 0x80070F9C)
-        return sub_80070F9C(m, args[0], args[1]);
+        return sub_80070F9C(args[0], args[1]);
     if (target == 0x8004D264)
-        return sub_80070F9C(m, args[0], args[1]);
+        return sub_80070F9C(args[0], args[1]);
     if (target == 0x8004D154)
-        return args[0];
+    {
+        uint32_t matrix[5];
+        uint32_t index;
+
+        for (index = 0; index != 5; ++index)
+            matrix[index] = rrj_read32(args[0] + 4 * index);
+        for (index = 0; index != 5; ++index)
+            xport_gte_write_control(index, matrix[index]);
+        return 0;
+    }
     if (target == 0x80048DB4)
     {
         if (rrj_trace_runtime_is_live())
@@ -1201,8 +1479,8 @@ static uint32_t trace_race_call(RRJMemory *m, uint32_t target, const uint32_t ar
     }
     if (target == 0x80048ACC)
     {
-        uint32_t width = rrj_u16(rrj_at(m, args[0] + 4, 2));
-        uint32_t height = rrj_u16(rrj_at(m, args[0] + 6, 2));
+        uint32_t width = rrj_u16(rrj_at(args[0] + 4, 2));
+        uint32_t height = rrj_u16(rrj_at(args[0] + 6, 2));
 
         xport_guest_fill(args[1], 0, width * height * 2);
         return 0;
@@ -1210,216 +1488,230 @@ static uint32_t trace_race_call(RRJMemory *m, uint32_t target, const uint32_t ar
     if (target == 0x8004D7B4 || target == 0x8004D9A8 || target == 0x8004D9E4 || target == 0x8004D90C || target == 0x8004D988)
         return 0;
     if (target == 0x800674C8)
-        return sub_800674C8(m);
+        return sub_800674C8();
     if (target == 0x8008D56C)
-        return sub_8008D56C(m, args[0], trace_race_call);
+        return sub_8008D56C(args[0], trace_race_call);
     if (target == 0x8008B99C)
-        return sub_8008B99C(m, args[0]);
+        return sub_8008B99C(args[0]);
     if (target == 0x80023870)
-        return sub_80023870(m, sub_8008B99C);
+        return sub_80023870(sub_8008B99C);
     if (target == 0x80084E10)
-        return sub_80084E10(m, args[0], args[1], trace_race_call);
+        return sub_80084E10(args[0], args[1]);
     if (target == 0x80067AC4)
-        return sub_80067AC4(m, args[0], args[1], trace_race_call);
+        return sub_80067AC4(args[0], args[1]);
     if (target == 0x80068468)
-        return sub_80068468(m, args[0], args[1], trace_race_call);
+        return sub_80068468(args[0], args[1], trace_race_call);
     if (target == 0x8006780C)
-        return sub_8006780C(m, args[0], args[1], trace_race_call);
+        return sub_8006780C(args[0], args[1], trace_race_call);
     if (target == 0x80067690)
-        return sub_80067690(m, args[0], args[1], trace_race_call);
+        return sub_80067690(args[0], args[1], trace_race_call);
     if (target == 0x80028E8C)
-        return sub_80028E8C(m, args[0], args[1], args[2]);
+        return sub_80028E8C(args[0], args[1], args[2]);
     if (target == 0x80029174)
-        return sub_80029174(m, args[0], args[1], args[2], args[3]);
+        return sub_80029174(args[0], args[1], args[2], args[3]);
     if (target == 0x8002926C)
-        return sub_8002926C(m, args[0], args[1], args[2], args[3], args[4]);
+        return sub_8002926C(args[0], args[1], args[2], args[3], args[4]);
     if (target == 0x800295AC)
-        return sub_800295AC(m, args[0], args[1], args[2], args[3], args[4]);
+        return sub_800295AC(args[0], args[1], args[2], args[3], args[4]);
     if (target == 0x8002AB14)
-        return sub_8002AB14(m, args[0], args[1]);
+        return sub_8002AB14(args[0], args[1]);
     if (target == 0x8002A2C8)
-        return sub_8002A2C8(m, args[0], args[1], args[2], args[3], args[4]);
+        return sub_8002A2C8(args[0], args[1], args[2], args[3], args[4]);
     if (target == 0x80028E74)
-        return sub_80028E74(m, args[0]);
+        return sub_80028E74(args[0]);
     if (target == 0x800289E8)
-        return sub_800289E8(m, args[0], args[1], args[2]);
+        return sub_800289E8(args[0], args[1], args[2]);
     if (target == 0x80028C78)
-        return sub_80028C78(m, args[0], args[1], args[2], args[3]);
+        return sub_80028C78(args[0], args[1], args[2], args[3]);
     if (target == 0x8002A8E4)
-        return sub_8002A8E4(m, args[0], args[1]);
+        return sub_8002A8E4(args[0], args[1]);
     if (target == 0x80017F64)
-        return sub_80017F64(m, args[0], args[1], trace_race_call);
+        return sub_80017F64(args[0], args[1], trace_race_call);
     if (target == 0x800182B0)
-        return sub_800182B0(m, args[0], trace_race_call);
+        return sub_800182B0(args[0], trace_race_call);
     if (target == 0x8001836C)
-        return sub_8001836C(m, args[0], trace_race_call);
+        return sub_8001836C(args[0], trace_race_call);
     if (target == 0x8002A974)
-        return sub_8002A974(m, args[0], args[1], args[2], args[3], trace_race_call);
+        return sub_8002A974(args[0], args[1], args[2], args[3], trace_race_call);
     if (target == 0x80029D88)
-        return sub_80029D88(m, args[0], args[1], args[2], args[3], trace_race_call);
+        return sub_80029D88(args[0], args[1], args[2], args[3], trace_race_call);
     if (target == 0x8002823C)
-        return sub_8002823C(m, args[0], args[1], trace_race_call);
+        return sub_8002823C(args[0], args[1], trace_race_call);
     if (target == 0x80067770)
-        return sub_80067770(m, args[0], args[1], trace_race_call);
+        return sub_80067770(args[0], args[1], trace_race_call);
     if (target == 0x800674D4)
-        return sub_800674D4(m, args[0], (int32_t)args[1], args[2], trace_race_call);
+        return sub_800674D4(args[0], (int32_t)args[1], args[2], trace_race_call);
     if (target == 0x80068D50)
-        return sub_80068D50(m, args[0], args[1]);
+        return sub_80068D50(args[0], args[1]);
     if (target == 0x80068E2C)
-        return sub_80068E2C(m, args[0], args[1]);
+        return sub_80068E2C(args[0], args[1]);
     if (target == 0x80068EB8)
-        return sub_80068EB8(m, args[0]);
+        return sub_80068EB8(args[0]);
     if (target == 0x80035958)
-        return sub_80035958(m, args[0], trace_race_call);
+        return sub_80035958(args[0], trace_race_call);
     if (target == 0x80069200)
-        return sub_80069200(m, args[0]);
+        return sub_80069200(args[0]);
     if (target == 0x8006929C)
-        return sub_8006929C(m, args[0], args[1], args[2]);
+        return sub_8006929C(args[0], args[1], args[2]);
     if (target == 0x80069784)
-        return sub_80069784(m, args[0], args[1], args[2]);
+        return sub_80069784(args[0], args[1], args[2]);
     if (target == 0x80069CF0)
-        return sub_80069CF0(m, args[0], args[1], args[2]);
+        return sub_80069CF0(args[0], args[1], args[2]);
     if (target == 0x8006A25C)
-        return sub_8006A25C(m, args[0], args[1], args[2]);
+        return sub_8006A25C(args[0], args[1], args[2]);
     if (target == 0x8006A630)
-        return sub_8006A630(m, args[0], args[1]);
+        return sub_8006A630(args[0], args[1]);
     if (target == 0x8006C888)
-        return sub_8006C888(m, args[0], args[1]);
+        return sub_8006C888(args[0], args[1]);
     if (target == 0x8006D350)
-        return sub_8006D350(m, args[0], args[1]);
+        return sub_8006D350(args[0], args[1]);
     if (target == 0x8006DC20)
-        return sub_8006DC20(m, args[0], args[1]);
+        return sub_8006DC20(args[0], args[1]);
     if (target == 0x8006E474)
-        return sub_8006E474(m, args[0], args[1]);
+        return sub_8006E474(args[0], args[1]);
     if (target == 0x8006F5D0)
-        return sub_8006F5D0(m, args[0], args[1]);
+        return sub_8006F5D0(args[0], args[1]);
     if (target == 0x80068FCC)
-        return sub_80068FCC(m, args[0]);
+        return sub_80068FCC(args[0]);
     if (target == 0x800706A4)
-        return sub_800706A4(m, args[0]);
+        return sub_800706A4(args[0]);
     if (target == 0x8001298C)
-        return sub_8001298C(m, args[0], args[1]);
+        return sub_8001298C(args[0], args[1]);
     if (target == 0x800358C0)
-        return sub_800358C0(m, args[0], trace_race_call);
+        return sub_800358C0(args[0], trace_race_call);
     if (target == 0x80035F48)
-        return sub_80035F48(m, args[0], trace_race_call);
+        return sub_80035F48(args[0], trace_race_call);
     if (target == 0x800363F0)
-        return sub_800363F0(m, args[0]);
+        return sub_800363F0(args[0]);
     if (target == 0x80035040)
-        return sub_80035040(m, args[0], args[1], (int32_t)args[2]);
+        return sub_80035040(args[0], args[1], (int32_t)args[2]);
     if (target == 0x800351EC)
-        return sub_800351EC(m, args[0], args[1], (int32_t)args[2], args[3], args[4], args[5]);
+        return sub_800351EC(args[0], args[1], (int32_t)args[2], args[3], args[4], args[5]);
     if (target == 0x800353C4)
-        return sub_800353C4(m, args[0], (int32_t)args[1], args[2], args[3], trace_race_call);
+        return sub_800353C4(args[0], (int32_t)args[1], args[2], args[3]);
     if (target == 0x80036438)
-        return sub_80036438(m, (int32_t)args[0], args[1], args[2]);
+        return sub_80036438((int32_t)args[0], args[1], args[2]);
     if (target == 0x80036614)
-        return sub_80036614(m, args[0], args[1], args[2]);
+        return sub_80036614(args[0], args[1], args[2]);
     if (target == 0x80035680)
-        return sub_80035680(m, (int32_t)args[0], args[1], args[2]);
+        return sub_80035680((int32_t)args[0], args[1], args[2]);
     if (target == 0x800106DC)
-        return sub_800106DC(m, args[0], args[1], args[2]);
+        return sub_800106DC(args[0], args[1], args[2]);
     if (target == 0x8001064C)
-        return sub_8001064C(m);
+        return sub_8001064C();
     if (target == 0x80030E58)
-        return sub_80030E58(m, args[0], trace_race_call);
+        return sub_80030E58(args[0], trace_race_call);
     if (target == 0x80033198)
-        return sub_80033198(m, args[0], trace_race_call);
+        return sub_80033198(args[0]);
     if (target == 0x80023900)
-        return sub_80023900(m, args[0], args[1], args[2], trace_race_call);
+        return sub_80023900(args[0], args[1], args[2]);
     if (target == 0x800243EC)
-        return sub_800243EC(m, args[0], args[1]);
+        return sub_800243EC(args[0], args[1]);
     if (target == 0x800318E8)
-        return sub_800318E8(m, args[0], args[1], trace_race_call);
+        return sub_800318E8(args[0], args[1], trace_race_call);
     if (target == 0x800312D0)
-        return sub_800312D0(m, args[0]);
+        return sub_800312D0(args[0]);
     if (target == 0x80013828)
-        return sub_80013828(m, args[0]);
+        return sub_80013828(args[0]);
     if (target == 0x80023868)
-        return sub_80023868(m, args[0]);
+        return sub_80023868(args[0]);
     if (target == 0x800313EC)
-        return sub_800313EC(m, args[0], trace_race_player_call);
+        return sub_800313EC(args[0], trace_race_player_call);
     if (target == 0x80030608)
-        return sub_80030608(m, trace_race_player_call);
+        return sub_80030608(trace_race_player_call);
     if (target == 0x80031D70)
-        return sub_80031D70(m, trace_race_player_call);
+        return sub_80031D70(trace_race_player_call);
     if (target == 0x800320CC)
-        return sub_800320CC(m, args[0]);
+        return sub_800320CC(args[0]);
     if (target == 0x80043DA4)
     {
-        sub_80043DA4(m);
+        sub_80043DA4();
         return 0;
     }
     if (target == 0x80043DB4)
     {
-        sub_80043DB4(m);
+        sub_80043DB4();
         return 0;
     }
     if (target == 0x800C4550)
-        return sub_800C4550(m, args[0], args[1], args[2]);
+        return sub_800C4550(args[0], args[1], args[2]);
     if (target == 0x800CAA44)
-        return sub_800CAA44(m, args[0], (int32_t)args[1]);
+        return sub_800CAA44(args[0], (int32_t)args[1]);
     if (target == 0x8009ACA4)
-        return sub_8009ACA4(m);
+        return sub_8009ACA4();
     if (target == 0x8009AB60)
-        return sub_8009AB60(m);
+        return sub_8009AB60();
     if (target == 0x8001CB3C)
-        return sub_8001CB3C_race(m, trace_race_call);
+    {
+        static uint32_t last_buttons = 0xffffffffu;
+        uint32_t result = sub_8001CB3C_race(trace_race_call);
+        if (rrj_trace_runtime_is_live() && getenv("RRJ_TRACE_INPUT"))
+        {
+            uint32_t buttons = rrj_read32(0x800D6DE4u);
+            if (buttons != last_buttons)
+            {
+                uint32_t actor = rrj_read32(0x8005B38Cu);
+                fprintf(stdout, "native_input buttons=%04X actor=%08X flags=%08X speed=%u clock=%u\n", buttons, actor, actor ? rrj_read32(actor + 560u) : 0u, actor ? rrj_read32(actor + 480u) : 0u, rrj_read32(0x800D5D44u));
+                last_buttons = buttons;
+            }
+        }
+        return result;
+    }
     if (target == 0x8008A998)
-        return sub_8008A998(m, args[0], args[1]);
+        return sub_8008A998(args[0], args[1]);
     if (target == 0x800C2348)
-        return sub_800C2348(m, args[0], args[1], trace_race_call);
+        return sub_800C2348(args[0], args[1]);
     if (target == 0x8008AB00)
-        return sub_G_8008AB00(m, args[0], trace_race_global_call);
+        return sub_G_8008AB00(args[0], trace_race_global_call);
     if (target == 0x8008AD38)
-        return sub_G_8008AD38(m, args[0], trace_race_global_call);
+        return sub_G_8008AD38(args[0], trace_race_global_call);
     if (target == 0x8008CD88)
-        return sub_G_8008CD88(m, args[0], trace_race_service_call);
+        return sub_G_8008CD88(args[0], trace_race_service_call);
     if (target == 0x8008AC80)
-        return sub_G_8008AC80(m, args[0], trace_race_service_call);
+        return sub_G_8008AC80(args[0], trace_race_service_call);
     if (target == 0x8008ACE8)
-        return sub_G_8008ACE8(m, args[0], trace_race_service_call);
+        return sub_G_8008ACE8(args[0], trace_race_service_call);
     if (target == 0x8009A298)
-        return sub_8009A298(m, args[0], trace_race_call);
+        return sub_8009A298(args[0]);
     if (target == 0x800B9414)
-        return sub_800B9414(m, args[0], trace_race_call, rrj_spu_reverb);
+        return sub_800B9414(args[0], trace_race_call, rrj_spu_reverb);
     if (target == 0x800B941C)
-        return sub_800B941C(m, args[0], trace_race_call, rrj_spu_reverb);
+        return sub_800B941C(args[0], trace_race_call, rrj_spu_reverb);
     if (target == 0x8007F0BC)
-        return sub_8007F0BC(m, args[0], args[1]);
+        return sub_8007F0BC(args[0], args[1]);
     if (target == 0x80037338)
-        return sub_80037338(m);
+        return sub_80037338();
     if (target == 0x8003E150)
-        return sub_8003E150(m);
+        return sub_8003E150();
     if (target == 0x8003AE24)
-        return sub_8003AE24(m);
+        return sub_8003AE24();
     if (target == 0x8003B520)
-        return sub_8003B520(m);
+        return sub_8003B520();
     if (target == 0x8007504C)
-        return sub_8007504C(m, args[0], args[1]);
+        return sub_8007504C(args[0], args[1]);
     if (target == 0x8007FA4C)
-        return sub_8007FA4C(m, args[0]);
+        return sub_8007FA4C(args[0]);
     if (target == 0x800807F0)
-        return sub_800807F0(m, args[0], args[1]);
+        return sub_800807F0(args[0], args[1]);
     if (target == 0x80093E6C)
-        return sub_80093E6C(m, rrj_spu_reverb);
+        return sub_80093E6C(rrj_spu_reverb);
     if (target == 0x800950E8)
-        return sub_800950E8(m, rrj_spu_reverb);
+        return sub_800950E8(rrj_spu_reverb);
     if (target == 0x80032810)
-        return sub_80032810(m, args[0], args[1], args[2]);
+        return sub_80032810(args[0], args[1], args[2]);
     if (target == 0x8003297C)
-        return sub_8003297C(m, args[0], args[1]);
+        return sub_8003297C(args[0], args[1]);
     if (target == 0x80033B50)
-        return sub_80033B50(m, args[0], args[1], args[2], args[3], trace_object_dispatch_call);
+        return sub_80033B50(args[0], args[1], args[2], args[3], trace_object_dispatch_call);
     if (target == 0x80032190)
-        return sub_80032190(m, args[0], args[1]);
+        return sub_80032190(args[0], args[1]);
     if (target == 0x800322D0)
-        return sub_800322D0(m, args[0], args[1], trace_race_player_call);
+        return sub_800322D0(args[0], args[1], trace_race_player_call);
     if (target == 0x800457E8)
     {
-        uint32_t previous = rrj_read32(m, 0x8005AF60u);
+        uint32_t previous = rrj_read32(0x8005AF60u);
 
-        rrj_write32(m, 0x8005AF60u, args[0]);
+        rrj_write32(0x8005AF60u, args[0]);
         return previous;
     }
     if (target == 0x800457A8)
@@ -1427,15 +1719,15 @@ static uint32_t trace_race_call(RRJMemory *m, uint32_t target, const uint32_t ar
     if (target == 0x8004594C)
         return 1;
     if (target == 0x8005D36C)
-        return sub_8005D36C(m, args[0]);
+        return sub_8005D36C(args[0]);
     if (target == 0x800B6BD0)
-        return sub_800B6BD0(m, args[0], args[1], args[2], args[3]);
+        return sub_800B6BD0(args[0], rrj_at(args[1], 6), rrj_at(args[2], 6), args[3]);
     if (target == 0x800C1DD4)
-        return sub_800C1DD4(m, args[0]);
+        return sub_800C1DD4(args[0]);
     if (target == 0x800C258C)
-        return sub_800C258C(m, args[0], args[1]);
+        return sub_800C258C(args[0], args[1]);
     if (target == 0x80017DA0)
-        return sub_80017DA0(m, args[0], args[1], args[2], args[3]);
+        return sub_80017DA0(args[0], args[1], args[2], args[3]);
     rrj_wip_handoff(m, target, "race_loop", "trace_race_call", __FILE__, __LINE__, "translate_callback_target", args, 8);
     fprintf(stderr, "WIP handoff: %08X trace_race_call\n", target);
     exit(20);
@@ -1459,14 +1751,14 @@ static int trace_replay(RRJMemory *m)
     }
     rrj_spu_initialize(trace_spu);
     m->sdk_call = trace_race_sdk_call;
-    rrj_wip_frame(rrj_read32(m, 0x800D5D48));
+    rrj_wip_frame(rrj_read32(0x800D5D48));
     if (!rrj_trace_runtime_init(m, ordinal))
     {
         fputs("Cannot initialize trace runtime: incomplete environment\n", stderr);
         return 14;
     }
     if (!rrj_trace_phase_boundary(m, 0x80012370))
-        (void)sub_80012370(m, trace_race_call);
+        (void)sub_80012370(trace_race_call);
     return rrj_trace_runtime_finish(0);
 }
 
@@ -1485,10 +1777,11 @@ static int write_file(const char *path, const void *data, size_t size)
 static int first_race_play(RRJMemory *m)
 {
     static uint8_t race_spu[524288];
+    GpuRasterState raster;
     uint32_t ordinal;
     int result;
 
-    if (!load_race_checkpoint(m, "DATA/first-race.rrcp", &ordinal) || ordinal != 152 || !read_file("DATA/first-race.vram", VRAM, sizeof(VRAM)) || !read_file("DATA/first-race.spu", race_spu, sizeof race_spu))
+    if (!load_race_checkpoint(m, "DATA/first-race.rrcp", &ordinal) || ordinal != 152 || !read_file("DATA/first-race.vram", VRAM, sizeof(VRAM)) || !read_file("DATA/first-race.spu", race_spu, sizeof race_spu) || !read_file("DATA/first-race.raster", &raster, sizeof raster) || !gpu_import_raster(&raster, VRAM, sizeof(VRAM)))
     {
         fputs("Cannot load DATA/first-race runtime package\n", stderr);
         return 22;
@@ -1500,6 +1793,8 @@ static int first_race_play(RRJMemory *m)
         return 22;
     }
     rrj_spu_initialize(race_spu);
+    live_spu_restore(m);
+    rrj_trace_runtime_set_live_poll(live_spu_poll);
     if (!xport_audio_init())
     {
         fputs("Windows audio device initialization failed\n", stderr);
@@ -1507,11 +1802,16 @@ static int first_race_play(RRJMemory *m)
     }
     PadInit(0);
     m->sdk_call = trace_race_sdk_call;
-    rrj_wip_frame(rrj_read32(m, 0x800D5D48));
+    rrj_wip_frame(rrj_read32(0x800D5D48));
     gpu_begin();
     if (!rrj_trace_phase_boundary(m, 0x80012370))
-        (void)sub_80012370(m, trace_race_call);
+        (void)sub_80012370(trace_race_call);
     result = rrj_trace_runtime_finish(0);
+    {
+        const char *output = getenv("RRJ_LIVE_RAM_OUTPUT");
+        if (output && *output && !write_file(output, DRAM, sizeof(DRAM)))
+            result = 2;
+    }
     xport_audio_shutdown();
     return result;
 }
@@ -1557,9 +1857,9 @@ static uint32_t live_queue_call(RRJMemory *, uint32_t, uint32_t, uint32_t);
 static uint32_t native_menu_frame(RRJMemory *m, uint32_t target, uint32_t menu, uint32_t a1)
 {
     if (target == 0x80078BD8u)
-        return sub_F_80078BD8(m, menu, a1, live_queue_call);
+        return sub_F_80078BD8(menu, a1, live_queue_call);
     if (target == 0x80078E80u)
-        return sub_F_80078E80(m, menu, live_queue_call);
+        return sub_F_80078E80(menu, live_queue_call);
     if (target == 0x80022A78)
     {
         /* WIP CD queue wait: dummy reads create no outstanding native I/O. */
@@ -1568,13 +1868,13 @@ static uint32_t native_menu_frame(RRJMemory *m, uint32_t target, uint32_t menu, 
         return 0;
     }
     if (target == 0x8006DB5C)
-        return sub_F_8006DB5C(m, menu, live_video_call, live_video_open);
+        return sub_F_8006DB5C(menu, live_video_call, live_video_open);
     if (target == 0x8006DE5C)
-        return sub_F_8006DE5C(m, menu, live_video_call);
+        return sub_F_8006DE5C(menu, live_video_call);
     if (target == 0x8006D5B0)
-        return sub_F_8006D5B0(m, menu, native_menu_draw);
+        return sub_F_8006D5B0(menu, native_menu_draw);
     if (target == 0x8006D630)
-        return sub_F_8006D630(m, menu, native_menu_draw);
+        return sub_F_8006D630(menu, native_menu_draw);
     RRJ_WIP3(m, target, "menu_frame", menu, a1, 0);
     return 0;
 }
@@ -1589,9 +1889,9 @@ static void update_music(RRJMemory *m, uint32_t track)
 static uint32_t native_submenu(RRJMemory *m, uint32_t fn, uint32_t a, uint32_t b, uint32_t c)
 {
     if (fn == 0x8007EAC0)
-        return sub_F_8007EAC0(m, a);
+        return sub_F_8007EAC0(a);
     if (fn == 0x8006B03C)
-        return sub_F_8006B03C(m, a, b, c, update_music);
+        return sub_F_8006B03C(a, b, c, update_music);
     RRJ_WIP3(m, fn, "submenu", a, b, c);
     return 0;
 }
@@ -1599,13 +1899,13 @@ static uint32_t native_submenu(RRJMemory *m, uint32_t fn, uint32_t a, uint32_t b
 static uint32_t native_menu_update(RRJMemory *m, uint32_t target, uint32_t menu)
 {
     if (target == 0x8006DE5C)
-        return sub_F_8006DE5C(m, menu, live_video_call);
+        return sub_F_8006DE5C(menu, live_video_call);
     if (target == 0x8006AE6C)
-        return sub_F_8006AE6C(m, menu, native_submenu);
+        return sub_F_8006AE6C(menu, native_submenu);
     if (target == 0x8006A8FC)
-        return sub_F_8006A8FC(m, menu, sub_F_8007EAC0);
+        return sub_F_8006A8FC(menu, sub_F_8007EAC0);
     if (target == 0x80069418)
-        return sub_F_80069418(m, menu, update_music);
+        return sub_F_80069418(menu, update_music);
     RRJ_WIP3(m, target, "menu_update", menu, 0, 0);
     return 0;
 }
@@ -1638,12 +1938,12 @@ static int upload_smoke(RRJMemory *memory)
         unsigned rx = rectangles[test][0], ry = rectangles[test][1];
         unsigned w = rectangles[test][2], h = rectangles[test][3];
         memset(VRAM, 0x5A, sizeof(VRAM));
-        rrj_write32(memory, 0x800F0004, 0x800FFFF0);
+        rrj_write32(0x800F0004, 0x800FFFF0);
         for (i = 0; i < 4; ++i)
-            rrj_put16(rrj_at(memory, 0x800F0010 + i * 2, 2), rectangles[test][i]);
+            rrj_put16(rrj_at(0x800F0010 + i * 2, 2), rectangles[test][i]);
         for (i = 0; i < w * h; ++i)
-            rrj_put16(rrj_at(memory, 0x80100000 + i * 2, 2), i * 97 + 3);
-        if (sub_F_80065768(memory, 0x800F0000, rrj_gpu_upload) != 0)
+            rrj_put16(rrj_at(0x80100000 + i * 2, 2), i * 97 + 3);
+        if (sub_F_80065768(0x800F0000, rrj_gpu_upload) != 0)
             return 2;
         for (y = 0; y < 512; ++y)
             for (x = 0; x < 1024; ++x)
@@ -1660,22 +1960,22 @@ static int upload_smoke(RRJMemory *memory)
     {
         uint32_t id = test ? 0x8001 : 1, expected_return = test ? 0x800D76D0 : 0;
         memset(VRAM, 0x5A, sizeof(VRAM));
-        rrj_write32(memory, 0x8005B2F8, 0x801E0000);
-        rrj_write32(memory, 0x801E0030, 1);
+        rrj_write32(0x8005B2F8, 0x801E0000);
+        rrj_write32(0x801E0030, 1);
         xport_guest_fill(0x800533B4, 0, 16);
         for (i = 0; i < 24; ++i)
-            rrj_write32(memory, 0x800D9270 + 48 * i, 0xFFFFFFFF);
-        rrj_write32(memory, 0x800D9268, 0xFFFFFFFF);
+            rrj_write32(0x800D9270 + 48 * i, 0xFFFFFFFF);
+        rrj_write32(0x800D9268, 0xFFFFFFFF);
         for (i = 0; i < 8192; ++i)
         {
-            rrj_put16(rrj_at(memory, 0x80100000 + 2 * i, 2), i * 97 + 3);
-            rrj_put16(rrj_at(memory, 0x80104000 + 2 * i, 2), i * 31 + 7);
+            rrj_put16(rrj_at(0x80100000 + 2 * i, 2), i * 97 + 3);
+            rrj_put16(rrj_at(0x80104000 + 2 * i, 2), i * 31 + 7);
         }
-        if (sub_8002227C(memory, 0, id, 0x80100000, 0x80104000, 0, rrj_gpu_upload) != expected_return)
+        if (sub_8002227C(0, id, 0x80100000, 0x80104000, 0, rrj_gpu_upload) != expected_return)
             return 2;
-        if (rrj_read32(memory, 0x800D9268) != 0 || rrj_read32(memory, 0x800D9270) != id)
+        if (rrj_read32(0x800D9268) != 0 || rrj_read32(0x800D9270) != id)
             return 2;
-        if (test && rrj_u16(rrj_at(memory, 0x800D76D6, 2)) != 0)
+        if (test && rrj_u16(rrj_at(0x800D76D6, 2)) != 0)
             return 2;
         for (y = 0; y < 512; ++y)
             for (x = 0; x < 1024; ++x)
@@ -1700,9 +2000,9 @@ static int input_smoke(RRJMemory *m, const char *fixture)
         return 2;
     xport_set_headless(1);
     PadInit(0);
-    state = rrj_read32(m, 0x8005B2F8);
+    state = rrj_read32(0x8005B2F8);
     w_u8(state, 2);
-    rrj_write32(m, state + 52, 1);
+    rrj_write32(state + 52, 1);
     xport_guest_fill(0x800D6DE0, 0, 768);
     /* Make the first press a single-click event, as in initialized game data. */
     w_u8(0x800D6E09, 30);
@@ -1712,7 +2012,7 @@ static int input_smoke(RRJMemory *m, const char *fixture)
         unsigned actual;
         buttons = frame < 70 ? PADLup : 0;
         xport_input_override(1, buttons);
-        rrj_write32(m, state + 12, frame + 1);
+        rrj_write32(state + 12, frame + 1);
         rrj_input_read(m);
         rrj_input_latch(m);
         actual = r_u8(0x800D7152);
@@ -1723,7 +2023,7 @@ static int input_smoke(RRJMemory *m, const char *fixture)
         }
         if (actual)
             ++events;
-        if (r_u8(0x800D6E0A) != 0 || rrj_read32(m, 0x800D712C) != (frame < 70 ? (uint32)PADLup : 0u))
+        if (r_u8(0x800D6E0A) != 0 || rrj_read32(0x800D712C) != (frame < 70 ? (uint32)PADLup : 0u))
             return 2;
     }
     for (frame = 0; frame < 15; ++frame)
@@ -1731,12 +2031,12 @@ static int input_smoke(RRJMemory *m, const char *fixture)
         uint32 record = 0x800D6DF4 + 8 * frame;
         xport_guest_fill(0x800D6DE0, 0, 192);
         w_u8(record + 5, 30);
-        buttons = rrj_read32(m, 0x80052658 + 4 * frame);
+        buttons = rrj_read32(0x80052658 + 4 * frame);
         xport_input_override(1, buttons);
-        rrj_write32(m, state + 12, 100 + frame);
+        rrj_write32(state + 12, 100 + frame);
         rrj_input_read(m);
         rrj_input_latch(m);
-        if (r_u8(0x800D7142 + 8 * frame) != 1 || rrj_read32(m, 0x800D712C) != buttons)
+        if (r_u8(0x800D7142 + 8 * frame) != 1 || rrj_read32(0x800D712C) != buttons)
             return 2;
         buttons = 0;
         xport_input_override(1, buttons);
@@ -1758,10 +2058,10 @@ static int audio_smoke(RRJMemory *m, const char *memory_path, const char *spu_pa
         return 2;
     rrj_spu_initialize(samples);
     m->sdk_call = rrj_spu_command;
-    handle = sub_F_8007EAC0(m, 0);
+    handle = sub_F_8007EAC0(0);
     if (!handle)
         return 2;
-    (void)sub_8001EE94(m, rrj_spu_setup, rrj_spu_command);
+    (void)sub_8001EE94(rrj_spu_setup, rrj_spu_command);
     spu_render(pcm, 44100);
     for (i = 0; i < 44100 * 2; ++i)
     {
@@ -1772,8 +2072,8 @@ static int audio_smoke(RRJMemory *m, const char *memory_path, const char *spu_pa
     }
     if (!write_file(output, pcm, sizeof pcm) || nonzero < 100 || !peak)
         return 2;
-    sub_8001EB44(m, 1u << (handle >> 27));
-    (void)sub_8001EE94(m, rrj_spu_setup, rrj_spu_command);
+    sub_8001EB44(1u << (handle >> 27));
+    (void)sub_8001EE94(rrj_spu_setup, rrj_spu_command);
     printf("SPU menu sound: frames=44100 nonzero=%u peak=%u handle=%08X PASS\n", nonzero, peak, handle);
     return 0;
 }
@@ -1808,7 +2108,7 @@ sint32 rrj_game_checkpoint_io(FILE *file, sint32 load)
 static uint32_t live_music(RRJMemory *m, uint32_t fn, uint32_t args[8])
 {
     if (fn == 0x8007F158)
-        return sub_F_8007F158(m, args[0], rrj_spu_setup, rrj_spu_reverb);
+        return sub_F_8007F158(args[0], rrj_spu_setup);
     if (fn == 0x80022D20)
     {
         /* WIP CD read dummy: fail explicitly, do not invoke a success callback
@@ -1827,11 +2127,11 @@ static uint32_t live_music(RRJMemory *m, uint32_t fn, uint32_t args[8])
 static uint32_t live_reset(RRJMemory *m, uint32_t fn, uint32_t a, uint32_t b, uint32_t c)
 {
     if (fn == 0x8001E100)
-        return sub_8001E100(m, a, b, c);
+        return sub_8001E100(a, b, c);
     if (fn == 0x800630C0)
-        return sub_F_800630C0(m, a, b);
+        return sub_F_800630C0(a, b);
     if (fn == 0x80080A70)
-        return sub_F_80080A70(m, a);
+        return sub_F_80080A70(a);
     RRJ_WIP3(m, fn, "reset", a, b, c);
     return 0;
 }
@@ -1850,26 +2150,26 @@ static void live_sdk(RRJMemory *m, uint32_t fn, uint32_t a0, uint32_t a1)
         case 0x800487C0:
             return;
         case 0x80043DA4:
-            sub_80043DA4(m);
+            sub_80043DA4();
             return;
         case 0x80043DB4:
-            sub_80043DB4(m);
+            sub_80043DB4();
             return;
         case 0x80050D08:
         case 0x80050678:
             rrj_spu_command(m, fn, a0, a1);
             return;
         case 0x8006883C:
-            (void)sub_F_8006883C(m, a0, live_reset);
+            (void)sub_F_8006883C(a0, live_reset);
             return;
         case 0x8002D250:
-            (void)sub_8002D250(m);
+            (void)sub_8002D250();
             return;
         case 0x8007EDE0:
-            (void)sub_F_8007EDE0(m, a0, live_music);
+            (void)sub_F_8007EDE0(a0, live_music);
             return;
         case 0x8007F158:
-            (void)sub_F_8007F158(m, a0, rrj_spu_setup, rrj_spu_reverb);
+            (void)sub_F_8007F158(a0, rrj_spu_setup);
             return;
         default:
             RRJ_WIP3(m, fn, "live_effect", a0, a1, 0);
@@ -1877,17 +2177,24 @@ static void live_sdk(RRJMemory *m, uint32_t fn, uint32_t a0, uint32_t a1)
     }
 }
 
+static uint32_t live_solo_call(RRJMemory *, uint32_t, const uint32_t[8]);
+
 static uint32_t live_service(RRJMemory *m, uint32_t fn, uint32_t a0)
 {
+    if (fn == 0x800150ECu || fn == 0x80022EECu)
+    {
+        const uint32_t args[8] = {0};
+        return live_solo_call(m, fn, args);
+    }
     if (fn == 0x80019990)
     {
         /* Verified MIPS branch199B0->19C30. Engine modulation path not translated. */
-        if (rrj_read32(m, 0x8005ACA8) & 4)
+        if (rrj_read32(0x8005ACA8) & 4)
         {
             RRJ_WIP(m, 0x80019990, "function", "engine_audio", "return_zero_skip_service", &a0, 1);
             return 0;
         }
-        return sub_8001EE94(m, rrj_spu_setup, rrj_spu_command);
+        return sub_8001EE94(rrj_spu_setup, rrj_spu_command);
     }
     if (fn == 0x8001C5F8)
     {
@@ -1896,22 +2203,174 @@ static uint32_t live_service(RRJMemory *m, uint32_t fn, uint32_t a0)
     }
     if (fn == 0x80048E24)
     {
-        unsigned x = rrj_u16(rrj_at(m, a0, 2)), y = rrj_u16(rrj_at(m, a0 + 2, 2));
-        live_origin_x = (int)x;
-        live_origin_y = (int)y;
-        gpu_put_draw_env(a0, (int)x, (int)y);
+        DRAWENV *environment = (DRAWENV *)rrj_at(a0, sizeof(DRAWENV));
+        live_origin_x = environment->clip.x;
+        live_origin_y = environment->clip.y;
+        PutDrawEnv(environment);
         return a0;
     }
     if (fn == 0x80048FF0)
-        return a0; /* framebuffer presentation below; visual timing WIP */
+    {
+        PutDispEnv((DISPENV *)rrj_at(a0, sizeof(DISPENV)));
+        return a0;
+    }
     live_sdk(m, fn, a0, 0);
     return 0;
 }
 
 static uint32_t live_stream_call(RRJMemory *, uint32_t, const uint32_t[9]);
+static uint32_t live_queue_call(RRJMemory *, uint32_t, uint32_t, uint32_t);
+static RRJMemory *live_decoder_memory;
+static uint32_t live_decoder_output_token;
+
+static void live_decoder_output(void)
+{
+    if (!live_decoder_memory || live_decoder_output_token != 0x80062674u)
+    {
+        fprintf(stderr, "Missing decoder output callback: %08X\n", live_decoder_output_token);
+        abort();
+    }
+    (void)sub_F_80062674(live_queue_call);
+}
+
+static void live_decoder_restore(RRJMemory *m)
+{
+    uint32_t input = rrj_read32(0x80055EE0u);
+    uint32_t output = rrj_read32(0x80055EE4u);
+    DecDCTCallback prior;
+    if (input || (output && output != 0x80062674u))
+    {
+        fprintf(stderr, "Missing saved decoder callbacks: input=%08X output=%08X\n", input, output);
+        abort();
+    }
+    live_decoder_memory = m;
+    live_decoder_output_token = output;
+    prior = DecDCToutCallback(output ? live_decoder_output : NULL);
+    if (prior && prior != live_decoder_output)
+    {
+        DecDCToutCallback(prior);
+        fprintf(stderr, "Unmapped existing decoder output callback\n");
+        abort();
+    }
+    prior = DecDCTinCallback(NULL);
+    if (prior)
+    {
+        DecDCTinCallback(prior);
+        fprintf(stderr, "Unmapped existing decoder input callback\n");
+        abort();
+    }
+}
+
+static uint32_t live_solo_call(RRJMemory *, uint32_t, const uint32_t[8]);
+
+static uint32_t live_solo_open(RRJMemory *m, const char *path, uint32_t device)
+{
+    return rrj_solo_open_path(m, path, device);
+}
+
+static uint32_t live_solo_submit(RRJMemory *m, const uint32_t record[8])
+{
+    uint32_t index, word;
+    if (rrj_read32(0x80053470u) == 49u)
+        return 0xFFFFFF9Cu;
+    index = rrj_read32(0x80053468u);
+    for (word = 0; word < 8; ++word)
+        rrj_write32(0x800D7740u + index * 32u + word * 4u, record[word]);
+    index = rrj_read32(0x80053468u) + 1u;
+    rrj_write32(0x80053468u, index < 50u ? index : 0u);
+    sub_80043DA4();
+    rrj_write32(0x80053470u, rrj_read32(0x80053470u) + 1u);
+    if (record[0] == 8u)
+        rrj_write32(0x80053474u, rrj_read32(0x80053474u) + 1u);
+    sub_80043DB4();
+    if (rrj_read32(0x80053470u) == 1u && !rrj_read32(0x80053464u))
+        sub_80022B0C(0, live_solo_call);
+    return 0;
+}
+
+static const RRJSoloResourceServices live_solo_services = {live_queue_call, live_solo_open, live_solo_submit};
+
+static uint32_t live_solo_call(RRJMemory *m, uint32_t target, const uint32_t args[8])
+{
+    if (target == 0x80044884u)
+        return rrj_solo_bios_toupper(m, args[0]);
+    if (target == 0x800150ECu)
+        return sub_800150EC(live_solo_call);
+    if (target == 0x80022EECu)
+        return sub_80022EEC(live_solo_call);
+    if (target == 0x8001460Cu)
+        return sub_8001460C(args[0], live_solo_call);
+    if (target == 0x800148BCu)
+        return sub_800148BC(args[0], live_solo_call);
+    if (target == 0x8001447Cu)
+        return sub_8001447C(args[0], args[1], live_solo_call);
+    if (target == 0x80022A78u)
+        return sub_80022A78(args[0], live_solo_call);
+    if (target == 0x80047724u)
+    {
+        uint32_t result = (uint32_t)VSync((int32_t)args[0]);
+        if ((int32_t)args[0] >= 0 && args[0] != 1u)
+            (void)sub_F_80064C30(live_service);
+        return result;
+    }
+    if (target == 0x800781A8u)
+        return sub_F_800781A8(args[0], args[1], args[2], live_solo_call);
+    if (target == 0x80076370u)
+        return sub_F_80076370(args[0]);
+    if (target == 0x800782B0u)
+        return sub_F_800782B0((int16_t)args[0], args[1], &live_solo_services);
+    if (target == 0x80078C68u)
+        return sub_F_80078C68(args[0], args[1], live_queue_call);
+    if (target == 0x8007A6C0u)
+        return sub_F_8007A6C0(args[0], args[1]);
+    if (target < 0x80060000u)
+        return trace_race_call(m, target, args);
+    fprintf(stderr, "Missing Solo CDF adapter %08X (%08X, %08X, %08X)\n", target, args[0], args[1], args[2]);
+    abort();
+}
 
 static uint32_t live_queue_call(RRJMemory *m, uint32_t fn, uint32_t a0, uint32_t a1)
 {
+    if (fn == 0x800782B0u || fn == 0x80078C68u || fn == 0x800148BCu || fn == 0x8001447Cu || fn == 0x8001460Cu || fn == 0x800144B8u || fn == 0x80022A78u)
+    {
+        const uint32_t args[8] = {a0, a1, 0, 0, 0, 0, 0, 0};
+        return live_solo_call(m, fn, args);
+    }
+    if (fn == 0x8004D9E4u)
+        return (uint32_t)DecDCToutSync((int32_t)a0);
+    if (fn == 0x80048A6Cu)
+        return rrj_gpu_upload(m, (const uint8 *)rrj_at(a0, 8), a1);
+    if (fn == 0x8004D988u)
+    {
+        size_t bytes = 4u * (a1 & ~31u);
+        DecDCTout((uint32 *)rrj_at(a0, bytes), (int32_t)a1);
+        return rrj_read32(0x8005A370u);
+    }
+    if (fn == 0x8004D90Cu)
+    {
+        size_t bytes = 4u + 4u * r_u16(a0);
+        DecDCTin((uint32 *)rrj_at(a0, bytes), (int32_t)a1);
+        /* Preserve the original DMA control pointer result */
+        return rrj_read32(0x8005A364u);
+    }
+    if (fn == 0x8004DE34u)
+        return sub_8004DE34(a0);
+    if (fn == 0x8004D7B4u && a0 == 1u)
+    {
+        DecDCTReset(1);
+        /* Preserve the original mode-one result carrier */
+        return 0x60000000u;
+    }
+    if (fn == 0x8002026Cu)
+    {
+        /* Both resource and STR callers discard this result */
+        (void)rrj_vlc_prepare(a0, 0u);
+        return 0u;
+    }
+    if (fn == 0x80062674u)
+        return sub_F_80062674(live_queue_call);
+    if (fn == 0x80020400u)
+        return sub_80020400(a0, a1);
     if (fn == 0x80061C44u)
     {
         uint32_t args[9] = {a0, 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u};
@@ -1930,45 +2389,45 @@ static void live_loop(RRJMemory *m, uint32_t fn, uint32_t a0, uint32_t a1)
             rrj_input_latch(m);
             return;
         case 0x8001C428:
-            (void)sub_8001C428(m);
+            (void)sub_8001C428();
             return;
         case 0x800667E4:
-            (void)sub_F_800667E4(m, native_menu_update, live_sdk);
+            (void)sub_F_800667E4(native_menu_update, live_sdk);
             return;
         case 0x80066C34:
-            sub_F_80066C34(m, native_menu_frame);
+            sub_F_80066C34(native_menu_frame);
             return;
         case 0x8001C3F4:
-            (void)sub_8001C3F4(m);
+            (void)sub_8001C3F4();
             return;
         case 0x8001C408:
         {
 #if defined(LOCKSTEP_DEBUG)
             if (xport_run_mode() == RUN_MODE_LOCKSTEP_REPLAY)
             {
-                (void)sub_8001C408(m, rrj_lockstep_poll);
+                (void)sub_8001C408(rrj_lockstep_poll);
                 return;
             }
 #endif
-            uint32_t context = rrj_read32(m, 0x8005B470); /* cached by original1C408 */
+            uint32_t context = rrj_read32(0x8005B470); /* cached by original1C408 */
             while (!r_u8(context + 4))
             {
                 VSync(0);
-                (void)sub_F_80064C30(m, live_service);
+                (void)sub_F_80064C30(live_service);
             }
             return;
         }
         case 0x8006711C:
-            sub_F_8006711C(m, live_sdk);
+            sub_F_8006711C(live_sdk);
             return;
         case 0x80080488:
-            (void)sub_F_80080488(m, live_service);
+            (void)sub_F_80080488(live_service);
             return;
         case 0x800803FC:
-            sub_F_800803FC(m);
+            sub_F_800803FC();
             return;
         case 0x80062774:
-            sub_F_80062774(m, a0, a1, live_queue_call);
+            sub_F_80062774(a0, a1, live_queue_call);
             return;
         default:
             live_sdk(m, fn, a0, a1);
@@ -1979,7 +2438,7 @@ static void live_loop(RRJMemory *m, uint32_t fn, uint32_t a0, uint32_t a1)
 static uint32_t live_screen_call(RRJMemory *m, uint32_t fn, uint32_t arg)
 {
     if (fn == 0x80048428)
-        return sub_80048428(m);
+        return sub_80048428();
     if (fn == 0x80047724)
     {
         SetDispMask((sint32)arg);
@@ -1992,8 +2451,8 @@ static uint32_t live_screen_call(RRJMemory *m, uint32_t fn, uint32_t arg)
     }
     if (fn == 0x80048944)
     {
-        unsigned x = rrj_u16(rrj_at(m, arg, 2)), y = rrj_u16(rrj_at(m, arg + 2, 2));
-        unsigned w = rrj_u16(rrj_at(m, arg + 4, 2)), h = rrj_u16(rrj_at(m, arg + 6, 2)), row;
+        unsigned x = rrj_u16(rrj_at(arg, 2)), y = rrj_u16(rrj_at(arg + 2, 2));
+        unsigned w = rrj_u16(rrj_at(arg + 4, 2)), h = rrj_u16(rrj_at(arg + 6, 2)), row;
         if (x > 1024 || y > 512 || w > 1024 - x || h > 512 - y)
             abort();
         for (row = 0; row < h; ++row)
@@ -2009,12 +2468,12 @@ static void live_screen_env(RRJMemory *m, uint32_t fn, uint32_t addr, uint32_t x
 {
     if (fn == 0x8004CC44)
     {
-        (void)sub_8004CC44(m, addr, x, y, w, h, live_screen_call);
+        (void)sub_8004CC44(addr, x, y, w, h, live_screen_call);
         return;
     }
     if (fn == 0x8004CD04)
     {
-        (void)sub_8004CD04(m, addr, x, y, w, h);
+        (void)sub_8004CD04(addr, x, y, w, h);
         return;
     }
     RRJ_WIP(m, fn, "callee", "screen", "skip_call", ((const uint32_t[]){addr, x, y, w, h}), 5);
@@ -2051,8 +2510,21 @@ static void live_stream_header(RRJMemory *m, uint8_t header[12])
 
 static uint32_t live_stream_call(RRJMemory *m, uint32_t fn, const uint32_t args[9])
 {
+    if (fn == 0x8002026Cu)
+    {
+        (void)rrj_vlc_prepare(args[0], 0u);
+        return 0u;
+    }
+    if (fn == 0x800602ECu)
+        return sub_F_800602EC();
+    if (fn == 0x80061730u)
+        return sub_F_80061730();
+    if (fn == 0x800620D4u)
+        return sub_F_800620D4(args[0], live_stream_call, live_stream_bytes);
+    if (fn == 0x80060EC4u)
+        return sub_F_80060EC4();
     if (fn == 0x800611F4u)
-        return sub_F_800611F4(m, args[0], live_stream_call, live_stream_header);
+        return sub_F_800611F4(args[0], live_stream_call, live_stream_header);
     if (fn == 0x80043DD4u)
     {
         m->cpu_status &= 0xfffffbfeu;
@@ -2064,26 +2536,26 @@ static uint32_t live_stream_call(RRJMemory *m, uint32_t fn, const uint32_t args[
         return 0u;
     }
     if (fn == 0x80061584u)
-        return sub_F_80061584(m, args[0], live_stream_call);
+        return sub_F_80061584(args[0], live_stream_call);
     if (fn == 0x80061060u)
-        return sub_F_80061060(m, args[0], args[1], args[2], live_stream_call);
+        return sub_F_80061060(args[0], args[1], args[2], live_stream_call);
     if (fn == 0x80061180u)
-        return sub_F_80061180(m, args[0], args[1], args[2], live_stream_call);
+        return sub_F_80061180(args[0], args[1], args[2], live_stream_call);
     if (fn == 0x80060F44u)
-        return sub_F_80060F44(m, args[0], args[1], args[2], live_stream_call);
+        return sub_F_80060F44(args[0], args[1], args[2]);
     if (fn == 0x80061148u)
-        return sub_F_80061148(m, args[0], args[1], args[2], live_stream_call);
+        return sub_F_80061148(args[0], args[1], args[2]);
     if (fn == 0x800611B8u)
-        return sub_F_800611B8(m, args[0], args[1], args[2], live_stream_call);
+        return sub_F_800611B8(args[0], args[1], args[2]);
     if (fn == 0x80061818u)
-        return sub_F_80061818(m);
+        return sub_F_80061818();
     if (fn == 0x8001E0B4u)
-        return sub_8001E0B4(m, args[0], args[1], args[2]);
+        return sub_8001E0B4(args[0], args[1], args[2]);
     if (fn == 0x80061C44u)
-        return sub_F_80061C44(m, args[0], live_stream_call, live_stream_bytes);
+        return sub_F_80061C44(args[0], live_stream_call, live_stream_bytes);
     if (fn == 0x80061938u)
     {
-        sub_F_80061938(m, live_stream_call, live_stream_bytes);
+        sub_F_80061938(live_stream_call);
         return 0u;
     }
     /* TODO Bind CD command, audio and VLC adapters */
@@ -2093,7 +2565,7 @@ static uint32_t live_stream_call(RRJMemory *m, uint32_t fn, const uint32_t args[
 
 static uint32_t live_stream_read(RRJMemory *m, uint32_t *length)
 {
-    return sub_F_80061F04(m, length, live_stream_call);
+    return sub_F_80061F04(length, live_stream_call);
 }
 
 static uint32_t live_video_call(RRJMemory *m, uint32_t fn, const uint32_t args[9])
@@ -2103,28 +2575,28 @@ static uint32_t live_video_call(RRJMemory *m, uint32_t fn, const uint32_t args[9
         case 0x80022A78:
             if (args[0])
                 abort();
-            return rrj_read32(m, 0x80053464); /* actual non-wait MIPS branch */
+            return rrj_read32(0x80053464); /* actual non-wait MIPS branch */
         case 0x8005F36C:
-            return 0; /* WIP STR/MDEC: failure / end-of-stream */
+            return sub_F_8005F36C(args, live_stream_call, live_stream_read);
         case 0x8005F484:
-            return sub_F_8005F484(m, args[0], args[1], args[2], args[3], args[4], live_stream_read, live_stream_call);
+            return sub_F_8005F484(args[0], args[1], args[2], args[3], args[4], live_stream_read, live_stream_call);
         case 0x8005F7E0:
         case 0x8001460C:
             live_video_stop(m, fn, args[0], 0);
             return 0;
         case 0x80080D08:
-            return sub_F_80080D08(m, live_screen_call);
+            return sub_F_80080D08(live_screen_call);
         case 0x8001BE08:
-            return sub_8001BE08(m, args[0], args[1], args[2], args[3], live_screen_call, live_screen_env);
+            return sub_8001BE08(args[0], args[1], args[2], args[3], live_screen_call, live_screen_env);
         case 0x8001BF1C:
-            return sub_8001BF1C(m, args[0], args[1], args[2], args[3], live_screen_call);
+            return sub_8001BF1C(args[0], args[1], args[2], args[3], live_screen_call);
         case 0x8001C3F4:
-            return sub_8001C3F4(m);
+            return sub_8001C3F4();
         case 0x8001C408:
             live_loop(m, fn, 0, 0);
             return 0;
         case 0x8006DE5C:
-            return sub_F_8006DE5C(m, args[0], live_video_call);
+            return sub_F_8006DE5C(args[0], live_video_call);
         default:
             RRJ_WIP(m, fn, "callee", "video_effect", "skip_call_return_zero", args, 9);
             return 0;
@@ -2136,13 +2608,13 @@ static uint32_t live_video(RRJMemory *m, uint32_t fn, uint32_t desc)
     switch (fn)
     {
         case 0x8006FE6C:
-            return sub_F_8006FE6C(m, live_video_stop);
+            return sub_F_8006FE6C(live_video_stop);
         case 0x8006FED4:
-            return sub_F_8006FED4(m, live_video_stop);
+            return sub_F_8006FED4(live_video_stop);
         case 0x8006FEF4:
-            return sub_F_8006FEF4(m, desc, live_video_call, live_video_open, live_video_stop);
+            return sub_F_8006FEF4(desc, live_video_call, live_video_open, live_video_stop);
         case 0x80070018:
-            return sub_F_80070018(m, desc, live_video_call, live_video_open, live_video_stop);
+            return sub_F_80070018(desc, live_video_call, live_video_open, live_video_stop);
         default:
             RRJ_WIP3(m, fn, "video_dispatch", desc, 0, 0);
             return 0;
@@ -2349,16 +2821,16 @@ static int full_origin_probe(RRJMemory *m)
     full_current_frame = full_resume[2];
     if (!full_ot_read_next())
         full_failed = 1;
-    psx_vblank_bind(full_vblank, NULL, rrj_read32(m, 0x8005B46C));
+    psx_vblank_bind(full_vblank, NULL, rrj_read32(0x8005B46C));
     gpu_set_transfer_observer(full_gpu_transfer, NULL);
     gpu_bind_linked_submit(full_ot_submit, NULL);
     if (setjmp(full_stop) == 0)
     {
-        (void)sub_F_80064C30(m, live_service);
+        (void)sub_F_80064C30(live_service);
         live_loop(m, 0x8001C408, 0, 0);
-        rrj_write32(m, 0x80088C44, 0);
+        rrj_write32(0x80088C44, 0);
         rrj_menu_finish_iteration(m, live_loop);
-        while (r_u8(rrj_read32(m, 0x8005B2F8)) == 2)
+        while (r_u8(rrj_read32(0x8005B2F8)) == 2)
         {
             rrj_menu_iteration(m, live_loop);
         }
@@ -2391,6 +2863,8 @@ static int menu_run(RRJMemory *m, char **argv, int navigation)
     xport_set_headless(navigation == 2);
     if (ResetGraph(0) < 0)
         return 2;
+    DecDCTReset(0);
+    live_decoder_restore(m);
     PadInit(0);
     rrj_spu_initialize(spu);
     if (!xport_audio_init())
@@ -2400,10 +2874,13 @@ static int menu_run(RRJMemory *m, char **argv, int navigation)
     }
     m->sdk_call = live_sdk;
     rrj_video_bind(live_video);
+    if (!rrj_trace_runtime_init_live(m))
+        return 2;
+    rrj_trace_runtime_set_live_poll(live_spu_poll);
     for (frame = 0; frame < limit && !xport_isquit(); ++frame)
     {
         rrj_wip_frame(frame);
-        if (r_u8(rrj_read32(m, 0x8005B2F8)) != 2)
+        if (r_u8(rrj_read32(0x8005B2F8)) != 2)
             break;
         if (navigation == 1)
             buttons = frame >= 5 && frame < 10 ? PADLdown : frame >= 20 && frame < 25 ? PADLup : 0;
@@ -2411,15 +2888,15 @@ static int menu_run(RRJMemory *m, char **argv, int navigation)
             xport_input_override(1, buttons);
         gpu_begin();
         rrj_menu_iteration(m, live_loop);
-        if (rrj_u16(rrj_at(m, 0x8009C5D0, 2)) == 57)
+        if (rrj_u16(rrj_at(0x8009C5D0, 2)) == 57)
         {
             enter_first_race = 1;
             break;
         }
         if (trace)
         {
-            uint32_t menu = rrj_read32(m, rrj_read32(m, 0x8009C68C) + 4 * rrj_u16(rrj_at(m, 0x8009C5D0, 2)));
-            uint32_t selection = rrj_u16(rrj_at(m, menu + 4, 2));
+            uint32_t menu = rrj_read32(rrj_read32(0x8009C68C) + 4 * rrj_u16(rrj_at(0x8009C5D0, 2)));
+            uint32_t selection = rrj_u16(rrj_at(menu + 4, 2));
             if (selection != last_selection)
             {
                 printf("navigation frame=%u selection=%u\n", frame, selection);
@@ -2436,10 +2913,10 @@ static int menu_run(RRJMemory *m, char **argv, int navigation)
         }
     }
     xport_audio_shutdown();
-    if (!xport_isquit() && (enter_first_race || r_u8(rrj_read32(m, 0x8005B2F8)) != 2))
+    if (!xport_isquit() && (enter_first_race || r_u8(rrj_read32(0x8005B2F8)) != 2))
         return first_race_play(m);
     printf("audio submitted=%u nonzero=%u peak=%u active=%u overruns=%u\n", g_xport_audio_submitted_buffers, g_xport_audio_nonzero_buffers, g_xport_audio_peak, g_xport_audio_backend_active, g_xport_audio_callback_overruns);
-    printf("WIP native menu: iterations=%u menu=%u vblanks=%u; audio device stopped\n", frame, (unsigned)rrj_u16(rrj_at(m, 0x8009C5D0, 2)), rrj_read32(m, 0x8005B46C));
+    printf("WIP native menu: iterations=%u menu=%u vblanks=%u; audio device stopped\n", frame, (unsigned)rrj_u16(rrj_at(0x8009C5D0, 2)), rrj_read32(0x8005B46C));
     printf("WIP CD music reads failed=%u\n", live_music_read_failures);
     return !argv[6] || (write_file(argv[6], DRAM, sizeof(DRAM)) && save_live_frame(argv[6])) ? 0 : 2;
 }
@@ -2561,442 +3038,442 @@ static int rrj_main(int argc, char **argv)
     switch (function)
     {
         case 0x80037338:
-            result = sub_80037338(&memory);
+            result = sub_80037338();
             break;
         case 0x80012524:
             race_step_reply = args[0];
-            result = sub_80012524(&memory, probe_race_step);
+            result = sub_80012524(probe_race_step);
             break;
         case 0x8002305C:
             memcpy(race_pause_replies, args, sizeof(race_pause_replies));
-            result = sub_8002305C(&memory, probe_race_pause);
+            result = sub_8002305C(probe_race_pause);
             break;
         case 0x800324CC:
-            result = sub_800324CC(&memory, args[0], args[1], args[2]);
+            result = sub_800324CC(args[0], args[1], args[2]);
             break;
         case 0x800335B4:
-            result = sub_800335B4(&memory, args[0], args[1], args[2]);
+            result = sub_800335B4(args[0], args[1], args[2]);
             break;
         case 0x800329BC:
-            result = sub_800329BC(&memory, args[0], args[1]);
+            result = sub_800329BC(args[0], args[1]);
             break;
         case 0x80032338:
-            result = sub_80032338(&memory, args[0], args[1]);
+            result = sub_80032338(args[0], args[1]);
             break;
         case 0x8003234C:
-            result = sub_8003234C(&memory, args[0], args[1]);
+            result = sub_8003234C(args[0], args[1]);
             break;
         case 0x800325BC:
-            result = sub_800325BC(&memory, args[0], args[1]);
+            result = sub_800325BC(args[0], args[1]);
             break;
         case 0x80013204:
-            result = sub_80013204(&memory, args[0], args[1]);
+            result = sub_80013204(args[0], args[1]);
             break;
         case 0x80013360:
-            result = sub_80013360(&memory, args[0], args[1]);
+            result = sub_80013360(args[0], args[1]);
             break;
         case 0x80012BA8:
-            result = sub_80012BA8(&memory, args[0], args[1], args[2]);
+            result = sub_80012BA8(args[0], args[1], args[2]);
             break;
         case 0x80013110:
-            result = sub_80013110(&memory, args[0], args[1], args[2], args[3], args[4]);
+            result = sub_80013110(args[0], args[1], args[2], args[3], args[4]);
             break;
         case 0x80013294:
-            result = sub_80013294(&memory, args[0], args[1], args[2]);
+            result = sub_80013294(args[0], args[1], args[2]);
             break;
         case 0x8001339C:
-            result = sub_8001339C(&memory, args[0], args[1]);
+            result = sub_8001339C(args[0], args[1]);
             break;
         case 0x800135E8:
-            result = sub_800135E8(&memory, args[0], args[1]);
+            result = sub_800135E8(args[0], args[1]);
             break;
         case 0x80032A20:
-            result = sub_80032A20(&memory, args);
+            result = sub_80032A20(args);
             break;
         case 0x80039A08:
-            result = sub_80039A08(&memory, args[0]);
+            result = sub_80039A08(args[0]);
             break;
         case 0x8003CFCC:
-            result = sub_8003CFCC(&memory, args[0], args[1]);
+            result = sub_8003CFCC(args[0], args[1]);
             break;
         case 0x80093E6C:
-            result = args[5] ? sub_80093E6C(&memory, probe_reverb) : rrj_probe_actor_activity(&memory, probe_pad_sdk);
+            result = args[5] ? sub_80093E6C(probe_reverb) : rrj_probe_actor_activity(&memory, probe_pad_sdk);
             break;
         case 0x80093ED4:
-            sub_80093ED4(&memory, args[0], args[1], probe_reverb);
+            sub_80093ED4(args[0], args[1], probe_reverb);
             result = 0;
             break;
         case 0x80093F94:
-            sub_80093F94(&memory, args[0], args[1], probe_reverb);
+            sub_80093F94(args[0], args[1], probe_reverb);
             result = 0;
             break;
         case 0x800C2FF4:
-            result = sub_800C2FF4(&memory, args[0], args[1], args[2]);
+            result = sub_800C2FF4(args[0], args[1], args[2]);
             break;
         case 0x80012858:
-            result = sub_80012858(&memory, args[0], args[1]);
+            result = sub_80012858(args[0], args[1]);
             break;
         case 0x80093FE4:
-            sub_80093FE4(&memory, args[0], probe_reverb);
+            sub_80093FE4(args[0], probe_reverb);
             result = 0;
             break;
         case 0x800A0708:
-            result = sub_800A0708(&memory, args[0], probe_reverb);
+            result = sub_800A0708(args[0], probe_reverb);
             break;
         case 0x8001FC58:
-            result = sub_8001FC58(&memory);
+            result = sub_8001FC58();
             break;
         case 0x80039C38:
-            result = sub_80039C38(&memory, args[0]);
+            result = sub_80039C38(args[0]);
             break;
         case 0x8003F580:
-            result = sub_8003F580(&memory, args[0], args[1]);
+            result = sub_8003F580(args[0], args[1]);
             break;
         case 0x8003F5D0:
-            result = sub_8003F5D0(&memory, args[0]);
+            result = sub_8003F5D0(args[0]);
             break;
         case 0x8003C840:
-            result = sub_8003C840(&memory, args[0], args[1], args[2]);
+            result = sub_8003C840(args[0], args[1], args[2]);
             break;
         case 0x8003C948:
-            result = sub_8003C948(&memory, args[0], args[1], args[2]);
+            result = sub_8003C948(args[0], args[1], args[2]);
             break;
         case 0x8003F408:
-            result = sub_8003F408(&memory, args[0], args[1]);
+            result = sub_8003F408(args[0], args[1]);
             break;
         case 0x8003CCA0:
             if (args[5])
             {
                 uint32_t candidates[24];
                 for (i = 0; i < 24; ++i)
-                    candidates[i] = rrj_read32(&memory, args[1] + 4 * i);
+                    candidates[i] = rrj_read32(args[1] + 4 * i);
                 result = rrj_actor_route_choice_local(&memory, args[0], candidates, args[2]);
             }
             else
-                result = sub_8003CCA0(&memory, args[0], args[1], args[2]);
+                result = sub_8003CCA0(args[0], args[1], args[2]);
             break;
         case 0x80039048:
             if (args[6])
             {
                 uint32_t candidates[24], directions[3], output[8], previous[8], direction_out, previous_direction;
                 for (i = 0; i < 24; ++i)
-                    candidates[i] = rrj_read32(&memory, args[1] + 4 * i);
+                    candidates[i] = rrj_read32(args[1] + 4 * i);
                 for (i = 0; i < 3; ++i)
-                    directions[i] = rrj_read32(&memory, args[2] + 4 * i);
+                    directions[i] = rrj_read32(args[2] + 4 * i);
                 for (i = 0; i < 8; ++i)
                 {
-                    output[i] = rrj_read32(&memory, args[4] + 4 * i);
-                    previous[i] = rrj_read32(&memory, args[1] - 32 + 4 * i);
+                    output[i] = rrj_read32(args[4] + 4 * i);
+                    previous[i] = rrj_read32(args[1] - 32 + 4 * i);
                 }
-                direction_out = rrj_read32(&memory, args[5]);
-                previous_direction = rrj_read32(&memory, args[2] - 4);
+                direction_out = rrj_read32(args[5]);
+                previous_direction = rrj_read32(args[2] - 4);
                 result = rrj_commit_track_local(&memory, args[0], candidates, directions, args[3], output, &direction_out, previous, &previous_direction);
                 for (i = 0; i < 8; ++i)
-                    rrj_write32(&memory, args[4] + 4 * i, output[i]);
-                rrj_write32(&memory, args[5], direction_out);
+                    rrj_write32(args[4] + 4 * i, output[i]);
+                rrj_write32(args[5], direction_out);
             }
             else
-                result = sub_80039048(&memory, args[0], args[1], args[2], args[3], args[4], args[5]);
+                result = sub_80039048(args[0], rrj_at(args[1], 96), rrj_at(args[2], 12), args[3], rrj_at(args[4], 32), rrj_at(args[5], 4));
             break;
         case 0x80039BB0:
-            result = sub_80039BB0(&memory, args[0], args[1], args[2], args[3]);
+            result = sub_80039BB0(args[0], args[1], args[2], args[3]);
             break;
         case 0x8003775C:
-            result = sub_8003775C(&memory, args[0], args[1], args[2]);
+            result = sub_8003775C(args[0], args[1], args[2]);
             break;
         case 0x80037A30:
             if (args[5])
             {
                 uint32_t record[8], candidates[24], directions[3];
                 for (i = 0; i < 8; ++i)
-                    record[i] = rrj_read32(&memory, args[1] + 4 * i);
+                    record[i] = rrj_read32(args[1] + 4 * i);
                 for (i = 0; i < 24; ++i)
-                    candidates[i] = rrj_read32(&memory, args[2] + 4 * i);
+                    candidates[i] = rrj_read32(args[2] + 4 * i);
                 for (i = 0; i < 3; ++i)
-                    directions[i] = rrj_read32(&memory, args[3] + 4 * i);
+                    directions[i] = rrj_read32(args[3] + 4 * i);
                 result = rrj_traverse_track_local(&memory, args[0], record, candidates, directions, args[4], 0);
                 for (i = 0; i < 24; ++i)
-                    rrj_write32(&memory, args[2] + 4 * i, candidates[i]);
+                    rrj_write32(args[2] + 4 * i, candidates[i]);
                 for (i = 0; i < 3; ++i)
-                    rrj_write32(&memory, args[3] + 4 * i, directions[i]);
+                    rrj_write32(args[3] + 4 * i, directions[i]);
             }
             else
-                result = sub_80037A30(&memory, args[0], args[1], args[2], args[3], args[4]);
+                result = sub_80037A30(args[0], rrj_at(args[1], 32), rrj_at(args[2], 96), rrj_at(args[3], 12), args[4]);
             break;
         case 0x80037FBC:
             if (args[5])
             {
                 uint32_t record[8], candidates[24], directions[3];
                 for (i = 0; i < 8; ++i)
-                    record[i] = rrj_read32(&memory, args[1] + 4 * i);
+                    record[i] = rrj_read32(args[1] + 4 * i);
                 for (i = 0; i < 24; ++i)
-                    candidates[i] = rrj_read32(&memory, args[2] + 4 * i);
+                    candidates[i] = rrj_read32(args[2] + 4 * i);
                 for (i = 0; i < 3; ++i)
-                    directions[i] = rrj_read32(&memory, args[3] + 4 * i);
+                    directions[i] = rrj_read32(args[3] + 4 * i);
                 result = rrj_traverse_track_local(&memory, args[0], record, candidates, directions, args[4], 1);
                 for (i = 0; i < 24; ++i)
-                    rrj_write32(&memory, args[2] + 4 * i, candidates[i]);
+                    rrj_write32(args[2] + 4 * i, candidates[i]);
                 for (i = 0; i < 3; ++i)
-                    rrj_write32(&memory, args[3] + 4 * i, directions[i]);
+                    rrj_write32(args[3] + 4 * i, directions[i]);
             }
             else
-                result = sub_80037FBC(&memory, args[0], args[1], args[2], args[3], args[4]);
+                result = sub_80037FBC(args[0], rrj_at(args[1], 32), rrj_at(args[2], 96), rrj_at(args[3], 12), args[4]);
             break;
         case 0x8003A5F4:
             if (args[5])
             {
                 uint32_t id;
                 result = rrj_nearest_junction_local(&memory, args[0], &id, args[2]);
-                rrj_write32(&memory, args[1], id);
+                rrj_write32(args[1], id);
             }
             else
-                result = sub_8003A5F4(&memory, args[0], args[1], args[2]);
+                result = sub_8003A5F4(args[0], args[1], args[2]);
             break;
         case 0x8003A9D8:
-            result = sub_8003A9D8(&memory, args[0]);
+            result = sub_8003A9D8(args[0]);
             break;
         case 0x8003DCB8:
-            result = sub_8003DCB8(&memory, args[0], args[1]);
+            result = sub_8003DCB8(args[0], args[1]);
             break;
         case 0x8003B61C:
-            result = sub_8003B61C(&memory, args[0]);
+            result = sub_8003B61C(args[0]);
             break;
         case 0x8003B1C4:
-            sub_8003B1C4(&memory, args[0], args[1], args[2]);
+            sub_8003B1C4(args[0], args[1], args[2]);
             result = 0;
             break;
         case 0x8003AF9C:
-            sub_8003AF9C(&memory, args[0], args[1], args[2]);
+            sub_8003AF9C(args[0], args[1], args[2]);
             result = 0;
             break;
         case 0x8003B024:
-            sub_8003B024(&memory, args[0], args[1], args[2], args[3]);
+            sub_8003B024(args[0], args[1], args[2], args[3]);
             result = 0;
             break;
         case 0x8003F4D8:
-            result = sub_8003F4D8(&memory, args[0]);
+            result = sub_8003F4D8(args[0]);
             break;
         case 0x8003DDB0:
-            result = sub_8003DDB0(&memory, args[0]);
+            result = sub_8003DDB0(args[0]);
             break;
         case 0x8003DFF4:
-            result = sub_8003DFF4(&memory, args[0]);
+            result = sub_8003DFF4(args[0]);
             break;
         case 0x8003DE28:
             if (args[5])
             {
                 uint32_t record[8];
                 for (i = 0; i < 8; ++i)
-                    record[i] = rrj_read32(&memory, args[2] + 4 * i);
+                    record[i] = rrj_read32(args[2] + 4 * i);
                 result = rrj_update_contact_local(&memory, args[0], args[1], record, args[3]);
                 for (i = 0; i < 8; ++i)
-                    rrj_write32(&memory, args[2] + 4 * i, record[i]);
+                    rrj_write32(args[2] + 4 * i, record[i]);
             }
             else
-                result = sub_8003DE28(&memory, args[0], args[1], args[2], args[3]);
+                result = sub_8003DE28(args[0], args[1], args[2], args[3]);
             break;
         case 0x8003EE68:
-            result = sub_8003EE68(&memory, args[0], args[1], args[2], args[3]);
+            result = sub_8003EE68(args[0], args[1], args[2], args[3]);
             break;
         case 0x8003E754:
-            result = sub_8003E754(&memory, args[0], args[1], args[2], args[3], args[4]);
+            result = sub_8003E754(args[0], args[1], args[2], args[3], args[4]);
             break;
         case 0x8003701C:
-            result = sub_8003701C(&memory, args[0]);
+            result = sub_8003701C(args[0]);
             break;
         case 0x80036B14:
             if (args[5])
             {
                 uint32_t record[8];
                 for (i = 0; i < 8; ++i)
-                    record[i] = rrj_read32(&memory, args[1] + 4 * i);
+                    record[i] = rrj_read32(args[1] + 4 * i);
                 result = rrj_follow_track_local(&memory, args[0], record, args[2]);
                 for (i = 0; i < 8; ++i)
-                    rrj_write32(&memory, args[1] + 4 * i, record[i]);
+                    rrj_write32(args[1] + 4 * i, record[i]);
             }
             else
-                result = sub_80036B14(&memory, args[0], args[1], args[2]);
+                result = sub_80036B14(args[0], args[1], args[2]);
             break;
         case 0x8003697C:
-            result = sub_8003697C(&memory, args[0], args[1], args[2], args[3]);
+            result = sub_8003697C(args[0], args[1], args[2], args[3]);
             break;
         case 0x80036800:
-            sub_80036800(&memory, args[0], args[1], args[2], args[3]);
+            sub_80036800(args[0], args[1], args[2], args[3]);
             result = 0;
             break;
         case 0x8003E45C:
-            result = sub_8003E45C(&memory, args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7]);
+            result = sub_8003E45C(args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7]);
             break;
         case 0x8003ED14:
-            result = sub_8003ED14(&memory, args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7], args[8]);
+            result = sub_8003ED14(args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7], args[8]);
             break;
         case 0x8003BD2C:
-            result = sub_8003BD2C(&memory, args[0], args[1], args[2], args[3], args[4]);
+            result = sub_8003BD2C(args[0], args[1], args[2], args[3], args[4]);
             break;
         case 0x8003E61C:
             result = sub_8003E61C(args[0], args[1], args[2]);
             break;
         case 0x8003F204:
-            sub_8003F204(&memory, args[0], args[1]);
+            sub_8003F204(args[0], args[1]);
             result = 0;
             break;
         case 0x8003DF54:
-            sub_8003DF54(&memory, args[0], args[1], args[2]);
+            sub_8003DF54(args[0], args[1], args[2]);
             result = 0;
             break;
         case 0x8003F1F0:
-            result = sub_8003F1F0(&memory, args[0]);
+            result = sub_8003F1F0(args[0]);
             break;
         case 0x800B6AAC:
-            result = sub_800B6AAC(&memory, args[0], args[1], args[2]);
+            result = sub_800B6AAC(rrj_at(args[0], 12), rrj_at(args[1], 6), rrj_at(args[2], 12));
             break;
         case 0x8003EB58:
-            result = sub_8003EB58(&memory, args[0], args[1], args[2], args[3], args[4]);
+            result = sub_8003EB58(args[0], args[1], args[2], args[3], args[4]);
             break;
         case 0x8003E67C:
-            result = sub_8003E67C(&memory, args[0], args[1], args[2], args[3]);
+            result = sub_8003E67C(args[0], args[1], args[2], args[3]);
             break;
         case 0x8003EF34:
-            result = sub_8003EF34(&memory, args[0], args[1], args[2]);
+            result = sub_8003EF34(args[0], args[1], args[2]);
             break;
         case 0x8003A468:
-            result = sub_8003A468(&memory, args[0], args[1]);
+            result = sub_8003A468(args[0], args[1]);
             break;
         case 0x800951B8:
-            sub_800951B8(&memory, args[0], args[1], probe_reverb);
+            sub_800951B8(args[0], args[1], probe_reverb);
             result = 0;
             break;
         case 0x800952AC:
-            sub_800952AC(&memory, args[0], args[1], probe_reverb);
+            sub_800952AC(args[0], args[1], probe_reverb);
             result = 0;
             break;
         case 0x800903F4:
-            result = sub_800903F4(&memory, args[0], args[1], probe_reverb);
+            result = sub_800903F4(args[0], args[1], probe_reverb);
             break;
         case 0x800BCA68:
-            result = sub_800BCA68(&memory, args[0], args[1], args[2]);
+            result = sub_800BCA68(args[0], args[1], args[2]);
             break;
         case 0x800C3104:
-            result = sub_800C3104(&memory, args[0], args[1]);
+            result = sub_800C3104(args[0], args[1]);
             break;
         case 0x800BC8DC:
-            sub_800BC8DC(&memory, args[0]);
+            sub_800BC8DC(args[0]);
             result = 0;
             break;
         case 0x800C1014:
-            result = sub_800C1014(&memory, args[0]);
+            result = sub_800C1014(args[0]);
             break;
         case 0x800BFD24:
-            result = sub_800BFD24(&memory, args[0], args[1], args[2]);
+            result = sub_800BFD24(args[0], args[1], args[2]);
             break;
         case 0x800C4500:
-            result = sub_800C4500(&memory, args[0], args[1], args[2]);
+            result = sub_800C4500(args[0], args[1], args[2]);
             break;
         case 0x800C4550:
-            result = sub_800C4550(&memory, args[0], args[1], args[2]);
+            result = sub_800C4550(args[0], args[1], args[2]);
             break;
         case 0x800958F0:
-            result = sub_800958F0(&memory, args[0], args[1]);
+            result = sub_800958F0(args[0], args[1]);
             break;
         case 0x800BFC5C:
-            sub_800BFC5C(&memory, args[0], args[1], args[2], args[3]);
+            sub_800BFC5C(args[0], args[1], args[2], args[3]);
             result = 0;
             break;
         case 0x800C4454:
-            sub_800C4454(&memory, args[0], args[1], args[2]);
+            sub_800C4454(args[0], args[1], args[2]);
             result = 0;
             break;
         case 0x800CB84C:
-            result = sub_800CB84C(&memory, args[0]);
+            result = sub_800CB84C(args[0]);
             break;
         case 0x800CC0B0:
-            result = sub_800CC0B0(&memory, args[0]);
+            result = sub_800CC0B0(args[0]);
             break;
         case 0x8008C000:
-            result = sub_8008C000(&memory, args[0], args[1]);
+            result = sub_8008C000(args[0], args[1]);
             break;
         case 0x8008CC94:
-            result = sub_8008CC94(&memory);
+            result = sub_8008CC94();
             break;
         case 0x80043F00:
-            result = sub_80043F00(&memory, args[0]);
+            result = sub_80043F00(args[0]);
             break;
         case 0x8002705C:
-            result = sub_8002705C(&memory, args[0], args[1]);
+            result = sub_8002705C(args[0], args[1]);
             break;
         case 0x80027178:
-            result = sub_80027178(&memory);
+            result = sub_80027178();
             break;
         case 0x800271CC:
-            result = sub_800271CC(&memory, args[0], args[1]);
+            result = sub_800271CC(args[0], args[1]);
             break;
         case 0x800273EC:
-            result = sub_800273EC(&memory, args[0], args[1], args[2], args[3], args[4]);
+            result = sub_800273EC(args[0], args[1], args[2], args[3], args[4]);
             break;
         case 0x80012884:
-            result = sub_80012884(&memory, args[0], args[1]);
+            result = sub_80012884(args[0], args[1]);
             break;
         case 0x8001298C:
-            result = sub_8001298C(&memory, args[0], args[1]);
+            result = sub_8001298C(args[0], args[1]);
             break;
         case 0x800C2F84:
-            sub_800C2F84(&memory, args[0], args[1], args[2], args[3]);
+            sub_800C2F84(args[0], args[1], args[2], args[3]);
             result = 0;
             break;
         case 0x800C3E9C:
-            result = sub_800C3E9C(&memory, args[0], args[1], args[2]);
+            result = sub_800C3E9C(args[0], args[1], args[2]);
             break;
         case 0x800C37B0:
-            result = sub_800C37B0(&memory, args[0], args[1]);
+            result = sub_800C37B0(args[0], args[1]);
             break;
         case 0x8005C018:
             if (argument_count != 8)
                 return 2;
-            result = sub_8005C018(&memory, args[0], args[1], args[2], args[3], args[4], args[5], args[6]);
+            result = sub_8005C018(args[0], args[1], args[2], args[3], args[4], args[5], args[6]);
             break;
         case 0x8005C140:
             if (argument_count != 8)
                 return 2;
-            result = sub_8005C140(&memory, args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7]);
+            result = sub_8005C140(args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7]);
             break;
         case 0x8005BF6C:
-            result = sub_8005BF6C(&memory, args[0], args[1], args[2], args[3], args[4]);
+            result = sub_8005BF6C(args[0], args[1], args[2], args[3], args[4]);
             break;
         case 0x8005C0B0:
-            result = sub_8005C0B0(&memory, args[0], args[1], args[2], args[3], args[4]);
+            result = sub_8005C0B0(args[0], args[1], args[2], args[3], args[4]);
             break;
         case 0x8005C8F4:
-            result = sub_8005C8F4(&memory, args[0]);
+            result = sub_8005C8F4(args[0]);
             break;
         case 0x8005BD74:
-            result = sub_8005BD74(&memory, args[0]);
+            result = sub_8005BD74(args[0]);
             break;
         case 0x8005CB70:
-            result = sub_8005CB70(&memory, args[0], args[1], args[2]);
+            result = sub_8005CB70(args[0], args[1], args[2]);
             break;
         case 0x800714FC:
-            result = sub_800714FC(&memory, args[0], args[1], args[2]);
+            result = sub_800714FC(args[0], args[1], args[2]);
             break;
         case 0x8005E2BC:
-            result = sub_8005E2BC(&memory, args[0], args[1]);
+            result = sub_8005E2BC(args[0], args[1]);
             break;
         case 0x8005C39C:
-            result = sub_8005C39C(&memory, args[0], args[1]);
+            result = sub_8005C39C(args[0], args[1]);
             break;
         case 0x8005BE58:
-            result = sub_8005BE58(&memory, args[0]);
+            result = sub_8005BE58(args[0]);
             break;
         case 0x8005C418:
-            result = sub_8005C418(&memory, args[0]);
+            result = sub_8005C418(args[0]);
             break;
         case 0x8005BEF4:
-            result = sub_8005BEF4(&memory, args[0]);
+            result = sub_8005BEF4(args[0]);
             break;
         case 0x8005BE0C:
-            result = sub_8005BE0C(&memory, args[0]);
+            result = sub_8005BE0C(args[0]);
             break;
         case 0x80096564:
-            result = sub_80096564(&memory, args[0]);
+            result = sub_80096564(args[0]);
             break;
         case 0x8003662C:
             if (args[5])
@@ -3004,76 +3481,76 @@ static int rrj_main(int argc, char **argv)
                 uint16_t direction[3];
                 uint32_t record[8], output[3];
                 for (i = 0; i < 3; ++i)
-                    direction[i] = rrj_u16(rrj_at(&memory, args[0] + 2 * i, 2));
+                    direction[i] = rrj_u16(rrj_at(args[0] + 2 * i, 2));
                 for (i = 0; i < 8; ++i)
-                    record[i] = rrj_read32(&memory, args[1] + 4 * i);
+                    record[i] = rrj_read32(args[1] + 4 * i);
                 for (i = 0; i < 3; ++i)
-                    output[i] = rrj_read32(&memory, args[2] + 4 * i);
+                    output[i] = rrj_read32(args[2] + 4 * i);
                 result = rrj_update_track_direction_local(&memory, direction, record, output);
                 for (i = 0; i < 3; ++i)
-                    rrj_write32(&memory, args[2] + 4 * i, output[i]);
+                    rrj_write32(args[2] + 4 * i, output[i]);
             }
             else
-                result = sub_8003662C(&memory, args[0], args[1], args[2]);
+                result = sub_8003662C(args[0], args[1], args[2]);
             break;
         case 0x80039AA0:
-            result = sub_80039AA0(&memory, args[0]);
+            result = sub_80039AA0(args[0]);
             break;
         case 0x800394F0:
             if (args[5])
             {
                 uint32_t record[8];
                 for (i = 0; i < 8; ++i)
-                    record[i] = rrj_read32(&memory, args[0] + 4 * i);
+                    record[i] = rrj_read32(args[0] + 4 * i);
                 result = rrj_track_exit_local(&memory, record, args[1]);
             }
             else
-                result = sub_800394F0(&memory, args[0], args[1]);
+                result = sub_800394F0(rrj_at(args[0], 32), args[1]);
             break;
         case 0x8002E468:
-            result = sub_8002E468(&memory, args[0]);
+            result = sub_8002E468(args[0]);
             break;
         case 0x8002E14C:
-            result = sub_8002E14C(&memory, args[0]);
+            result = sub_8002E14C(args[0]);
             break;
         case 0x8003B4B0:
-            result = sub_8003B4B0(&memory, args[0], args[1]);
+            result = sub_8003B4B0(args[0], args[1]);
             break;
         case 0x8003B8F4:
-            result = sub_8003B8F4(&memory, args[0]);
+            result = sub_8003B8F4(args[0]);
             break;
         case 0x80039AFC:
-            result = sub_80039AFC(&memory, args[0]);
+            result = sub_80039AFC(args[0]);
             break;
         case 0x8003A37C:
-            result = sub_8003A37C(&memory, args[0], args[1]);
+            result = sub_8003A37C(args[0], args[1]);
             break;
         case 0x8007EC30:
-            result = sub_8007EC30(&memory, args[0]);
+            result = sub_8007EC30(args[0]);
             break;
         case 0x80018440:
-            result = sub_80018440(&memory, args[0], args[1], probe_reverb);
+            result = sub_80018440(args[0], args[1]);
             break;
         case 0x80068D20:
-            result = sub_80068D20(&memory, args[0], args[1], args[2]);
+            result = sub_80068D20(args[0], args[1], args[2]);
             break;
         case 0x80095AEC:
-            result = sub_80095AEC(&memory, args[0]);
+            result = sub_80095AEC(args[0]);
             break;
         case 0x80012838:
-            result = sub_80012838(&memory, args[0], args[1], args[2], args[3]);
+            result = sub_80012838(args[0], args[1], args[2], args[3]);
             break;
         case 0x80086AF8:
-            result = sub_80086AF8(&memory, args[0]);
+            result = sub_80086AF8(args[0]);
             break;
         case 0x800235B0:
-            result = sub_800235B0(&memory, args[0], args[1]);
+            result = sub_800235B0(args[0], args[1]);
             break;
         case 0x8001E100:
-            result = sub_8001E100(&memory, args[0], args[1], args[2]);
+            result = sub_8001E100(args[0], args[1], args[2]);
             break;
         case 0x800BCD10:
-            result = sub_800BCD10(&memory, args[0]);
+            result = sub_800BCD10(args[0]);
             break;
         case 0x80078C68:
             result = rrj_race_player_tail(&memory, args[0]);
@@ -3085,31 +3562,31 @@ static int rrj_main(int argc, char **argv)
                 result = trace_race_call(&memory, function, wide_args);
             }
             else
-                result = sub_8008A998(&memory, args[0], args[1]);
+                result = sub_8008A998(args[0], args[1]);
             break;
         case 0x800BC7CC:
-            result = sub_800BC7CC(&memory, args[0]);
+            result = sub_800BC7CC(args[0]);
             break;
         case 0x80092C7C:
-            result = sub_80092C7C(&memory, args[0], args[1]);
+            result = sub_80092C7C(args[0], args[1]);
             break;
         case 0x8002090C:
-            result = sub_8002090C(&memory, args[0]);
+            result = sub_8002090C(args[0]);
             break;
         case 0x8002076C:
-            result = sub_8002076C(&memory, args[0]);
+            result = sub_8002076C(args[0]);
             break;
         case 0x8002E698:
-            result = sub_8002E698(&memory, args[0], args[1]);
+            result = sub_8002E698(rrj_at(args[0], 6), rrj_at(args[1], 6));
             break;
         case 0x8002EE50:
-            result = (uint64_t)sub_8002EE50(&memory, args[0], args[1], args[2]);
+            result = (uint64_t)sub_8002EE50(args[0], rrj_at(args[1], 6), rrj_at(args[2], 12));
             break;
         case 0x8007F0BC:
-            result = sub_8007F0BC(&memory, args[0], args[1]);
+            result = sub_8007F0BC(args[0], args[1]);
             break;
         case 0x80075EE0:
-            result = sub_80075EE0(&memory, (int32_t)args[0], trace_race_call, probe_reverb);
+            result = sub_80075EE0((int32_t)args[0], trace_race_call, probe_reverb);
             break;
         case 0x80078AA8:
             result = rrj_race_movement_block(&memory, args[0]);
@@ -3136,49 +3613,49 @@ static int rrj_main(int argc, char **argv)
             result = args[5] ? rrj_race_movement_player_block(&memory, args[0], probe_reverb) : rrj_race_movement_activity_block(&memory, args[0], probe_reverb);
             break;
         case 0x8003E150:
-            result = sub_8003E150(&memory);
+            result = sub_8003E150();
             break;
         case 0x8003AE24:
-            result = sub_8003AE24(&memory);
+            result = sub_8003AE24();
             break;
         case 0x8007504C:
-            result = sub_8007504C(&memory, args[0], args[1]);
+            result = sub_8007504C(args[0], args[1]);
             break;
         case 0x80075B08:
-            result = sub_80075B08(&memory, args[0], args[1]);
+            result = sub_80075B08(args[0], args[1]);
             break;
         case 0x80075628:
-            result = sub_80075628(&memory, args[0], args[1], args[2]);
+            result = sub_80075628(args[0], args[1], args[2]);
             break;
         case 0x8007FA4C:
-            result = sub_8007FA4C(&memory, args[0]);
+            result = sub_8007FA4C(args[0]);
             break;
         case 0x800807F0:
-            result = sub_800807F0(&memory, args[0], args[1]);
+            result = sub_800807F0(args[0], args[1]);
             break;
         case 0x800BFE58:
-            result = sub_800BFE58(&memory, args[0], args[1], args[2]);
+            result = sub_800BFE58(args[0], args[1], args[2]);
             break;
         case 0x800BF51C:
-            result = sub_800BF51C(&memory, args[0]);
+            result = sub_800BF51C(args[0]);
             break;
         case 0x8002F0F4:
-            result = sub_8002F0F4(&memory, args[0]);
+            result = sub_8002F0F4(args[0]);
             break;
         case 0x8002E548:
-            result = sub_8002E548(&memory, args[0]);
+            result = sub_8002E548(args[0]);
             break;
         case 0x8002ED94:
-            result = sub_8002ED94(&memory, args[0], args[1], args[2]);
+            result = sub_8002ED94(args[0], args[1], args[2]);
             break;
         case 0x8007F08C:
-            result = sub_8007F08C(&memory, args[0]);
+            result = sub_8007F08C(args[0]);
             break;
         case 0x8004CF74:
-            result = sub_8004CF74(&memory, args[0]);
+            result = sub_8004CF74(args[0]);
             break;
         case 0x8002ECB8:
-            result = (uint64_t)sub_8002ECB8(&memory, args[0], args[1], args[2], args[3], args[4]);
+            result = (uint64_t)sub_8002ECB8(rrj_at(args[0], 6), rrj_at(args[1], 6), rrj_at(args[2], 12), args[3], args[4]);
             break;
         case 0x800A7BF8:
             if (args[5])
@@ -3187,33 +3664,33 @@ static int rrj_main(int argc, char **argv)
                 uint16_t normal[3];
                 for (i = 0; i < 3; ++i)
                 {
-                    output[i] = rrj_read32(&memory, args[2] + 4 * i);
-                    normal[i] = rrj_u16(rrj_at(&memory, args[3] + 2 * i, 2));
+                    output[i] = rrj_read32(args[2] + 4 * i);
+                    normal[i] = rrj_u16(rrj_at(args[3] + 2 * i, 2));
                 }
                 result = rrj_surface_hit_local(&memory, args[0], args[1], output, normal, args[4]);
                 for (i = 0; i < 3; ++i)
-                    rrj_put16(rrj_at(&memory, args[3] + 2 * i, 2), normal[i]);
+                    rrj_put16(rrj_at(args[3] + 2 * i, 2), normal[i]);
                 for (i = 0; i < 3; ++i)
-                    rrj_write32(&memory, args[2] + 4 * i, output[i]);
+                    rrj_write32(args[2] + 4 * i, output[i]);
             }
             else
-                result = sub_800A7BF8(&memory, args[0], args[1], args[2], args[3], args[4]);
+                result = sub_800A7BF8(args[0], args[1], args[2], args[3], args[4]);
             break;
         case 0x800A8498:
-            result = sub_800A8498(&memory, args[0], args[1], args[2], args[3], args[4], args[5]);
+            result = sub_800A8498(args[0], args[1], args[2], args[3], args[4], args[5]);
             break;
         case 0x800B6E08:
             if (args[5])
             {
                 uint32_t point[3], vertices[12];
                 for (i = 0; i < 3; ++i)
-                    point[i] = rrj_read32(&memory, args[0] + 4 * i);
+                    point[i] = rrj_read32(args[0] + 4 * i);
                 for (i = 0; i < 12; ++i)
-                    vertices[i] = rrj_read32(&memory, args[1] + 4 * i);
+                    vertices[i] = rrj_read32(args[1] + 4 * i);
                 result = rrj_polygon_contains_local(&memory, point, vertices, args[2], args[3]);
             }
             else
-                result = sub_800B6E08(&memory, args[0], args[1], args[2], args[3]);
+                result = sub_800B6E08(args[0], args[1], args[2], args[3]);
             break;
         case 0x800B6844:
             if (args[5])
@@ -3221,79 +3698,79 @@ static int rrj_main(int argc, char **argv)
                 uint32_t vertices[12];
                 uint16_t normal[3];
                 for (i = 0; i < 12; ++i)
-                    vertices[i] = rrj_read32(&memory, args[0] + 4 * i);
+                    vertices[i] = rrj_read32(args[0] + 4 * i);
                 result = rrj_polygon_normal_local(&memory, vertices, args[1], normal);
                 for (i = 0; i < 3; ++i)
-                    rrj_put16(rrj_at(&memory, args[2] + 2 * i, 2), normal[i]);
+                    rrj_put16(rrj_at(args[2] + 2 * i, 2), normal[i]);
             }
             else
-                result = sub_800B6844(&memory, args[0], args[1], args[2]);
+                result = sub_800B6844(args[0], args[1], args[2]);
             break;
         case 0x8003B520:
-            result = sub_8003B520(&memory);
+            result = sub_8003B520();
             break;
         case 0x80071D24:
-            result = sub_80071D24(&memory, args[0]);
+            result = sub_80071D24(args[0]);
             break;
         case 0x800723FC:
-            result = sub_800723FC(&memory, args[0]);
+            result = sub_800723FC(args[0]);
             break;
         case 0x8002E570:
-            result = sub_8002E570(&memory, args[0], args[1], args[2], args[3]);
+            result = sub_8002E570(args[0], args[1], args[2], args[3]);
             break;
         case 0x8002EB78:
-            result = sub_8002EB78(&memory, args[0], args[1], args[2], args[3], args[4]);
+            result = sub_8002EB78(args[0], args[1], args[2], args[3], args[4]);
             break;
         case 0x80010028:
             result = sub_80010028(args[0], args[1]);
             break;
         case 0x8001FF3C:
-            result = sub_8001FF3C(&memory, args[0]);
+            result = sub_8001FF3C(args[0]);
             break;
         case 0x80020018:
-            result = sub_80020018(&memory, args[0], args[1]);
+            result = sub_80020018(args[0], args[1]);
             break;
         case 0x8009DAF8:
-            result = sub_8009DAF8(&memory, args[0]);
+            result = sub_8009DAF8(args[0]);
             break;
         case 0x8002820C:
-            result = sub_8002820C(&memory, args[0]);
+            result = sub_8002820C(args[0]);
             break;
         case 0x8002A738:
-            result = sub_8002A738(&memory, args[0], args[1], args[2], args[3]);
+            result = sub_8002A738(args[0], args[1], args[2], args[3]);
             break;
         case 0x8002847C:
-            result = sub_8002847C(&memory, args[0]);
+            result = sub_8002847C(args[0]);
             break;
         case 0x80039F68:
-            result = sub_80039F68(&memory, args[0]);
+            result = sub_80039F68(args[0]);
             break;
         case 0x80037524:
-            result = sub_80037524(&memory, args[0], args[1]);
+            result = sub_80037524(args[0], args[1]);
             break;
         case 0x8003BE1C:
-            result = sub_8003BE1C(&memory, args[0], args[1], args[2], args[3]);
+            result = sub_8003BE1C(args[0], args[1], args[2], args[3]);
             break;
         case 0x8003A700:
-            result = sub_8003A700(&memory, args[0], args[1], args[2]);
+            result = sub_8003A700(args[0], args[1], args[2]);
             break;
         case 0x80039C90:
-            result = sub_80039C90(&memory, args[0], args[1]);
+            result = sub_80039C90(args[0], args[1]);
             break;
         case 0x80039CFC:
-            result = sub_80039CFC(&memory, args[0], args[1]);
+            result = sub_80039CFC(args[0], args[1]);
             break;
         case 0x80039DFC:
-            result = sub_80039DFC(&memory, args[0], args[1]);
+            result = sub_80039DFC(args[0], args[1]);
             break;
         case 0x8003F3B4:
-            result = sub_8003F3B4(&memory, args[0]);
+            result = sub_8003F3B4(args[0]);
             break;
         case 0x80039B60:
-            result = sub_80039B60(&memory, args[0]);
+            result = sub_80039B60(args[0]);
             break;
         case 0x800374D4:
-            result = sub_800374D4(&memory, args[0], args[1]);
+            result = sub_800374D4(args[0], args[1]);
             break;
         case 0x8004D2A4:
             if (args[5])
@@ -3301,14 +3778,14 @@ static int rrj_main(int argc, char **argv)
                 uint16_t angles[3], matrix[9];
                 unsigned mi;
                 for (mi = 0; mi < 3; ++mi)
-                    angles[mi] = rrj_u16(rrj_at(&memory, args[0] + 2 * mi, 2));
+                    angles[mi] = rrj_u16(rrj_at(args[0] + 2 * mi, 2));
                 rrj_euler_rotation_local(&memory, angles, matrix);
                 for (mi = 0; mi < 9; ++mi)
-                    rrj_put16(rrj_at(&memory, args[1] + 2 * mi, 2), matrix[mi]);
+                    rrj_put16(rrj_at(args[1] + 2 * mi, 2), matrix[mi]);
                 result = args[1];
             }
             else
-                result = sub_8004D2A4(&memory, args[0], args[1]);
+                result = sub_8004D2A4(args[0], args[1]);
             break;
         case 0x8003FA40:
             if (args[5] == 2)
@@ -3316,7 +3793,7 @@ static int rrj_main(int argc, char **argv)
                 uint16_t matrix[9];
                 unsigned mi;
                 for (mi = 0; mi < 9; ++mi)
-                    matrix[mi] = rrj_u16(rrj_at(&memory, args[0] + 2 * mi, 2));
+                    matrix[mi] = rrj_u16(rrj_at(args[0] + 2 * mi, 2));
                 result = rrj_multiply_rotation_local_left(&memory, matrix, args[1], args[2]);
             }
             else if (args[5])
@@ -3324,11 +3801,11 @@ static int rrj_main(int argc, char **argv)
                 uint16_t matrix[9];
                 unsigned mi;
                 for (mi = 0; mi < 9; ++mi)
-                    matrix[mi] = rrj_u16(rrj_at(&memory, args[1] + 2 * mi, 2));
+                    matrix[mi] = rrj_u16(rrj_at(args[1] + 2 * mi, 2));
                 result = rrj_multiply_rotation_local(&memory, args[0], matrix, args[2]);
             }
             else
-                result = sub_8003FA40(&memory, args[0], args[1], args[2]);
+                result = sub_8003FA40(args[0], args[1], args[2]);
             break;
         case 0x8003FB34:
             if (args[5])
@@ -3337,32 +3814,32 @@ static int rrj_main(int argc, char **argv)
                 unsigned mi;
                 result = rrj_axis_rotation_local(&memory, args[0], args[1], matrix);
                 for (mi = 0; mi < 9; ++mi)
-                    rrj_put16(rrj_at(&memory, args[2] + 2 * mi, 2), matrix[mi]);
+                    rrj_put16(rrj_at(args[2] + 2 * mi, 2), matrix[mi]);
             }
             else
-                result = sub_8003FB34(&memory, args[0], args[1], args[2]);
+                result = sub_8003FB34(args[0], args[1], args[2]);
             break;
         case 0x80028034:
-            result = sub_80028034(&memory, args[0]);
+            result = sub_80028034(args[0]);
             break;
         case 0x8008BA18:
-            result = sub_8008BA18(&memory, args[0]);
+            result = sub_8008BA18(args[0]);
             break;
         case 0x8002E810:
-            result = (uint64_t)sub_8002E810(&memory, args[0], args[1], args[2]);
+            result = (uint64_t)sub_8002E810(args[0], args[1], args[2]);
             break;
         case 0x8009432C:
-            result = sub_8009432C(&memory, args[0]);
+            result = sub_8009432C(args[0]);
             break;
         case 0x80037104:
-            result = sub_80037104(&memory, args[0]);
+            result = sub_80037104(args[0]);
             break;
         case 0x80037450:
-            result = sub_80037450(&memory, args[0]);
+            result = sub_80037450(args[0]);
             break;
         case 0x800396A8:
             if (args[5])
-                sub_800396A8(&memory, args[0]);
+                sub_800396A8(args[0]);
             else
                 rrj_correct_actor_track_with_prior(&memory, args[0], args[1]);
             result = 0;
@@ -3378,181 +3855,181 @@ static int rrj_main(int argc, char **argv)
             if (args[5])
             {
                 uint32_t local[3];
-                result = rrj_project_vector_local(&memory, args[0], args[1], args[2], local);
+                result = sub_8002EAD8(rrj_at(args[0], 12), rrj_at(args[1], 6), args[2], local);
                 for (i = 0; i < 3; ++i)
-                    rrj_write32(&memory, args[3] + 4 * i, local[i]);
+                    rrj_write32(args[3] + 4 * i, local[i]);
             }
             else
-                result = sub_8002EAD8(&memory, args[0], args[1], args[2], args[3]);
+                result = sub_8002EAD8(rrj_at(args[0], 12), rrj_at(args[1], 6), args[2], rrj_at(args[3], 12));
             break;
         case 0x80099D48:
-            result = sub_80099D48(&memory, args[0]);
+            result = sub_80099D48(args[0]);
             break;
         case 0x800950E8:
-            result = args[5] ? sub_800950E8(&memory, probe_reverb) : rrj_probe_activity_list(&memory, probe_pad_sdk);
+            result = args[5] ? sub_800950E8(probe_reverb) : rrj_probe_activity_list(&memory, probe_pad_sdk);
             break;
         case 0x8003CEC4:
-            result = args[5] ? sub_8003CEC4(&memory, args[0], args[1], args[2], probe_reverb) : rrj_probe_segment_load(&memory, args[0], args[1], args[2], probe_pad_sdk);
+            result = args[5] ? sub_8003CEC4(args[0], args[1], args[2], probe_reverb) : rrj_probe_segment_load(&memory, args[0], args[1], args[2], probe_pad_sdk);
             break;
         case 0x80023960:
-            result = sub_80023960(&memory, args[0], args[1]);
+            result = sub_80023960(args[0], args[1]);
             break;
         case 0x800136BC:
-            result = sub_800136BC(&memory, args[0], args[1], args[2]);
+            result = sub_800136BC(args[0], args[1], args[2]);
             break;
         case 0x8003CA50:
-            result = sub_8003CA50(&memory, args[0], args[1], args[2]);
+            result = sub_8003CA50(args[0], args[1], args[2]);
             break;
         case 0x80031E1C:
-            result = sub_80031E1C(&memory, args[0], args[1], args[2]);
+            result = sub_80031E1C(args[0], args[1], args[2]);
             break;
         case 0x80033F14:
-            result = sub_80033F14(&memory, args[0], args[1], args[2]);
+            result = sub_80033F14(args[0], args[1], args[2]);
             break;
         case 0x8002227C:
-            result = sub_8002227C(&memory, args[0], args[1], args[2], args[3], args[4], record_image);
+            result = sub_8002227C(args[0], args[1], args[2], args[3], args[4], record_image);
             break;
         case 0x80031008:
-            result = sub_80031008(&memory, args[0], probe_dispatch_critical);
+            result = sub_80031008(args[0], probe_dispatch_critical);
             break;
         case 0x800333F4:
-            result = sub_800333F4(&memory, args[0], args[1], probe_slot_service);
+            result = sub_800333F4(args[0], args[1], probe_slot_service);
             break;
         case 0x80033B50:
-            result = sub_80033B50(&memory, args[0], args[1], args[2], args[3], probe_slot_service);
+            result = sub_80033B50(args[0], args[1], args[2], args[3], probe_slot_service);
             break;
         case 0x80022218:
-            result = sub_80022218(&memory, args[0], args[1]);
+            result = sub_80022218(args[0], args[1]);
             break;
         case 0x80032C6C:
             slot_find_count = 0;
-            result = sub_80032C6C(&memory, args, probe_slot_service);
+            result = sub_80032C6C(args, probe_slot_service);
             break;
         case 0x80032CC8:
             slot_find_count = 0;
-            result = sub_80032CC8(&memory, args, probe_slot_service);
+            result = sub_80032CC8(args, probe_slot_service);
             break;
         case 0x80031604:
             memcpy(object_dispatch_args, args, sizeof(object_dispatch_args));
             object_dispatch_composed = args[5];
             slot_find_count = 0;
-            result = sub_80031604(&memory, args[0], args[1], probe_object_dispatch, probe_dispatch_critical);
+            result = sub_80031604(args[0], args[1], probe_object_dispatch, probe_dispatch_critical);
             break;
         case 0x80032190:
-            result = sub_80032190(&memory, args[0], args[1]);
+            result = sub_80032190(args[0], args[1]);
             break;
         case 0x800322D0:
             cleanup_mode = args[2];
             cleanup_reply = args[3];
-            result = sub_800322D0(&memory, args[0], args[1], probe_object_cleanup);
+            result = sub_800322D0(args[0], args[1], probe_object_cleanup);
             break;
         case 0x800313EC:
             cleanup_mode = args[2];
             cleanup_reply = args[3];
-            result = sub_800313EC(&memory, args[0], probe_object_cleanup);
+            result = sub_800313EC(args[0], probe_object_cleanup);
             break;
         case 0x80031B98:
-            result = sub_80031B98(&memory, args[0], args[1]);
+            result = sub_80031B98(args[0], args[1]);
             break;
         case 0x80031B4C:
-            result = sub_80031B4C(&memory, args[0]);
+            result = sub_80031B4C(args[0]);
             break;
         case 0x800319F8:
-            result = sub_800319F8(&memory, args[0], args[1]);
+            result = sub_800319F8(args[0], args[1]);
             break;
         case 0x80031D70:
             memcpy(queue_args, args, sizeof(queue_args));
             queue_composed = 0;
-            result = sub_80031D70(&memory, probe_object_queue);
+            result = sub_80031D70(probe_object_queue);
             break;
         case 0x80031BF8:
-            result = sub_80031BF8(&memory, args[0], args[1]);
+            result = sub_80031BF8(args[0], args[1]);
             break;
         case 0x800320CC:
-            result = sub_800320CC(&memory, args[0]);
+            result = sub_800320CC(args[0]);
             break;
         case 0x800320AC:
-            result = sub_800320AC(&memory);
+            result = sub_800320AC();
             break;
         case 0x80030608:
             memcpy(queue_args, args, sizeof(queue_args));
             queue_index = 0;
             queue_composed = args[5];
-            result = sub_80030608(&memory, probe_object_queue);
+            result = sub_80030608(probe_object_queue);
             break;
         case 0x8002379C:
-            result = sub_8002379C(&memory, args[0]);
+            result = sub_8002379C(args[0]);
             break;
         case 0x80023860:
             result = sub_80023860(args[0]);
             break;
         case 0x800237B8:
             memcpy(player_update_args, args, sizeof(player_update_args));
-            result = sub_800237B8(&memory, probe_player_update);
+            result = sub_800237B8(probe_player_update);
             break;
         case 0x80023D7C:
             memcpy(player_update_args, args, sizeof(player_update_args));
-            result = sub_80023D7C(&memory, probe_player_update);
+            result = sub_80023D7C(probe_player_update);
             break;
         case 0x80023C4C:
             memcpy(player_update_args, args, sizeof(player_update_args));
-            result = sub_80023C4C(&memory, probe_player_update);
+            result = sub_80023C4C(probe_player_update);
             break;
         case 0x800245DC:
-            result = sub_800245DC(&memory, args[0]);
+            result = sub_800245DC(args[0]);
             break;
         case 0x800245F4:
-            result = sub_800245F4(&memory, args[0]);
+            result = sub_800245F4(args[0]);
             break;
         case 0x80030410:
-            result = sub_80030410(&memory, args[0], args[1]);
+            result = sub_80030410(args[0], args[1]);
             break;
         case 0x8008B99C:
-            result = sub_8008B99C(&memory, args[0]);
+            result = sub_8008B99C(args[0]);
             break;
         case 0x80030500:
-            result = sub_80030500(&memory, args[0], args[1]);
+            result = sub_80030500(args[0], args[1]);
             break;
         case 0x80022C64:
-            result = sub_80022C64(&memory);
+            result = sub_80022C64();
             break;
         case 0x80023870:
             memcpy(race_check_replies, args, sizeof(race_check_replies));
             race_check_index = 0;
-            result = sub_80023870(&memory, args[5] ? sub_8008B99C : probe_race_player_check);
+            result = sub_80023870(args[5] ? sub_8008B99C : probe_race_player_check);
             break;
         case 0x80011C4C:
             memcpy(race_frame_args, args, sizeof(race_frame_args));
-            result = sub_80011C4C(&memory, probe_race_frame);
+            result = sub_80011C4C(probe_race_frame);
             break;
         case 0x8008CD88:
         case 0x8008AC80:
         case 0x8008ACE8:
             memcpy(race_service_args, args + 1, sizeof(race_service_args));
-            result = function == 0x8008CD88 ? sub_G_8008CD88(&memory, args[0], probe_race_service) : function == 0x8008AC80 ? sub_G_8008AC80(&memory, args[0], probe_race_service) : sub_G_8008ACE8(&memory, args[0], probe_race_service);
+            result = function == 0x8008CD88 ? sub_G_8008CD88(args[0], probe_race_service) : function == 0x8008AC80 ? sub_G_8008AC80(args[0], probe_race_service) : sub_G_8008ACE8(args[0], probe_race_service);
             break;
         case 0x8008AB00:
             race_global_replies[0] = args[1];
             race_global_replies[1] = args[2];
             race_global_composed = args[4];
-            result = sub_G_8008AB00(&memory, args[0], probe_race_global);
+            result = sub_G_8008AB00(args[0], probe_race_global);
             break;
         case 0x8008AD38:
-            result = sub_G_8008AD38(&memory, args[0], probe_race_global);
+            result = sub_G_8008AD38(args[0], probe_race_global);
             break;
         case 0x8008AD40:
-            result = sub_G_8008AD40(&memory, args[0], args[1], args[2], probe_race_global);
+            result = sub_G_8008AD40(args[0], args[1], args[2], probe_race_global);
             break;
         case 0x8006883C:
             submenu_reply = args[1];
-            result = sub_F_8006883C(&memory, args[0], probe_submenu);
+            result = sub_F_8006883C(args[0], probe_submenu);
             break;
         case 0x8002D250:
-            result = sub_8002D250(&memory);
+            result = sub_8002D250();
             break;
         case 0x8006AE6C:
             submenu_reply = args[1];
-            result = sub_F_8006AE6C(&memory, args[0], probe_submenu);
+            result = sub_F_8006AE6C(args[0], probe_submenu);
             break;
         case 0x8007EDE0:
         case 0x8007EEB8:
@@ -3560,122 +4037,122 @@ static int rrj_main(int argc, char **argv)
             music_replies[0] = args[1];
             music_replies[1] = args[2];
             music_voice_index = 0;
-            result = function == 0x8007EDE0 ? sub_F_8007EDE0(&memory, args[0], probe_music_start) : function == 0x8007EEB8 ? sub_F_8007EEB8(&memory, args[0], probe_music_start) : sub_F_8007EF64(&memory, probe_music_start);
+            result = function == 0x8007EDE0 ? sub_F_8007EDE0(args[0], probe_music_start) : function == 0x8007EEB8 ? sub_F_8007EEB8(args[0], probe_music_start) : sub_F_8007EF64(probe_music_start);
             break;
         case 0x8006FEF4:
         case 0x80070018:
             video_phase_replies[0] = args[1];
             video_phase_replies[1] = args[2];
             video_phase_replies[2] = args[3];
-            result = function == 0x8006FEF4 ? sub_F_8006FEF4(&memory, args[0], probe_video_phase, probe_video_open, probe_preview_stop) : sub_F_80070018(&memory, args[0], probe_video_phase, probe_video_open, probe_preview_stop);
+            result = function == 0x8006FEF4 ? sub_F_8006FEF4(args[0], probe_video_phase, probe_video_open, probe_preview_stop) : sub_F_80070018(args[0], probe_video_phase, probe_video_open, probe_preview_stop);
             break;
         case 0x8006DE5C:
             video_phase_replies[2] = args[3];
-            result = sub_F_8006DE5C(&memory, args[0], probe_video_phase);
+            result = sub_F_8006DE5C(args[0], probe_video_phase);
             break;
         case 0x8006DB5C:
             video_phase_replies[0] = args[1];
             video_phase_replies[1] = args[2];
             video_phase_replies[2] = args[3];
-            result = sub_F_8006DB5C(&memory, args[0], probe_video_phase, probe_video_open);
+            result = sub_F_8006DB5C(args[0], probe_video_phase, probe_video_open);
             break;
         case 0x8004CC44:
             vblank_replies[1] = args[5];
-            result = sub_8004CC44(&memory, args[0], args[1], args[2], args[3], args[4], probe_vblank);
+            result = sub_8004CC44(args[0], args[1], args[2], args[3], args[4], probe_vblank);
             break;
         case 0x8004CD04:
-            result = sub_8004CD04(&memory, args[0], args[1], args[2], args[3], args[4]);
+            result = sub_8004CD04(args[0], args[1], args[2], args[3], args[4]);
             break;
         case 0x8001BE08:
             screen_probe_mode = args[4];
             screen_probe_env_index = 0;
-            result = sub_8001BE08(&memory, args[0], args[1], args[2], args[3], probe_vblank, probe_screen_env);
+            result = sub_8001BE08(args[0], args[1], args[2], args[3], probe_vblank, probe_screen_env);
             screen_probe_mode = 0;
             break;
         case 0x800C2178:
-            result = sub_800C2178(&memory, args[0], args[1]);
+            result = sub_800C2178(args[0], args[1]);
             break;
         case 0x8008B428:
-            result = sub_8008B428(&memory, args[0], args[1]);
+            result = sub_8008B428(args[0], args[1]);
             break;
         case 0x8001BF1C:
-            result = sub_8001BF1C(&memory, args[0], args[1], args[2], args[3], probe_vblank);
+            result = sub_8001BF1C(args[0], args[1], args[2], args[3], probe_vblank);
             break;
         case 0x80080D08:
             vblank_replies[1] = args[3];
-            result = sub_F_80080D08(&memory, probe_vblank);
+            result = sub_F_80080D08(probe_vblank);
             break;
         case 0x8006FE6C:
-            result = sub_F_8006FE6C(&memory, record_sdk);
+            result = sub_F_8006FE6C(record_sdk);
             break;
         case 0x8006FED4:
-            result = sub_F_8006FED4(&memory, record_sdk);
+            result = sub_F_8006FED4(record_sdk);
             break;
         case 0x8006D5B0:
-            result = sub_F_8006D5B0(&memory, args[0], record_sdk);
+            result = sub_F_8006D5B0(args[0], record_sdk);
             break;
         case 0x8006A8FC:
-            result = sub_F_8006A8FC(&memory, args[0], probe_attract_sound);
+            result = sub_F_8006A8FC(args[0], probe_attract_sound);
             break;
         case 0x8001FB58:
-            result = sub_8001FB58(&memory, args[0]);
+            result = sub_8001FB58(args[0]);
             break;
         case 0x8001F7EC:
-            result = sub_8001F7EC(&memory, args[0], probe_reverb);
+            result = sub_8001F7EC(args[0]);
             break;
         case 0x8001F5D4:
-            result = sub_8001F5D4(&memory, args[0], args[1], probe_voice_setup, probe_reverb);
+            result = sub_8001F5D4(args[0], args[1], probe_voice_setup);
             break;
         case 0x8007F158:
-            result = sub_F_8007F158(&memory, args[0], probe_voice_setup, probe_reverb);
+            result = sub_F_8007F158(args[0], probe_voice_setup);
             break;
         case 0x8001EB7C:
-            result = sub_8001EB7C(&memory, args[0], args[1], args[2], args[3], probe_voice_setup);
+            result = sub_8001EB7C(args[0], args[1], args[2], args[3], probe_voice_setup);
             break;
         case 0x80080274:
             probe_loop_remaining = args[2];
-            result = sub_F_80080274(&memory, probe_loop);
+            result = sub_F_80080274(probe_loop);
             break;
         case 0x80080488:
             vblank_replies[0] = args[2];
             vblank_replies[1] = args[3];
-            result = sub_F_80080488(&memory, probe_vblank);
+            result = sub_F_80080488(probe_vblank);
             break;
         case 0x8001EE94:
-            result = sub_8001EE94(&memory, probe_voice_setup, memory.sdk_call);
+            result = sub_8001EE94(probe_voice_setup, memory.sdk_call);
             break;
         case 0x800600F8:
-            result = sub_F_800600F8(&memory);
+            result = sub_F_800600F8();
             break;
         case 0x8001B700:
             vblank_replies[0] = args[2];
             vblank_replies[1] = args[3];
-            result = sub_8001B700(&memory, probe_vblank);
+            result = sub_8001B700(probe_vblank);
             break;
         case 0x80064C30:
             vblank_replies[0] = args[2];
             vblank_replies[1] = args[3];
-            result = sub_F_80064C30(&memory, probe_vblank);
+            result = sub_F_80064C30(probe_vblank);
             break;
         case 0x8001E0B4:
-            result = sub_8001E0B4(&memory, args[0], args[1], args[2]);
+            result = sub_8001E0B4(args[0], args[1], args[2]);
             break;
         case 0x8001CB3C:
             if (args[5])
                 result = rrj_input_audit_probe(&memory, args);
             else
             {
-                sub_8001CB3C_menu(&memory, memory.sdk_call);
+                sub_8001CB3C_menu(memory.sdk_call);
                 result = 0;
             }
             break;
         case 0x8001DDC4:
             pad_sdk_returns[0] = args[2];
             pad_sdk_returns[1] = args[3];
-            result = sub_8001DDC4(&memory, args[0], args[1], probe_pad_sdk);
+            result = sub_8001DDC4(args[0], args[1], probe_pad_sdk);
             break;
         case 0x8001C4A8:
-            result = sub_8001C4A8(&memory, args[0], args[1]);
+            result = sub_8001C4A8(args[0], args[1]);
             break;
         case 0x8001C5F8:
             if (args[5])
@@ -3685,176 +4162,176 @@ static int rrj_main(int argc, char **argv)
                 result = rrj_pad_poll(&memory, probe_pad_sdk);
             }
             else
-                result = sub_8001C5F8(&memory, memory.sdk_call);
+                result = sub_8001C5F8(memory.sdk_call);
             break;
         case 0x80080A70:
-            result = sub_F_80080A70(&memory, args[0]);
+            result = sub_F_80080A70(args[0]);
             break;
         case 0x80066EF8:
-            result = sub_F_80066EF8(&memory, memory.sdk_call);
+            result = sub_F_80066EF8(memory.sdk_call);
             break;
         case 0x8006711C:
-            result = sub_F_8006711C(&memory, memory.sdk_call);
+            result = sub_F_8006711C(memory.sdk_call);
             break;
         case 0x80066C34:
-            sub_F_80066C34(&memory, native_menu_frame);
+            sub_F_80066C34(native_menu_frame);
             result = 0;
             break;
         case 0x800667E4:
-            result = sub_F_800667E4(&memory, native_menu_update, memory.sdk_call);
+            result = sub_F_800667E4(native_menu_update, memory.sdk_call);
             break;
         case 0x8006738C:
-            sub_F_8006738C(&memory, args[0], memory.sdk_call);
+            sub_F_8006738C(args[0], memory.sdk_call);
             result = 0;
             break;
         case 0x80080ACC:
-            result = sub_F_80080ACC(&memory, args[0]);
+            result = sub_F_80080ACC(args[0]);
             break;
         case 0x8006310C:
-            sub_F_8006310C(&memory, args[0], memory.sdk_call);
+            sub_F_8006310C(args[0], memory.sdk_call);
             result = 0;
             break;
         case 0x80062D6C:
-            result = sub_F_80062D6C(&memory, args[0]);
+            result = sub_F_80062D6C(args[0]);
             break;
         case 0x800630C0:
-            result = sub_F_800630C0(&memory, args[0], args[1]);
+            result = sub_F_800630C0(args[0], args[1]);
             break;
         case 0x80064254:
-            result = sub_F_80064254(&memory, args[0]);
+            result = sub_F_80064254(args[0]);
             break;
         case 0x80068448:
-            result = sub_F_80068448(&memory);
+            result = sub_F_80068448();
             break;
         case 0x800649BC:
-            result = sub_F_800649BC(&memory, args[0]);
+            result = sub_F_800649BC(args[0]);
             break;
         case 0x800680E8:
-            result = sub_F_800680E8(&memory, args[0], args[1]);
+            result = sub_F_800680E8(args[0], args[1]);
             break;
         case 0x8006E4D8:
-            result = sub_F_8006E4D8(&memory, args[0], args[1], probe_video);
+            result = sub_F_8006E4D8(args[0], args[1], probe_video);
             break;
         case 0x8006E6F4:
-            result = sub_F_8006E6F4(&memory, args[0], args[1], probe_video);
+            result = sub_F_8006E6F4(args[0], args[1], probe_video);
             break;
         case 0x8006FAC8:
-            result = sub_F_8006FAC8(&memory, args[0], args[1], NULL, NULL);
+            result = sub_F_8006FAC8(args[0], args[1], NULL, NULL);
             break;
         case 0x800662CC:
-            result = sub_F_800662CC(&memory, args[0], args[1], args[2], args[3], args[4], args[5]);
+            result = sub_F_800662CC(args[0], args[1], args[2], args[3], args[4], args[5]);
             break;
         case 0x80066318:
-            result = sub_F_80066318(&memory, args[0], args[1], args[2], args[3], args[4], args[5]);
+            result = sub_F_80066318(args[0], args[1], args[2], args[3], args[4], args[5]);
             break;
         case 0x80063C7C:
-            result = sub_F_80063C7C(&memory, args[0], NULL);
+            result = sub_F_80063C7C(args[0], NULL);
             break;
         case 0x8006E8FC:
-            result = sub_F_8006E8FC(&memory, args[0], args[1], item_resource, rrj_select_menu_image, NULL);
+            result = sub_F_8006E8FC(args[0], args[1], item_resource, rrj_select_menu_image, NULL);
             break;
         case 0x80064154:
-            result = sub_F_80064154(&memory, args[0]);
+            result = sub_F_80064154(args[0]);
             break;
         case 0x800641D4:
-            result = sub_F_800641D4(&memory);
+            result = sub_F_800641D4();
             break;
         case 0x80072100:
-            result = sub_F_80072100(&memory, args[0]);
+            result = sub_F_80072100(args[0]);
             break;
         case 0x8002CB08:
-            result = sub_8002CB08(&memory, args[0], args[1], args[2], args[3], args[4], args[5], rrj_blink_text);
+            result = sub_8002CB08(args[0], args[1], args[2], args[3], args[4], args[5], rrj_blink_text);
             break;
         case 0x8006E7A4:
-            result = sub_F_8006E7A4(&memory, args[0], args[1], item_resource, rrj_blink_text);
+            result = sub_F_8006E7A4(args[0], args[1], item_resource, rrj_blink_text);
             break;
         case 0x8006F764:
-            result = sub_F_8006F764(&memory, args[0], args[1], item_resource);
+            result = sub_F_8006F764(args[0], args[1], item_resource);
             break;
         case 0x8002D1F8:
-            result = sub_8002D1F8(&memory, args[0], args[1], args[2], args[3]);
+            result = sub_8002D1F8(args[0], args[1], args[2], args[3]);
             break;
         case 0x8002D1A0:
-            result = sub_8002D1A0(&memory, args[0], args[1], args[2]);
+            result = sub_8002D1A0(args[0], args[1], args[2]);
             break;
         case 0x8002D0D8:
-            result = sub_8002D0D8(&memory, args[0], args[1]);
+            result = sub_8002D0D8(args[0], args[1]);
             break;
         case 0x8002CDC8:
-            result = sub_8002CDC8(&memory, args[0], args[1], args[2], args[3], args[4], args[5]);
+            result = sub_8002CDC8(args[0], args[1], args[2], args[3], args[4], args[5]);
             break;
         case 0x80065768:
-            result = sub_F_80065768(&memory, args[0], memory.sdk_user ? record_image : NULL);
+            result = sub_F_80065768(args[0], memory.sdk_user ? record_image : NULL);
             break;
         case 0x8007A400:
-            result = sub_F_8007A400(&memory, args[0], args[1], memory.sdk_user ? record_image : NULL);
+            result = sub_F_8007A400(args[0], args[1], memory.sdk_user ? record_image : NULL);
             break;
         case 0x8007A6C0:
             result = sub_F_8007A6C0(args[0], args[1]);
             break;
         case 0x800700F0:
-            result = sub_F_800700F0(&memory, args[0], args[1], args[2], NULL);
+            result = sub_F_800700F0(args[0], args[1], args[2], NULL);
             break;
         case 0x8006E894:
-            result = sub_F_8006E894(&memory, args[0], args[1], NULL);
+            result = sub_F_8006E894(args[0], args[1], NULL);
             break;
         /* Explicit GAME renderer interception in these dispatcher-only fixtures. */
         case 0x8006D3E0:
-            result = sub_F_8006D3E0(&memory, args[0], record_sdk);
+            result = sub_F_8006D3E0(args[0], record_sdk);
             break;
         case 0x8006D630:
-            result = sub_F_8006D630(&memory, args[0], args[5] ? native_menu_draw : record_sdk);
+            result = sub_F_8006D630(args[0], args[5] ? native_menu_draw : record_sdk);
             break;
         case 0x8006C700:
-            result = sub_F_8006C700(&memory, args[0], args[1]);
+            result = sub_F_8006C700(args[0], args[1]);
             break;
         case 0x8006B03C:
-            result = sub_F_8006B03C(&memory, args[0], args[1], args[2], NULL);
+            result = sub_F_8006B03C(args[0], args[1], args[2], NULL);
             break;
         case 0x80069418:
-            result = sub_F_80069418(&memory, args[0], NULL);
+            result = sub_F_80069418(args[0], NULL);
             break;
         case 0x8001EB28:
-            result = sub_8001EB28(&memory, args[0]);
+            result = sub_8001EB28(args[0]);
             break;
         case 0x8001EB44:
-            result = sub_8001EB44(&memory, args[0]);
+            result = sub_8001EB44(args[0]);
             break;
         case 0x8001E86C:
-            result = sub_8001E86C(&memory, args[0], args[1]);
+            result = sub_8001E86C(args[0], args[1]);
             break;
         case 0x8001F9C4:
-            result = sub_8001F9C4(&memory, args[0]);
+            result = sub_8001F9C4(args[0]);
             break;
         case 0x8001F174:
-            result = sub_8001F174(&memory, args[0], args[1], args[2], args[3], ram_pointer(args[4], 12));
+            result = sub_8001F174(args[0], args[1], args[2], args[3], ram_pointer(args[4], 12));
             break;
         case 0x8007EAC0:
-            result = sub_F_8007EAC0(&memory, args[0]);
+            result = sub_F_8007EAC0(args[0]);
             break;
         /* Sixth fixture word selects full translated sound for integration probes;
      * it is not an argument of either original navigation function. */
         case 0x8006C3A4:
-            result = sub_F_8006C3A4(&memory, args[0], args[5] ? sub_F_8007EAC0 : probe_navigation_sound);
+            result = sub_F_8006C3A4(args[0], args[5] ? sub_F_8007EAC0 : probe_navigation_sound);
             break;
         case 0x8006C558:
-            result = sub_F_8006C558(&memory, args[0], args[5] ? sub_F_8007EAC0 : probe_navigation_sound);
+            result = sub_F_8006C558(args[0], args[5] ? sub_F_8007EAC0 : probe_navigation_sound);
             break;
         case 0x80064B30:
-            result = sub_F_80064B30(&memory, args[0], args[1]);
+            result = sub_F_80064B30(args[0], args[1]);
             break;
         case 0x800685BC:
-            sub_F_800685BC(&memory, args[0]);
+            sub_F_800685BC(args[0]);
             result = 0;
             break;
         case 0x8001C428:
-            result = sub_8001C428(&memory);
+            result = sub_8001C428();
             break;
         case 0x8001C3F4:
-            result = sub_8001C3F4(&memory);
+            result = sub_8001C3F4();
             break;
         case 0x800803FC:
-            sub_F_800803FC(&memory);
+            sub_F_800803FC();
             result = 0;
             break;
         case 0x8001FC90:
@@ -3867,37 +4344,37 @@ static int rrj_main(int argc, char **argv)
             result = (uint64_t)sub_8002E928(ram_pointer(args[0], 12), ram_pointer(args[1], 36), ram_pointer(args[2], 12));
             break;
         case 0x80021BE8:
-            result = sub_80021BE8(&memory);
+            result = sub_80021BE8();
             break;
         case 0x80021C98:
-            result = sub_80021C98(&memory, args[0], args[1]);
+            result = sub_80021C98(args[0], args[1]);
             break;
         case 0x8002AF9C:
-            result = sub_8002AF9C(&memory, ram_pointer(args[0], 16), ram_pointer(args[1], 4), ram_pointer(args[2], 4));
+            result = sub_8002AF9C(ram_pointer(args[0], 16), ram_pointer(args[1], 4), ram_pointer(args[2], 4));
             break;
         case 0x8002B080:
-            result = sub_8002B080(&memory, ram_pointer(args[0], 16), ram_pointer(args[1], 4), ram_pointer(args[2], 4));
+            result = sub_8002B080(ram_pointer(args[0], 16), ram_pointer(args[1], 4), ram_pointer(args[2], 4));
             break;
         case 0x8002B164:
-            result = sub_8002B164(&memory, ram_pointer(args[0], 16), ram_pointer(args[1], 4), ram_pointer(args[2], 4));
+            result = sub_8002B164(ram_pointer(args[0], 16), ram_pointer(args[1], 4), ram_pointer(args[2], 4));
             break;
         case 0x8002B258:
-            result = sub_8002B258(&memory, ram_pointer(args[0], 16), ram_pointer(args[1], 4), args[2], ram_pointer(args[3], 4));
+            result = sub_8002B258(ram_pointer(args[0], 16), ram_pointer(args[1], 4), args[2], ram_pointer(args[3], 4));
             break;
         case 0x8002B3FC:
-            result = sub_8002B3FC(&memory, ram_pointer(args[0], 4), ram_pointer(args[1], 4), args[2], args[3], (uint8_t)args[4], ram_pointer(args[5], 4));
+            result = sub_8002B3FC(ram_pointer(args[0], 4), ram_pointer(args[1], 4), args[2], args[3], (uint8_t)args[4], ram_pointer(args[5], 4));
             break;
         case 0x8002B4A0:
-            result = sub_8002B4A0(&memory, ram_pointer(args[0], 4), ram_pointer(args[1], 4), args[2], args[3], ram_pointer(args[4], 4));
+            result = sub_8002B4A0(ram_pointer(args[0], 4), ram_pointer(args[1], 4), args[2], args[3], ram_pointer(args[4], 4));
             break;
         case 0x8002B5B4:
-            result = sub_8002B5B4(&memory, ram_pointer(args[0], 4), ram_pointer(args[1], 4), args[2], args[3], ram_pointer(args[4], 4));
+            result = sub_8002B5B4(ram_pointer(args[0], 4), ram_pointer(args[1], 4), args[2], args[3], ram_pointer(args[4], 4));
             break;
         case 0x8002B68C:
-            result = sub_8002B68C(&memory, ram_pointer(args[0], 4), ram_pointer(args[1], 4), args[2], args[3], ram_pointer(args[4], 4));
+            result = sub_8002B68C(ram_pointer(args[0], 4), ram_pointer(args[1], 4), args[2], args[3], ram_pointer(args[4], 4));
             break;
         case 0x8002B878:
-            result = sub_8002B878(&memory, ram_pointer(args[0], 4), ram_pointer(args[1], 4), ram_pointer(args[2], 4));
+            result = sub_8002B878(ram_pointer(args[0], 4), ram_pointer(args[1], 4), ram_pointer(args[2], 4));
             break;
         default:
         {

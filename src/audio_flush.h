@@ -12,6 +12,6 @@ typedef struct RRJVoiceSetup
 } RRJVoiceSetup;
 
 typedef uint32_t (*RRJVoiceSetupCall)(RRJMemory *, uint32_t voice, const RRJVoiceSetup *);
-uint32_t sub_8001EB7C(RRJMemory *, uint32_t voice, uint32_t pitch, uint32_t left, uint32_t right, RRJVoiceSetupCall);
-uint32_t sub_8001EE94(RRJMemory *, RRJVoiceSetupCall, RRJSDKCall key);
+uint32_t sub_8001EB7C(uint32_t voice, uint32_t pitch, uint32_t left, uint32_t right, RRJVoiceSetupCall);
+uint32_t sub_8001EE94(RRJVoiceSetupCall, RRJSDKCall key);
 #endif

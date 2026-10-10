@@ -1,15 +1,15 @@
 #include "rrj_lockstep.h"
 #if defined(LOCKSTEP_DEBUG)
-#include "xport_trace.h"
-#include "psx_spu.h"
-#include "psx_gpu.h"
-#include "race_pause.h"
-#include "spu.h"
-#include "race_audio_frontier.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <errno.h>
+    #include "xport_trace.h"
+    #include "psx_spu.h"
+    #include "psx_gpu.h"
+    #include "race_pause.h"
+    #include "spu.h"
+    #include "race_audio_frontier.h"
+    #include <stdio.h>
+    #include <stdlib.h>
+    #include <string.h>
+    #include <errno.h>
 
 typedef struct RRJLockstepWait
 {
@@ -19,17 +19,25 @@ typedef struct RRJLockstepWait
 
 static RRJLockstepWait *active_wait;
 
-enum { RRJ_MENU_IDLE, RRJ_MENU_WAITING, RRJ_MENU_AFTER_FRAME };
+enum
+{
+    RRJ_MENU_IDLE,
+    RRJ_MENU_WAITING,
+    RRJ_MENU_AFTER_FRAME
+};
+
 typedef struct RRJMenuCheckpoint
 {
-    uint32 magic, version, phase, ready_context, cpu_status;
+    uint32 magic, version, phase, ready_context, cpu_status, menu_stack_pointer;
     uint8 root_counters[48];
 } RRJMenuCheckpoint;
+
 static RRJMenuCheckpoint menu_checkpoint;
 
 static void rrj_lockstep_restore_memory(RRJMemory *memory)
 {
     memory->cpu_status = menu_checkpoint.cpu_status;
+    memory->menu_stack_pointer = menu_checkpoint.menu_stack_pointer;
     memcpy(memory->root_counters, menu_checkpoint.root_counters, sizeof(memory->root_counters));
 }
 
@@ -41,21 +49,19 @@ sint32 xport_game_checkpoint_io(FILE *file, sint32 load)
         return 0;
     if (load)
     {
-        if (fread(&state, sizeof(state), 1, file) != 1 || state.magic != 0x4A52524Du || state.version != 1u ||
-            state.phase != RRJ_MENU_AFTER_FRAME ||
-            (state.ready_context & 0x1FFFFFFFu) > PSX_DRAM_SIZE - 5u ||
-            r_u8(rrj_read32(memory, 0x8005B2F8u)) != 2u)
+        if (fread(&state, sizeof(state), 1, file) != 1 || state.magic != 0x4A52524Du || state.version != 2u || state.phase != RRJ_MENU_AFTER_FRAME || (state.ready_context & 0x1FFFFFFFu) > PSX_DRAM_SIZE - 5u || r_u8(rrj_read32(0x8005B2F8u)) != 2u)
             return 0;
         menu_checkpoint = state;
         rrj_lockstep_restore_memory(memory);
     }
     else
     {
-        if (menu_checkpoint.phase != RRJ_MENU_AFTER_FRAME || r_u8(rrj_read32(memory, 0x8005B2F8u)) != 2u)
+        if (menu_checkpoint.phase != RRJ_MENU_AFTER_FRAME || r_u8(rrj_read32(0x8005B2F8u)) != 2u)
             return 0;
         menu_checkpoint.magic = 0x4A52524Du;
-        menu_checkpoint.version = 1u;
+        menu_checkpoint.version = 2u;
         menu_checkpoint.cpu_status = memory->cpu_status;
+        menu_checkpoint.menu_stack_pointer = memory->menu_stack_pointer;
         memcpy(menu_checkpoint.root_counters, memory->root_counters, sizeof(menu_checkpoint.root_counters));
         if (fwrite(&menu_checkpoint, sizeof(menu_checkpoint), 1, file) != 1)
             return 0;
@@ -81,7 +87,7 @@ static sint32 rrj_lockstep_after_frame(void)
     RRJLockstepWait *wait = active_wait;
     if (!wait || menu_checkpoint.phase != RRJ_MENU_AFTER_FRAME)
         return 0;
-    (void)sub_F_80064C30(wait->memory, wait->service);
+    (void)sub_F_80064C30(wait->service);
     menu_checkpoint.phase = RRJ_MENU_WAITING;
     return !psx_vblank_failed();
 }
@@ -118,6 +124,26 @@ static int rrj_lockstep_import_gte(void)
     return psx_gte_import_control_registers(registers);
 }
 
+static int rrj_lockstep_import_menu_stack(RRJMemory *memory)
+{
+    const char *text = getenv("XPORT_LOCKSTEP_CONTINUATION_ARG0");
+    char *end;
+    unsigned long value;
+    uint32 physical, segment;
+    if (!text || !*text || *text == '-')
+        return 0;
+    errno = 0;
+    value = strtoul(text, &end, 0);
+    if (*end || errno == ERANGE || value > UINT32_MAX)
+        return 0;
+    physical = (uint32)value & 0x1FFFFFFFu;
+    segment = (uint32)value & 0xE0000000u;
+    if ((segment != 0u && segment != 0x80000000u && segment != 0xA0000000u) || (physical & 3u) || physical < 0x30u || physical > PSX_DRAM_SIZE - 0x30u)
+        return 0;
+    memory->menu_stack_pointer = (uint32)value;
+    return 1;
+}
+
 int rrj_lockstep_run(RRJMemory *memory, RRJLoopCall loop, RRJVBlankCall service)
 {
     const char *continuation = getenv("XPORT_LOCKSTEP_CONTINUATION");
@@ -141,6 +167,11 @@ int rrj_lockstep_run(RRJMemory *memory, RRJLoopCall loop, RRJVBlankCall service)
         fprintf(stderr, "RRJ lockstep: %s\n", xport_lockstep_frame_error());
         xport_lockstep_frame_shutdown();
         return 65;
+    }
+    if (!(load_path && *load_path) && !rrj_lockstep_import_menu_stack(memory))
+    {
+        fputs("RRJ lockstep: missing or invalid menu stack carrier\n", stderr);
+        return 66;
     }
     if (!(load_path && *load_path) && !rrj_lockstep_import_gte())
     {
@@ -167,14 +198,16 @@ int rrj_lockstep_run(RRJMemory *memory, RRJLoopCall loop, RRJVBlankCall service)
         memset(&menu_checkpoint, 0, sizeof(menu_checkpoint));
     }
     /* TODO Import complete SPU voice and device state at the handoff */
-    psx_vblank_bind(rrj_lockstep_wait, &wait, rrj_read32(memory, 0x8005B46Cu));
+    psx_vblank_bind(rrj_lockstep_wait, &wait, rrj_read32(0x8005B46Cu));
     /* Keep the jump target in this live frame rather than a returned callback */
     if (setjmp(xport_lockstep_checkpoint_context))
     {
         rrj_lockstep_restore_memory(memory);
         xport_lockstep_checkpoint_resumed();
     }
-    while (!xport_isquit() && r_u8(rrj_read32(memory, 0x8005B2F8u)) == 2u)
+    else if (load_path && *load_path && !xport_lockstep_checkpoint_capture())
+        return 69;
+    while (!xport_isquit() && r_u8(rrj_read32(0x8005B2F8u)) == 2u)
     {
         if (menu_checkpoint.phase == RRJ_MENU_IDLE)
         {
@@ -183,7 +216,7 @@ int rrj_lockstep_run(RRJMemory *memory, RRJLoopCall loop, RRJVBlankCall service)
                 rrj_menu_finish_iteration(memory, loop);
                 continue;
             }
-            menu_checkpoint.ready_context = rrj_read32(memory, 0x8005B470u);
+            menu_checkpoint.ready_context = rrj_read32(0x8005B470u);
             menu_checkpoint.phase = RRJ_MENU_WAITING;
         }
         if (menu_checkpoint.phase == RRJ_MENU_AFTER_FRAME && !rrj_lockstep_after_frame())
@@ -195,6 +228,7 @@ int rrj_lockstep_run(RRJMemory *memory, RRJLoopCall loop, RRJVBlankCall service)
             if (xport_lockstep_mode == LOCKSTEP_MODE_PREFIX_GUARD)
             {
                 menu_checkpoint.cpu_status = memory->cpu_status;
+                menu_checkpoint.menu_stack_pointer = memory->menu_stack_pointer;
                 memcpy(menu_checkpoint.root_counters, memory->root_counters, sizeof(menu_checkpoint.root_counters));
                 if (!xport_lockstep_checkpoint_capture())
                     return 69;
@@ -202,7 +236,7 @@ int rrj_lockstep_run(RRJMemory *memory, RRJLoopCall loop, RRJVBlankCall service)
             if (!rrj_lockstep_after_frame())
                 return 69;
         }
-        rrj_write32(memory, 0x80088C44u, 0u);
+        rrj_write32(0x80088C44u, 0u);
         menu_checkpoint.phase = RRJ_MENU_IDLE;
         rrj_menu_finish_iteration(memory, loop);
     }
@@ -235,26 +269,22 @@ int rrj_lockstep_selftest(void)
             return 72;
         if (import_path)
         {
-            if (!xport_lockstep_checkpoint_load_portable(import_path, &next_frame) || next_frame != 17u ||
-                !xport_lockstep_frame_resume(next_frame) || menu_checkpoint.phase != RRJ_MENU_AFTER_FRAME ||
-                menu_checkpoint.ready_context != 0x800D1000u || memory.cpu_status != 0x401u ||
-                memory.root_counters[47] != 0xA5u || r_u8(0x800D0000u) != 2u ||
-                !spu_download(0x100u, restored, sizeof(restored)) || memcmp(samples, restored, sizeof(samples)))
+            if (!xport_lockstep_checkpoint_load_portable(import_path, &next_frame) || next_frame != 17u || !xport_lockstep_frame_resume(next_frame) || menu_checkpoint.phase != RRJ_MENU_AFTER_FRAME || menu_checkpoint.ready_context != 0x800D1000u || memory.cpu_status != 0x401u || memory.menu_stack_pointer != 0x801FFF90u || memory.root_counters[47] != 0xA5u || r_u8(0x800D0000u) != 2u || !spu_download(0x100u, restored, sizeof(restored)) || memcmp(samples, restored, sizeof(samples)))
                 return 73;
             puts("RRJ_PROJECT_CHECKPOINT_IMPORT_OK");
             return 0;
         }
         if (!export_path || !xport_lockstep_frame_begin_at(17u))
             return 74;
-        rrj_write32(&memory, 0x8005B2F8u, 0x800D0000u);
+        rrj_write32(0x8005B2F8u, 0x800D0000u);
         w_u8(0x800D0000u, 2u);
         memory.cpu_status = 0x401u;
+        memory.menu_stack_pointer = 0x801FFF90u;
         memory.root_counters[47] = 0xA5u;
         menu_checkpoint.phase = RRJ_MENU_AFTER_FRAME;
         menu_checkpoint.ready_context = 0x800D1000u;
         SpuInit();
-        if (!spu_upload(0x100u, samples, sizeof(samples)) ||
-            !xport_lockstep_checkpoint_save_portable(export_path))
+        if (!spu_upload(0x100u, samples, sizeof(samples)) || !xport_lockstep_checkpoint_save_portable(export_path))
             return 75;
         if (getenv("RRJ_LOCKSTEP_CHECKPOINT_JUMP"))
         {
@@ -275,18 +305,14 @@ int rrj_lockstep_selftest(void)
             memset(&memory, 0, sizeof(memory));
             rrj_lockstep_restore_memory(&memory);
             rrj_memory_bind(&memory);
-            if (menu_checkpoint.phase != RRJ_MENU_AFTER_FRAME || menu_checkpoint.ready_context != 0x800D1000u ||
-                memory.cpu_status != 0x401u || memory.root_counters[47] != 0xA5u || r_u8(0x800D0000u) != 2u ||
-                !spu_download(0x100u, restored, sizeof(restored)) || memcmp(samples, restored, sizeof(samples)))
+            if (menu_checkpoint.phase != RRJ_MENU_AFTER_FRAME || menu_checkpoint.ready_context != 0x800D1000u || memory.cpu_status != 0x401u || memory.menu_stack_pointer != 0x801FFF90u || memory.root_counters[47] != 0xA5u || r_u8(0x800D0000u) != 2u || !spu_download(0x100u, restored, sizeof(restored)) || memcmp(samples, restored, sizeof(samples)))
                 return 78;
             puts("RRJ_PROJECT_CHECKPOINT_JUMP_OK");
         }
         puts("RRJ_PROJECT_CHECKPOINT_EXPORT_OK");
         return 0;
     }
-    if (sub_80010028(7u, 16u) != 0x7000u ||
-        !xport_lockstep_last_hit || xport_lockstep_last_hit->address != 0x80010028u ||
-        xport_lockstep_last_hit->argument_count != 2u)
+    if (sub_80010028(7u, 16u) != 0x7000u || !xport_lockstep_last_hit || xport_lockstep_last_hit->address != 0x80010028u || xport_lockstep_last_hit->argument_count != 2u)
         return 71;
     puts("RRJ_LOCKSTEP_BINDING_OK");
     return 0;

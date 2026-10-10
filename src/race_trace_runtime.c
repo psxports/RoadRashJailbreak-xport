@@ -1,5 +1,6 @@
 #include "race_trace_runtime.h"
 #include "psx.h"
+#include "psx_spu.h"
 #include "psx_gpu.h"
 #include "xport_trace.h"
 #include <limits.h>
@@ -28,14 +29,21 @@ typedef struct RRJTraceRuntime
     uint32_t pending_input[3];
     uint32_t pending_store_slots;
     uint32_t cd_pending;
+    uint32_t cd_resume_ready;
     int has_pending_input;
     int failed;
     int live;
+    RRJLivePoll live_poll;
     char progress_path[1024];
 } RRJTraceRuntime;
 
 static RRJTraceRuntime trace;
 static uint32 live_limit_override;
+
+void rrj_trace_runtime_set_live_poll(RRJLivePoll poll)
+{
+    trace.live_poll = poll;
+}
 
 void rrj_trace_set_live_limit(uint32 limit)
 {
@@ -94,9 +102,9 @@ static int trace_cd_transfer(RRJMemory *m)
 {
     const char *path = getenv("RRJ_DISC_IMAGE");
     uint8_t buffer[2048];
-    uint32_t sector = rrj_read32(m, 0x800D6720u);
-    uint32_t destination = rrj_read32(m, 0x800D6714u);
-    uint32_t count = rrj_read32(m, 0x800D6718u);
+    uint32_t sector = rrj_read32(0x800D6720u);
+    uint32_t destination = rrj_read32(0x800D6714u);
+    uint32_t count = rrj_read32(0x800D6718u);
     uint32_t index;
 
     if (!trace.disc)
@@ -113,20 +121,48 @@ static int trace_cd_transfer(RRJMemory *m)
     return 1;
 }
 
+/* Resume the saved read-ready sector before publishing its completion */
+static int trace_cd_resume_sector(RRJMemory *m)
+{
+    const char *path = getenv("RRJ_DISC_IMAGE");
+    uint8_t buffer[2048];
+    uint32_t sector = rrj_read32(0x800D6720u);
+    uint32_t destination = rrj_read32(0x800D6714u);
+    uint32_t count = rrj_read32(0x800D6718u);
+    uint32_t remaining = rrj_read32(0x800D671Cu);
+    uint32_t length = remaining < sizeof(buffer) ? remaining : sizeof(buffer);
+    int64_t offset = ((int64_t)sector - 150) * 2352 + 24;
+
+    if (sector < 150u || !remaining || count != (remaining + 2047u) / 2048u || remaining > 0x200000u || (destination & 0x1FFFFFFFu) >= 0x200000u || length > 0x200000u - (destination & 0x1FFFFFFFu) || offset > LONG_MAX)
+        return 0;
+    if (!trace.disc)
+        trace.disc = xport_fopen(path && *path ? path : "../iso/Road Rash - Jailbreak (USA).bin", "rb");
+    if (!trace.disc || fseek(trace.disc, (long)offset, SEEK_SET) || fread(buffer, sizeof(buffer), 1, trace.disc) != 1 || !xport_guest_copy(xport_guest_ref(destination), xport_host_ref(buffer), length))
+        return 0;
+    rrj_write32(0x800D6724u, sector + 1u);
+    rrj_write32(0x800D6714u, destination + length);
+    rrj_write32(0x800D671Cu, remaining - length);
+    rrj_write32(0x800D6718u, count - 1u);
+    rrj_write32(0x800D6720u, sector + 1u);
+    if (count == 1u)
+        rrj_write32(0x800D672Cu, sector + 1u);
+    return 1;
+}
+
 static int trace_game_boundary(RRJMemory *m, uint32_t tick)
 {
-    uint32_t count = rrj_read32(m, 0x800D5D68);
+    uint32_t count = rrj_read32(0x800D5D68);
     uint32_t zero = 0;
     uint32_t input[3];
 
     if (count > 4)
         return 0;
-    if (fwrite(&tick, 4, 1, trace.actors) != 1 || fwrite(rrj_at(m, 0x800D6DE0, 768), 768, 1, trace.actors) != 1 || fwrite(rrj_at(m, 0x800D5D38, 256), 256, 1, trace.actors) != 1)
+    if (fwrite(&tick, 4, 1, trace.actors) != 1 || fwrite(rrj_at(0x800D6DE0, 768), 768, 1, trace.actors) != 1 || fwrite(rrj_at(0x800D5D38, 256), 256, 1, trace.actors) != 1)
         return 0;
-    if (fwrite(&tick, 4, 1, trace.world) != 1 || fwrite(&count, 4, 1, trace.world) != 1 || fwrite(rrj_at(m, 0x800D5D38, 256), 256, 1, trace.world) != 1 || fwrite(rrj_at(m, 0x800D6DE0, 768), 768, 1, trace.world) != 1 || fwrite(rrj_at(m, 0x800D6170, 64 * count), 64, count, trace.world) != count || fwrite(rrj_at(m, 0x8005B580, 64), 64, 1, trace.world) != 1 || fwrite(rrj_at(m, 0x800D5D6C, 4), 4, 1, trace.world) != 1 || fwrite(rrj_at(m, 0x8005B46C, 4), 4, 1, trace.world) != 1 || fwrite(&zero, 4, 1, trace.world) != 1)
+    if (fwrite(&tick, 4, 1, trace.world) != 1 || fwrite(&count, 4, 1, trace.world) != 1 || fwrite(rrj_at(0x800D5D38, 256), 256, 1, trace.world) != 1 || fwrite(rrj_at(0x800D6DE0, 768), 768, 1, trace.world) != 1 || fwrite(rrj_at(0x800D6170, 64 * count), 64, count, trace.world) != count || fwrite(rrj_at(0x8005B580, 64), 64, 1, trace.world) != 1 || fwrite(rrj_at(0x800D5D6C, 4), 4, 1, trace.world) != 1 || fwrite(rrj_at(0x8005B46C, 4), 4, 1, trace.world) != 1 || fwrite(&zero, 4, 1, trace.world) != 1)
         return 0;
     input[0] = tick;
-    input[1] = (~rrj_u16(rrj_at(m, 0x800D70E2, 2))) & 0xFFFF;
+    input[1] = (~rrj_u16(rrj_at(0x800D70E2, 2))) & 0xFFFF;
     input[2] = input[1];
     if (trace.has_pending_input && fwrite(trace.pending_input, sizeof(trace.pending_input), 1, trace.inputs) != 1)
         return 0;
@@ -159,14 +195,14 @@ int rrj_trace_runtime_init(RRJMemory *m, uint32_t phase_base)
         strcpy(trace.progress_path, progress);
     }
     {
-        uint32_t display = rrj_read32(m, 0x8005B470);
+        uint32_t display = rrj_read32(0x8005B470);
         uint32_t slots = r_u8(display + 244);
         uint32_t slot;
 
         if (slots > 16)
             return 0;
         for (slot = 0; slot < slots; ++slot)
-            if (rrj_read32(m, 0x800D75D0 + 64 * slot))
+            if (rrj_read32(0x800D75D0 + 64 * slot))
                 trace.pending_store_slots |= 1u << slot;
     }
     return 1;
@@ -178,11 +214,40 @@ int rrj_trace_runtime_init_live(RRJMemory *m)
 
     memset(&trace, 0, sizeof(trace));
     trace.live = 1;
+    {
+        uint32_t state = rrj_read32(0x800D6728u);
+
+        if (state != 0u && state != 1u && state != 2u && state != 5u)
+        {
+            fprintf(stderr, "Native CD handoff unsupported state %u\n", state);
+            return 0;
+        }
+        trace.cd_pending = state != 0u;
+        trace.cd_resume_ready = state != 0u;
+    }
     if (live_limit_override)
         trace.phase_limit = live_limit_override;
     else if (limit && *limit)
         trace.phase_limit = (uint32_t)strtoul(limit, NULL, 10);
-    return trace_load_bios(m);
+    if (!trace_load_bios(m))
+        return 0;
+    {
+        const char *cue = getenv("RRJ_DISC_CUE");
+        const char *path = cue && *cue ? cue : "../iso/Road Rash - Jailbreak (USA).cue";
+
+        if (!cd_mount_cue(path))
+        {
+            fprintf(stderr, "Native CD image mount failed: %s\n", path);
+            return 0;
+        }
+        if (!CdInit())
+        {
+            fputs("Native CD initialization failed\n", stderr);
+            cd_unmount_image();
+            return 0;
+        }
+    }
+    return 1;
 }
 
 int rrj_trace_runtime_is_live(void)
@@ -201,40 +266,64 @@ uint32_t rrj_trace_vblank_boundary(RRJMemory *m)
     {
         for (slot = 0; slot < 16; ++slot)
             if (trace.pending_store_slots & (1u << slot))
-                rrj_write32(m, 0x800D75D0 + 64 * slot, 0);
+                rrj_write32(0x800D75D0 + 64 * slot, 0);
         trace.pending_store_slots = 0;
     }
-    cd_state = rrj_read32(m, 0x800D6728u);
+    if (trace.live && trace.live_poll)
+        trace.live_poll(m);
+    cd_state = rrj_read32(0x800D6728u);
+    if (trace.live && cd_state != 0u && cd_state != 1u && cd_state != 2u && cd_state != 5u)
+    {
+        fprintf(stderr, "Native CD service unsupported state %u\n", cd_state);
+        abort();
+    }
+    if (trace.live && cd_state == 5u && !trace.cd_pending)
+    {
+        trace.cd_pending = 1;
+        trace.cd_resume_ready = 1;
+    }
     if (cd_state == 1u)
     {
         trace.cd_pending = 1;
-        rrj_write32(m, 0x800D6728u, 2u);
+        trace.cd_resume_ready = trace.live != 0;
+        rrj_write32(0x800D6728u, 2u);
     }
     else if (trace.cd_pending && cd_state == 2u)
     {
-        if (!trace_cd_transfer(m))
+        if (!trace.live && !trace_cd_transfer(m))
         {
-            fprintf(stderr, "Diagnostic CD transfer failed at sector %u\n", rrj_read32(m, 0x800D6720u));
+            fprintf(stderr, "Diagnostic CD transfer failed at sector %u\n", rrj_read32(0x800D6720u));
             abort();
         }
-        rrj_write32(m, 0x800D6728u, 5u);
-        rrj_write32(m, 0x800D6724u, rrj_read32(m, 0x800D6720u));
-        rrj_write32(m, 0x8005AF60u, 0);
+        rrj_write32(0x800D6728u, 5u);
+        rrj_write32(0x800D6724u, rrj_read32(0x800D6720u));
+        rrj_write32(0x8005AF60u, 0);
     }
     else if (trace.cd_pending && cd_state == 5u)
     {
+        if (trace.cd_resume_ready)
+        {
+            if (!trace_cd_resume_sector(m))
+            {
+                fprintf(stderr, "Native CD handoff read failed at sector %u\n", rrj_read32(0x800D6720u));
+                abort();
+            }
+            if (rrj_read32(0x800D6718u))
+                return 0;
+            trace.cd_resume_ready = 0;
+        }
         trace.cd_pending = 0;
-        rrj_write32(m, 0x800D6728u, 0);
-        return rrj_read32(m, 0x800D6710u);
+        rrj_write32(0x800D6728u, 0);
+        return rrj_read32(0x800D6710u);
     }
     return 0;
 }
 
 int rrj_trace_phase_boundary(RRJMemory *m, uint32_t pc)
 {
-    uint32_t tick = rrj_read32(m, 0x800D5D48);
+    uint32_t tick = rrj_read32(0x800D5D48);
     uint32_t header[3] = {15, tick, 1312};
-    uint32_t context[8] = {pc, (uint32_t)VSync(-1), 0, 0, rrj_read32(m, 0x8005B2F8), rrj_read32(m, 0x8005B2F8), rrj_read32(m, 0x800D70E0), rrj_read32(m, 0x800D7104)};
+    uint32_t context[8] = {pc, (uint32_t)VSync(-1), 0, 0, rrj_read32(0x8005B2F8), rrj_read32(0x8005B2F8), rrj_read32(0x800D70E0), rrj_read32(0x800D7104)};
 
     if (trace.live)
     {
@@ -255,7 +344,7 @@ int rrj_trace_phase_boundary(RRJMemory *m, uint32_t pc)
     }
     if (trace.failed || trace.phase_count >= trace.phase_limit)
         return 1;
-    if (fwrite(header, sizeof(header), 1, trace.phases) != 1 || fwrite(context, sizeof(context), 1, trace.phases) != 1 || fwrite(rrj_at(m, 0x800D5D38, 256), 256, 1, trace.phases) != 1 || fwrite(rrj_at(m, 0x800D6DE0, 768), 768, 1, trace.phases) != 1 || fwrite(rrj_at(m, 0x800D5D38, 256), 256, 1, trace.phases) != 1 || !trace_phase_gpu(pc, tick) || (pc == 0x80012370 && !trace_game_boundary(m, tick)))
+    if (fwrite(header, sizeof(header), 1, trace.phases) != 1 || fwrite(context, sizeof(context), 1, trace.phases) != 1 || fwrite(rrj_at(0x800D5D38, 256), 256, 1, trace.phases) != 1 || fwrite(rrj_at(0x800D6DE0, 768), 768, 1, trace.phases) != 1 || fwrite(rrj_at(0x800D5D38, 256), 256, 1, trace.phases) != 1 || !trace_phase_gpu(pc, tick) || (pc == 0x80012370 && !trace_game_boundary(m, tick)))
     {
         trace.failed = 1;
         return 1;
@@ -264,9 +353,9 @@ int rrj_trace_phase_boundary(RRJMemory *m, uint32_t pc)
     trace.last_pc = pc;
     trace.last_tick = tick;
     if (pc == 0x80012370)
-        trace.game_time = rrj_read32(m, 0x800D5D44);
+        trace.game_time = rrj_read32(0x800D5D44);
     if (pc == 0x8001241C)
-        trace.aux_time = rrj_read32(m, 0x800D5D44);
+        trace.aux_time = rrj_read32(0x800D5D44);
     if (!trace_progress(pc, tick))
         fprintf(stderr, "Diagnostic progress update failed at phase %u tick %u\n", trace.phase_base + trace.phase_count, tick);
     return trace.failed || trace.phase_count == trace.phase_limit;
@@ -276,17 +365,17 @@ int rrj_trace_input_packet(RRJMemory *m, uint32_t controller, uint32_t raw)
 {
     uint32_t expected[2];
     uint8_t packet[36];
-    uint32_t tick = rrj_read32(m, 0x800D5D48);
+    uint32_t tick = rrj_read32(0x800D5D48);
 
     if (trace.live)
     {
         uint32_t buttons = PadRead((sint32)controller);
-        uint8_t *live_packet = rrj_at(m, raw, 4);
+        uint8_t *live_packet = rrj_at(raw, 4);
 
         live_packet[0] = 0;
         live_packet[1] = 0x41;
-        live_packet[2] = (uint8_t)~buttons;
-        live_packet[3] = (uint8_t)(~buttons >> 8);
+        live_packet[2] = (uint8_t)(~buttons >> 8);
+        live_packet[3] = (uint8_t)~buttons;
         return 1;
     }
     if (!trace.input_calls)
@@ -298,7 +387,7 @@ int rrj_trace_input_packet(RRJMemory *m, uint32_t controller, uint32_t raw)
         fprintf(stderr,
                 "Diagnostic input mismatch ordinal %u actual_tick %u expected_tick %u "
                 "actual_controller %u expected_controller %u vblank %d poll_counter %u\n",
-                trace.input_ordinal, tick, expected[0], controller, expected[1], VSync(-1), rrj_read32(m, rrj_read32(m, 0x8005B2F8) + 100));
+                trace.input_ordinal, tick, expected[0], controller, expected[1], VSync(-1), rrj_read32(rrj_read32(0x8005B2F8) + 100));
         trace.failed = 1;
         return 0;
     }
@@ -327,7 +416,7 @@ uint32_t rrj_trace_vblanks_before_aux(RRJMemory *m)
         trace.failed = 1;
         return 0;
     }
-    current = rrj_read32(m, 0x800D5D48);
+    current = rrj_read32(0x800D5D48);
     ordinal = trace.input_ordinal;
     while (ordinal < trace.input_end && fread(expected, sizeof(expected), 1, trace.input_calls) == 1 && fread(packet, sizeof(packet), 1, trace.input_calls) == 1)
     {
@@ -343,7 +432,7 @@ uint32_t rrj_trace_vblanks_before_aux(RRJMemory *m)
         trace.failed = 1;
         return 0;
     }
-    current_time = rrj_read32(m, 0x800D5D44);
+    current_time = rrj_read32(0x800D5D44);
     target = (trace.aux_time ? trace.aux_time : trace.game_time) + advance;
     if (target > current_time && (target - current_time) % 5 == 0)
         result = (target - current_time) / 5;
@@ -364,7 +453,7 @@ int rrj_trace_input_pending_at_tick(RRJMemory *m)
         trace.failed = 1;
         return 0;
     }
-    result = expected[0] == rrj_read32(m, 0x800D5D48);
+    result = expected[0] == rrj_read32(0x800D5D48);
     return result;
 }
 

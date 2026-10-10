@@ -3,7 +3,7 @@
 #include "psx_memory.h"
 #include "music_stop.h"
 typedef uint32_t (*RRJRaceFrameCall)(RRJMemory *, uint32_t target, const uint32_t args[7]);
-uint32_t sub_80011C4C(RRJMemory *, RRJRaceFrameCall);
+uint32_t sub_80011C4C(RRJRaceFrameCall);
 uint32_t rrj_race_movement_block(RRJMemory *, uint32_t delta);
 uint32_t rrj_race_movement_contact_block(RRJMemory *, uint32_t delta);
 uint32_t rrj_race_movement_route_block(RRJMemory *, uint32_t delta);
@@ -14,5 +14,5 @@ uint32_t rrj_race_activity_block(RRJMemory *, RRJReverbCall);
 uint32_t rrj_race_movement_activity_block(RRJMemory *, uint32_t delta, RRJReverbCall);
 uint32_t rrj_race_player_tail(RRJMemory *, uint32_t delta);
 uint32_t rrj_race_movement_player_block(RRJMemory *, uint32_t delta, RRJReverbCall);
-uint32_t sub_8002CA5C(RRJMemory *m);
+uint32_t sub_8002CA5C(void);
 #endif

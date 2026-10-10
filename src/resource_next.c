@@ -1,3 +1,4 @@
+#include "psx.h"
 /* Two-pass circular resource choice, F80062D6C actual MIPS. */
 #include "resource_next.h"
 
@@ -28,33 +29,34 @@ static uint32_t eligible(RRJMemory *m, uint32_t record, uint32_t pass, uint32_t 
         return 0;
     if (pass)
         flags = b(m, record + 2);
-    if ((flags & 64) && !rrj_read32(m, 0x800D7138 + 192 * sb(b(m, 0x8009C5E6))))
+    if ((flags & 64) && !rrj_read32(0x800D7138 + 192 * sb(b(m, 0x8009C5E6))))
         return 0;
-    if ((flags & 32) && rrj_read32(m, 0x800D7138 + 192 * sb(b(m, 0x8009C5E6))))
+    if ((flags & 32) && rrj_read32(0x800D7138 + 192 * sb(b(m, 0x8009C5E6))))
         return 0;
     if ((flags & 128) && (b(m, 0x800D70E1) >> 4) != 8)
         return 0;
     return 1;
 }
 
-uint32_t sub_F_80062D6C(RRJMemory *m, uint32_t resource)
+uint32_t sub_F_80062D6C(uint32_t resource)
 {
+    FUNCTION_MARKER(0x80062D6Cu, "RASHCDF.BIN");
     uint32_t pass, seen = 0;
     for (pass = 0; pass < 2; ++pass)
     {
-        uint32_t count = sb(b(m, resource)), index = sb(b(m, resource + 3)), visited = 0;
+        uint32_t count = sb(b(rrj_host_context(), resource)), index = sb(b(rrj_host_context(), resource + 3)), visited = 0;
         if (rrj_s32(count) <= 0)
             continue;
         do
         {
-            uint32_t record = rrj_read32(m, resource + 4) + 12 * index, flags = pass ? 0 : b(m, record + 2);
+            uint32_t record = rrj_read32(resource + 4) + 12 * index, flags = pass ? 0 : b(rrj_host_context(), record + 2);
             if (pass || (flags & 16) || seen)
             {
-                if (eligible(m, record, pass, flags))
+                if (eligible(rrj_host_context(), record, pass, flags))
                     return index;
                 seen = 1;
             }
-            count = sb(b(m, resource));
+            count = sb(b(rrj_host_context(), resource));
             ++index;
             if (rrj_s32(index) >= rrj_s32(count))
                 index = 0;

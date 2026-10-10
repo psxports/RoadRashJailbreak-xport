@@ -15,7 +15,7 @@ static void service(RRJMemory *m, uint32_t target, uint32_t player, uint32_t mul
     RRJPadPollContext *context = (RRJPadPollContext *)m->sdk_user;
     if (target != 0x8001DDC4)
         abort();
-    (void)sub_8001DDC4(context->memory, player, multi, context->sdk);
+    (void)sub_8001DDC4(player, multi, context->sdk);
 }
 
 uint32_t rrj_pad_poll(RRJMemory *m, RRJPadSDK sdk)
@@ -23,5 +23,8 @@ uint32_t rrj_pad_poll(RRJMemory *m, RRJPadSDK sdk)
     RRJPadPollContext context = {m, sdk};
     RRJMemory local = *m;
     local.sdk_user = &context;
-    return sub_8001C5F8(&local, service);
+    rrj_memory_bind(&local);
+    uint32_t result = sub_8001C5F8(service);
+    rrj_memory_bind(m);
+    return result;
 }
