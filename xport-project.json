@@ -1,4 +1,8 @@
 {
+  "github": {
+    "repository": "psxports/RoadRashJailbreak-xport",
+    "branch": "main"
+  },
   "schema": 1,
   "name": "Road Rash: Jailbreak",
   "short_name": "RRJ",
@@ -16,7 +20,7 @@
     "callgraph": "status/callgraph.json",
     "similarity_directory": "status/function-similarity",
     "disc_image": "iso/Road Rash - Jailbreak (USA).cue",
-    "ida_exports": "orig/images",
+    "ida_exports": "status/ida/accepted/native-boundaries-20261013/images",
     "ida_configs": "tools/ida",
     "sdk_classification": "status/ghidra/classification.json",
     "original_executable": "bin/SLUS_010.53"
@@ -39,7 +43,37 @@
       "user": "tools/duckstation/data/user-v2",
       "lockstep": "tools/duckstation/data/lockstep"
     },
-    "save_serial": "SLUS-01053"
+    "save_serial": "SLUS-01053",
+    "sio_delay": ["0x80043C94", "0x80043C74"],
+    "wait_points": [
+      "0x8004791C",
+      "0x80047840",
+      "0x8004AC0C",
+      "0x8004AC3C",
+      "0x8004AC5C",
+      "0x80021A14",
+      "0x80046E5C",
+      "0x80046F20",
+      "0x8001C418",
+      "0x80041270",
+      "0x80041364",
+      "0x80040F6C",
+      "0x80040FE8",
+      "0x80041064",
+      "0x800416CC",
+      "0x800415BC",
+      "0x80041260",
+      "0x80041308",
+      "0x80041464",
+      "0x80041580",
+      "0x80041718",
+      "0x80015770",
+      "0x800152C4",
+      "0xBFC091B4",
+      "0x80061FFC",
+      "0x80011BE8",
+      "0x8001B8A4"
+    ]
   },
   "analysis": {
     "ctree_exports": [
@@ -113,7 +147,6 @@
     "world_fields": []
   },
   "native_trace": {
-    "wip_log_argument": "--wip-log",
     "environment_prefix": "RRJ_",
     "phase_arguments": [
       "--debug",
@@ -128,7 +161,6 @@
       "native_probe": "tools/rrj_full_probe.py",
       "hardware_binding": "tools/rrj_hardware_adapter.py",
       "native_runtime": "src/race_trace_runtime.c",
-      "journal_binding": "src/wip.c",
       "shared_python": [
         "trace_checkpoint_adapter",
         "trace_native_probe"
@@ -136,8 +168,7 @@
       "shared_native": [
         "xport_trace_runtime",
         "xport_memory_snapshot",
-        "xport_audit",
-        "xport_journal"
+        "xport_audit"
       ],
       "legacy_cli_forwarders": [
         "tools/rrj_stage_adapter.py",
@@ -270,16 +301,36 @@
       ]
     },
     "handoff": {
-      "argument_registers": [
-        "r29"
-      ],
-      "continuation": "rrj_menu_iteration",
-      "expected_registers": {
-        "pc": "0x800802C8"
-      },
-      "ordered_breakpoints": [
-        "0x800802C8"
+      "routes": [
+        {
+          "argument_registers": [
+            "r29"
+          ],
+          "continuation": "rrj_menu_iteration",
+          "expected_registers": {
+            "pc": "0x800802C8"
+          },
+          "ordered_breakpoints": [
+            "0x800802C8"
+          ]
+        },
+        {
+          "argument_registers": [
+            "r29"
+          ],
+          "continuation": "rrj_race_iteration",
+          "gpu_state": true,
+          "expected_registers": {
+            "pc": "0x80012370",
+            "r17": "0x00000002",
+            "r18": "0x800CD898"
+          },
+          "ordered_breakpoints": [
+            "0x80012370"
+          ]
+        }
       ]
-    }
+    },
+    "timer_observation": true
   }
 }

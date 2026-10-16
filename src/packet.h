@@ -3,5 +3,5 @@
 #include "psx_memory.h"
 /* RRJ-specific packet queue; no equivalent NFS4 allocator is assumed. */
 uint32_t sub_80021C98(uint32_t cursor, uint32_t bytes);
-uint32_t sub_80021BE8(void);
+uint32_t sub_80021BE8(uint32_t cursor, uint32_t bytes);
 #endif

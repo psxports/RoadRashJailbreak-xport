@@ -1,92 +1,74 @@
+#include "video_preview.h"
+#include "video_stop.h"
+#include "native_game_api.h"
+#include "race_leaf.h"
+#include "menu.h"
+#include "screen.h"
 #include "psx.h"
 /* F8006DE5C: original video frame/end bookkeeping, codec/display boundaries. */
 #include "video_tick.h"
 #include <stdlib.h>
 
-static uint32_t h(RRJMemory *m, uint32_t a)
+static void screen(uint32_t video)
 {
-    return rrj_u16(rrj_at(a, 2));
+    (void)sub_80080D08();
+    (void)sub_8001BE08(0, video ? 8 : 0, video ? 320 : 512, video ? 224 : 240);
+    (void)sub_8001BF1C(1, 0, 0, 0);
+    (void)sub_8001C3F4();
+    (void)sub_8001C408();
+    w_u8((r_u32(0x8005B470) + 125), (uint8_t)video);
+    w_u8((r_u32(0x8005B470) + 237), (uint8_t)video);
 }
 
-static uint32_t sh(uint32_t v)
+static void close_video(void)
 {
-    return v & 0x8000 ? v | 0xffff0000 : v;
-}
+    uint32_t scalar_v_1;
 
-static void half(RRJMemory *m, uint32_t a, uint32_t v)
-{
-    rrj_put16(rrj_at(a, 2), (uint16_t)v);
-}
-
-static void byte(RRJMemory *m, uint32_t a, uint32_t v)
-{
-    w_u8(a, (uint8_t)v);
-}
-
-static uint32_t call(RRJMemory *m, RRJVideoPhaseCall cb, uint32_t fn, uint32_t a, uint32_t b, uint32_t c, uint32_t d)
-{
-    uint32_t args[9] = {a, b, c, d, 0, 0, 0, 0, 0};
-    if (!cb)
-        abort();
-    return cb(m, fn, args);
-}
-
-static void screen(RRJMemory *m, RRJVideoPhaseCall cb, uint32_t video)
-{
-    (void)call(m, cb, 0x80080D08, 0, 0, 0, 0);
-    (void)call(m, cb, 0x8001BE08, 0, video ? 8 : 0, video ? 320 : 512, video ? 224 : 240);
-    (void)call(m, cb, 0x8001BF1C, 1, 0, 0, 0);
-    (void)call(m, cb, 0x8001C3F4, 0, 0, 0, 0);
-    (void)call(m, cb, 0x8001C408, 0, 0, 0, 0);
-    byte(m, rrj_read32(0x8005B470) + 125, video);
-    byte(m, rrj_read32(0x8005B470) + 237, video);
-}
-
-static void close_video(RRJMemory *m, RRJVideoPhaseCall cb)
-{
     uint32_t flags;
-    (void)call(m, cb, 0x8005F7E0, sh(h(m, 0x8009C688)), 0, 0, 0);
-    (void)call(m, cb, 0x8001460C, rrj_read32(0x8009C684), 0, 0, 0);
-    flags = h(m, 0x8009C5DA);
-    rrj_write32(0x8009C684, 0xffffffff);
-    half(m, 0x8009C5DA, flags & 0xfffe);
-    screen(m, cb, 0);
+    (void)sub_8005F7E0(((scalar_v_1 = ((uint32_t)r_u16(0x8009C688))), (((uint32_t)(scalar_v_1 & 0x8000 ? scalar_v_1 | 0xffff0000 : scalar_v_1)))));
+    (void)sub_8001460C(r_u32(0x8009C684));
+    flags = (uint32_t)r_u16(0x8009C5DA);
+    w_u32(0x8009C684, 0xffffffff);
+    w_u16(0x8009C5DA, (uint16_t)(flags & 0xfffe));
+    screen(0);
 }
 
-uint32_t sub_F_8006DE5C(uint32_t menu, RRJVideoPhaseCall cb)
+uint32_t sub_8006DE5C(uint32_t menu)
 {
+    uint32_t scalar_v_2;
+    uint32_t scalar_v_3;
+    uint32_t scalar_v_4;
+    uint32_t scalar_v_5;
+
     FUNCTION_MARKER(0x8006DE5Cu, "RASHCDF.BIN");
-    uint32_t flags = h(rrj_host_context(), 0x8009C5DA), item, desc, channel, args[9], result = 1;
+    uint32_t flags = (uint32_t)r_u16(0x8009C5DA), item, desc, channel, frame, x, y, mode, result = 1;
     if (!(flags & 1))
         return 1;
-    item = rrj_read32(menu + 16);
+    item = r_u32(menu + 16);
     if (!item)
         return 1;
     desc = item + 16;
     if (flags & 4)
     {
-        channel = sh(h(rrj_host_context(), 0x8009C688));
-        half(rrj_host_context(), 0x8009C5DA, flags & 0xfff8);
-        (void)call(rrj_host_context(), cb, 0x8005F7E0, channel, 0, 0, 0);
-        (void)call(rrj_host_context(), cb, 0x8001460C, rrj_read32(0x8009C684), 0, 0, 0);
-        rrj_write32(0x8009C684, 0xffffffff);
-        screen(rrj_host_context(), cb, 0);
+        channel = ((scalar_v_2 = ((uint32_t)r_u16(0x8009C688))), (((uint32_t)(scalar_v_2 & 0x8000 ? scalar_v_2 | 0xffff0000 : scalar_v_2))));
+        w_u16(0x8009C5DA, (uint16_t)(flags & 0xfff8));
+        (void)sub_8005F7E0(channel);
+        (void)(uint32_t)sub_8001460C(r_u32(0x8009C684));
+        w_u32(0x8009C684, 0xffffffff);
+        screen(0);
         return 0;
     }
-    args[4] = rrj_read32(desc + 16);
-    args[0] = sh(h(rrj_host_context(), desc + 12));
-    args[1] = sh(h(rrj_host_context(), desc + 14));
-    args[2] = sh(h(rrj_host_context(), 0x8009C688));
-    args[3] = rrj_read32(desc + 4);
-    args[5] = args[6] = args[7] = args[8] = 0;
-    if (!cb)
-        abort();
-    if (!cb(rrj_host_context(), 0x8005F484, args))
+    frame = r_u32(desc + 16);
+    x = ((scalar_v_3 = ((uint32_t)r_u16((desc + 12)))), (((uint32_t)(scalar_v_3 & 0x8000 ? scalar_v_3 | 0xffff0000 : scalar_v_3))));
+    y = ((scalar_v_4 = ((uint32_t)r_u16((desc + 14)))), (((uint32_t)(scalar_v_4 & 0x8000 ? scalar_v_4 | 0xffff0000 : scalar_v_4))));
+    channel = ((scalar_v_5 = ((uint32_t)r_u16(0x8009C688))), (((uint32_t)(scalar_v_5 & 0x8000 ? scalar_v_5 | 0xffff0000 : scalar_v_5))));
+    mode = r_u32(desc + 4);
+    if (!sub_8005F484(x, y, channel, mode, frame))
     {
-        close_video(rrj_host_context(), cb);
-        byte(rrj_host_context(), 0x8009C5E2, 1);
+        close_video();
+        w_u8(0x8009C5E2, (uint8_t)1);
         result = 0;
     }
-    rrj_write32(desc + 16, rrj_read32(desc + 16) + 1);
+    w_u32(desc + 16, r_u32(desc + 16) + 1);
     return result;
 }

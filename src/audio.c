@@ -3,15 +3,10 @@
  * this module does not silently discard audio requests. See original MIPS. */
 #include "audio.h"
 
-static uint32_t asr(uint32_t v, unsigned n)
+static uint32_t merge_mask(uint32_t a, uint32_t mask)
 {
-    return (v >> n) | ((v & 0x80000000) ? (~0u << (32 - n)) : 0);
-}
-
-static uint32_t merge_mask(RRJMemory *m, uint32_t a, uint32_t mask)
-{
-    uint32_t v = rrj_read32(a) | mask;
-    rrj_write32(a, v);
+    uint32_t v = r_u32(a) | mask;
+    w_u32(a, v);
     return v;
 }
 
@@ -19,79 +14,79 @@ static uint32_t merge_mask(RRJMemory *m, uint32_t a, uint32_t mask)
 uint32_t sub_8001EB28(uint32_t mask)
 {
     FUNCTION_MARKER(0x8001EB28u, "SLUS_010.53");
-    return merge_mask(rrj_host_context(), 0x800D6884, mask);
+    return merge_mask(0x800D6884, mask);
 }
 
 uint32_t sub_8001EB44(uint32_t mask)
 {
     FUNCTION_MARKER(0x8001EB44u, "SLUS_010.53");
-    return merge_mask(rrj_host_context(), 0x800D6888, mask);
+    return merge_mask(0x800D6888, mask);
 }
 
 uint32_t sub_8001E86C(uint32_t bank, uint32_t index)
 {
     FUNCTION_MARKER(0x8001E86Cu, "SLUS_010.53");
     uint32_t count = r_u8(bank + 4), offset;
-    if (rrj_s32(index) < 0 || rrj_s32(index) >= (int32_t)count)
+    if (((int32_t)(uint32_t)(index)) < 0 || ((int32_t)(uint32_t)(index)) >= (int32_t)count)
         return 0;
-    offset = rrj_read32(bank + 16 + index * 4);
+    offset = r_u32(bank + 16 + index * 4);
     return offset ? bank + offset : 0;
 }
 
 uint32_t sub_8001F9C4(uint32_t reserved)
 {
     FUNCTION_MARKER(0x8001F9C4u, "SLUS_010.53");
-    uint32_t top = rrj_read32(0x800D69E4), slot = 0xffffffff, a, next, voice, sequence, i;
-    if (rrj_s32(top) >= 0)
+    uint32_t top = r_u32(0x800D69E4), slot = 0xffffffff, a, next, voice, sequence, i;
+    if (((int32_t)(uint32_t)(top)) >= 0)
     {
         a = 0x800D6920 + top * 4;
-        slot = rrj_read32(a);
-        rrj_write32(a, 0xffffffff);
-        rrj_write32(0x800D69E4, rrj_read32(0x800D69E4) - 1);
+        slot = r_u32(a);
+        w_u32(a, 0xffffffff);
+        w_u32(0x800D69E4, r_u32(0x800D69E4) - 1);
     }
     else
     {
-        uint32_t head = rrj_read32(0x800D69E8), tail = rrj_read32(0x800D69EC);
+        uint32_t head = r_u32(0x800D69E8), tail = r_u32(0x800D69EC);
         if (head != tail)
         {
             a = 0x800D6980 + tail * 4;
-            slot = rrj_read32(a);
-            rrj_write32(a, 0xffffffff);
-            next = rrj_read32(0x800D69EC) + 1;
-            rrj_write32(0x800D69EC, next);
-            rrj_write32(0x800D69EC, rrj_s32(next) < 25 ? next : 0);
+            slot = r_u32(a);
+            w_u32(a, 0xffffffff);
+            next = r_u32(0x800D69EC) + 1;
+            w_u32(0x800D69EC, next);
+            w_u32(0x800D69EC, ((int32_t)(uint32_t)(next)) < 25 ? next : 0);
             sub_8001EB44(1u << (slot & 31));
         }
     }
     if (slot == 0xffffffff)
         return 0;
-    voice = rrj_read32(0x800D687C) + slot * 44;
+    voice = r_u32(0x800D687C) + slot * 44;
     if (reserved)
     {
         for (i = 0; i < 22; ++i)
-            if (rrj_read32(0x800D68C8 + i * 4) == 0xffffffff)
+            if (r_u32(0x800D68C8 + i * 4) == 0xffffffff)
             {
-                rrj_write32(0x800D68C8 + i * 4, slot);
+                w_u32(0x800D68C8 + i * 4, slot);
                 break;
             }
     }
     else
     {
-        next = rrj_read32(0x800D69E8);
-        rrj_write32(0x800D6980 + next * 4, slot);
+        next = r_u32(0x800D69E8);
+        w_u32(0x800D6980 + next * 4, slot);
         ++next;
-        rrj_write32(0x800D69E8, next);
-        rrj_write32(0x800D69E8, rrj_s32(next) < 25 ? next : 0);
+        w_u32(0x800D69E8, next);
+        w_u32(0x800D69E8, ((int32_t)(uint32_t)(next)) < 25 ? next : 0);
     }
-    sequence = (rrj_read32(0x8005B4A0) + 1) & 0x07ffffff;
-    rrj_write32(0x8005B4A0, sequence);
+    sequence = (r_u32(0x8005B4A0) + 1) & 0x07ffffff;
+    w_u32(0x8005B4A0, sequence);
     if (!sequence)
     {
         sequence = 1;
-        rrj_write32(0x8005B4A0, 1);
+        w_u32(0x8005B4A0, 1);
     }
-    rrj_write32(voice + 4, sequence);
-    rrj_write32(voice + 16, 1);
+    w_u32(voice + 4, sequence);
+    w_u32(voice + 16, 1);
     return voice;
 }
 
@@ -99,12 +94,14 @@ uint32_t sub_8001F9C4(uint32_t reserved)
  * record: pitch, volume, pan. Read pitch after allocation, preserving aliasing. */
 uint32_t sub_8001F174(uint32_t bank, uint32_t sample, uint32_t loop, uint32_t reserved, const void *parameters)
 {
+    uint32_t scalar_v_2;
+
     FUNCTION_MARKER(0x8001F174u, "SLUS_010.53");
     const uint8_t *p = (const uint8_t *)parameters;
     uint32_t base, record, left, right, voice, pitch, channel, handle;
-    if (rrj_s32(rrj_read32(0x800D6870)) < rrj_s32(bank) || rrj_s32(bank) < 0)
+    if (((int32_t)(uint32_t)(r_u32(0x800D6870))) < ((int32_t)(uint32_t)(bank)) || ((int32_t)(uint32_t)(bank)) < 0)
         return 0;
-    base = rrj_read32(rrj_read32(0x800D6874) + bank * 4);
+    base = r_u32(r_u32(0x800D6874) + bank * 4);
     if (!base)
         return 0;
     record = sub_8001E86C(base, sample);
@@ -113,45 +110,45 @@ uint32_t sub_8001F174(uint32_t bank, uint32_t sample, uint32_t loop, uint32_t re
     record += 4; /* Nonzero third argument is a flag; original resets its index. */
     if (record & 3)
         return 0;
-    if (rrj_read32(0x800D69F4))
+    if (r_u32(0x800D69F4))
     {
-        left = rrj_u32(p + 4) * r_u8(record);
+        left = xport_load_le32(p + 4) * r_u8(record);
         right = left;
     }
     else
     {
-        uint32_t pan = rrj_u32(p + 8), folded = rrj_s32(pan) < 129 ? pan : 256 - pan;
-        uint32_t volume = rrj_u32(p + 4) * r_u8(record);
-        uint32_t product = (folded - 64) * volume, shifted = asr(product, 6);
-        left = (volume - (shifted & asr(0 - shifted, 31))) ^ asr(pan, 31);
-        if (rrj_s32(pan) >= 129)
+        uint32_t pan = xport_load_le32(p + 8), folded = ((int32_t)(uint32_t)(pan)) < 129 ? pan : 256 - pan;
+        uint32_t volume = xport_load_le32(p + 4) * r_u8(record);
+        uint32_t product = (folded - 64) * volume, shifted = ((uint32_t)((((uint32_t)(product)) >> ((unsigned)(6))) | ((((uint32_t)(product)) & 0x80000000) ? (~0u << (32 - ((unsigned)(6)))) : 0)));
+        left = (volume - (shifted & ((scalar_v_2 = (0 - shifted)), (((uint32_t)((scalar_v_2 >> ((unsigned)(31))) | ((scalar_v_2 & 0x80000000) ? (~0u << (32 - ((unsigned)(31)))) : 0))))))) ^ ((uint32_t)((((uint32_t)(pan)) >> ((unsigned)(31))) | ((((uint32_t)(pan)) & 0x80000000) ? (~0u << (32 - ((unsigned)(31)))) : 0)));
+        if (((int32_t)(uint32_t)(pan)) >= 129)
             left = 0 - left;
-        right = volume + (shifted & asr(product, 31));
+        right = volume + (shifted & ((uint32_t)((((uint32_t)(product)) >> ((unsigned)(31))) | ((((uint32_t)(product)) & 0x80000000) ? (~0u << (32 - ((unsigned)(31)))) : 0))));
     }
     voice = sub_8001F9C4(reserved);
     if (!voice)
         return 0;
-    rrj_write32(voice + 8, record);
-    pitch = rrj_u32(p);
-    rrj_write32(voice + 32, pitch == 0xffffffff ? rrj_u16(rrj_at(record + 6, 2)) : pitch);
-    rrj_write32(voice + 36, left);
-    rrj_write32(voice + 40, right);
+    w_u32(voice + 8, record);
+    pitch = xport_load_le32(p);
+    w_u32(voice + 32, pitch == 0xffffffff ? r_u16(record + 6) : pitch);
+    w_u32(voice + 36, left);
+    w_u32(voice + 40, right);
     if (loop)
-        rrj_sdk_call(rrj_host_context(), 0x80050678, 0, 1u << (rrj_read32(voice + 28) & 31));
-    channel = rrj_read32(voice + 28);
-    handle = (channel << 27) + (rrj_read32(voice + 4) & 0x07ffffff);
+        (void)SpuSetReverbVoice(0, 1u << (r_u32(voice + 28) & 31));
+    channel = r_u32(voice + 28);
+    handle = (channel << 27) + (r_u32(voice + 4) & 0x07ffffff);
     sub_8001EB28(1u << (channel & 31));
     return handle;
 }
 
-uint32_t sub_F_8007EAC0(uint32_t event)
+uint32_t sub_8007EAC0(uint32_t event)
 {
     FUNCTION_MARKER(0x8007EAC0u, "RASHCDF.BIN");
     uint8_t parameters[12];
     if (event >= 15)
         return 0;
-    rrj_put32(parameters, 0xffffffff);
-    rrj_put32(parameters + 4, rrj_read32(0x800D6C0C));
-    rrj_put32(parameters + 8, 64);
-    return sub_8001F174(rrj_read32(0x800A0854), event, 0, 0, parameters);
+    xport_store_le32(parameters, 0xffffffff);
+    xport_store_le32(parameters + 4, r_u32(0x800D6C0C));
+    xport_store_le32(parameters + 8, 64);
+    return sub_8001F174(r_u32(0x800A0854), event, 0, 0, parameters);
 }

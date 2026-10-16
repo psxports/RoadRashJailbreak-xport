@@ -1,3 +1,4 @@
+#include "rrj_debug.h"
 #include "race_leaf.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -5,20 +6,16 @@
 uint32_t sub_80048428(void)
 {
     FUNCTION_MARKER(0x80048428, "SLUS_010.53");
-    return rrj_read32(0x80055F0C);
+    return r_u32(0x80055F0C);
 }
 
-static uint32_t coverage_probe_call(RRJMemory *m, uint32_t target, const uint32_t args[8])
+static FILE *coverage_heap_stream;
+
+static void coverage_heap_failure_probe(uint32_t requested)
 {
-    FILE *stream = (FILE *)m->sdk_user;
-    unsigned index;
-    if (!stream)
+    if (!coverage_heap_stream)
         abort();
-    fprintf(stream, "%08X", target);
-    for (index = 0; index < 8; ++index)
-        fprintf(stream, " %08X", args[index]);
-    fputc('\n', stream);
-    return 0;
+    RRJ_DEBUG_FPRINTF(coverage_heap_stream, "%08X %08X %08X %08X 00000000 00000000 00000000 00000000 00000000\n", 0x80044894u, 0x800107F0u, requested, requested);
 }
 
 int rrj_coverage_probe(RRJMemory *m, uint32_t target, const uint32_t args[6], uint32_t *result)
@@ -47,11 +44,25 @@ int rrj_coverage_probe(RRJMemory *m, uint32_t target, const uint32_t args[6], ui
             *result = sub_8001BDEC();
             return 1;
         case 0x8001447C:
-            *result = sub_8001447C(args[0], args[1], coverage_probe_call);
+        {
+            RRJHeapFailureProbe previous = rrj_heap_set_failure_probe(coverage_heap_failure_probe);
+            FILE *previous_stream = coverage_heap_stream;
+            coverage_heap_stream = (FILE *)m->sdk_user;
+            *result = sub_8001447C(args[0], args[1]);
+            (void)rrj_heap_set_failure_probe(previous);
+            coverage_heap_stream = previous_stream;
             return 1;
+        }
         case 0x800142B4:
-            *result = sub_800142B4(args[0], args[1], coverage_probe_call);
+        {
+            RRJHeapFailureProbe previous = rrj_heap_set_failure_probe(coverage_heap_failure_probe);
+            FILE *previous_stream = coverage_heap_stream;
+            coverage_heap_stream = (FILE *)m->sdk_user;
+            *result = sub_800142B4(args[0], args[1]);
+            (void)rrj_heap_set_failure_probe(previous);
+            coverage_heap_stream = previous_stream;
             return 1;
+        }
         default:
             return 0;
     }

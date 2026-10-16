@@ -1,3 +1,5 @@
+#include "video_stop.h"
+#include "music_stop.h"
 #include "native_game_api.h"
 #include "psx.h"
 /* Main update hierarchy, actual zero-game-argument F800667E4 entry. */
@@ -9,54 +11,23 @@
 #include "menu_video.h"
 #include <stdlib.h>
 
-static uint32_t b(RRJMemory *m, uint32_t a)
+uint32_t sub_800667E4(void)
 {
-    return r_u8(a);
-}
+    uint32_t scalar_v_14;
+    uint32_t scalar_v_15;
+    uint32_t scalar_v_16;
 
-static uint32_t h(RRJMemory *m, uint32_t a)
-{
-    return rrj_u16(rrj_at(a, 2));
-}
+    uint32_t scalar_v_12;
 
-static uint32_t sb(uint32_t v)
-{
-    return v < 128 ? v : v | 0xffffff00;
-}
-
-static uint32_t sh(uint32_t v)
-{
-    return v < 32768 ? v : v | 0xffff0000;
-}
-
-static void put(RRJMemory *m, uint32_t a, uint32_t v)
-{
-    w_u8(a, (uint8_t)v);
-}
-
-static void half(RRJMemory *m, uint32_t a, uint32_t v)
-{
-    rrj_put16(rrj_at(a, 2), (uint16_t)v);
-}
-
-static void call(RRJMemory *m, RRJSDKCall effect, uint32_t fn, uint32_t arg)
-{
-    if (!effect)
-        abort();
-    effect(m, fn, arg, 0);
-}
-
-uint32_t sub_F_800667E4(RRJMenuUpdateCall update, RRJSDKCall effect)
-{
     FUNCTION_MARKER(0x800667E4u, "RASHCDF.BIN");
     uint32_t id, menu, list, root, fn, done = 0, mode, enabled, request = 1;
-    put(rrj_host_context(), 0x8009C5E3, 0);
-    if (rrj_read32(0x800D712C) || rrj_read32(0x800D71EC))
-        rrj_write32(0x8005ACAC, 0);
-    id = h(rrj_host_context(), 0x8009C5D0);
-    half(rrj_host_context(), 0x8009C5D8, id);
-    menu = rrj_read32(rrj_read32(0x8009C68C) + 4 * sh(id));
-    rrj_write32(0x8009C5C8, menu);
+    w_u8(0x8009C5E3, (uint8_t)0);
+    if (r_u32(0x800D712C) || r_u32(0x800D71EC))
+        w_u32(0x8005ACAC, 0);
+    id = (uint32_t)r_u16(0x8009C5D0);
+    w_u16(0x8009C5D8, (uint16_t)id);
+    menu = r_u32(r_u32(0x8009C68C) + 4 * ((uint32_t)(((uint32_t)(id)) < 32768 ? ((uint32_t)(id)) : ((uint32_t)(id)) | 0xffff0000)));
+    w_u32(0x8009C5C8, menu);
     switch (id)
     {
         case 0:
@@ -71,10 +42,10 @@ uint32_t sub_F_800667E4(RRJMenuUpdateCall update, RRJSDKCall effect)
         case 20:
         case 22:
         case 58:
-            if (b(rrj_host_context(), 0x8009C5E0))
+            if ((uint32_t)r_u8(0x8009C5E0))
             {
-                call(rrj_host_context(), effect, 0x8007F158, 1);
-                put(rrj_host_context(), 0x8009C5E0, 0);
+                (uint32_t)sub_8007F158(1);
+                w_u8(0x8009C5E0, (uint8_t)0);
             }
             request = 0;
             break;
@@ -84,73 +55,69 @@ uint32_t sub_F_800667E4(RRJMenuUpdateCall update, RRJSDKCall effect)
         case 4:
         case 5:
         case 29:
-            put(rrj_host_context(), 0x800D80F3, 0);
+            w_u8(0x800D80F3, (uint8_t)0);
             break;
         case 40:
-            put(rrj_host_context(), 0x800D80EB, b(rrj_host_context(), 0x8009C5F3));
+            w_u8(0x800D80EB, (uint8_t)r_u8(0x8009C5F3));
             break;
         default:
             break;
     }
-    if (request && b(rrj_host_context(), 0x8009C5DF) && !b(rrj_host_context(), 0x8009C5E0) && !(h(rrj_host_context(), 0x8009C5DA) & 1))
+    if (request && (uint32_t)r_u8(0x8009C5DF) && !(uint32_t)r_u8(0x8009C5E0) && !((uint32_t)r_u16(0x8009C5DA) & 1))
     {
-        call(rrj_host_context(), effect, 0x8007EDE0, b(rrj_host_context(), 0x8009C5DE));
-        put(rrj_host_context(), 0x8009C5E0, 1);
+        (uint32_t)sub_8007EDE0((uint32_t)r_u8(0x8009C5DE));
+        w_u8(0x8009C5E0, (uint8_t)1);
     }
-    if (h(rrj_host_context(), 0x8009C5DA) & 4)
-        (void)rrj_video_dummy(rrj_host_context(), 0x8006FED4, 0);
-    menu = rrj_read32(0x8009C5C8);
-    list = rrj_read32(menu + 16);
-    rrj_write32(0x8009C654, list ? list + 120 * sh(h(rrj_host_context(), menu + 4)) : 0);
-    (void)sub_F_800680E8(rrj_read32(0x8009C5C8), rrj_read32(0x8009C654));
-    root = rrj_read32(0x8009C664);
+    if ((uint32_t)r_u16(0x8009C5DA) & 4)
+        (void)sub_8006FED4();
+    menu = r_u32(0x8009C5C8);
+    list = r_u32(menu + 16);
+    w_u32(0x8009C654, list ? list + 120 * ((scalar_v_14 = ((uint32_t)r_u16((menu + 4)))), (((uint32_t)(scalar_v_14 < 32768 ? scalar_v_14 : scalar_v_14 | 0xffff0000)))) : 0);
+    (void)sub_800680E8(r_u32(0x8009C5C8), r_u32(0x8009C654));
+    root = r_u32(0x8009C664);
     if (root)
     {
-        fn = rrj_read32(0x8009CC40 + 4 * sb(b(rrj_host_context(), root + 2)));
+        fn = r_u32(0x8009CC40 + 4 * ((scalar_v_12 = ((uint32_t)r_u8((root + 2)))), (((uint32_t)(scalar_v_12 < 128 ? scalar_v_12 : scalar_v_12 | 0xffffff00)))));
         if (fn)
         {
-            if (!update)
-                abort();
-            done = update(rrj_host_context(), fn, rrj_read32(0x8009C5C8));
+            done = rrj_menu_update_function(fn)(r_u32(0x8009C5C8));
         }
     }
-    (void)sub_F_80064B30(rrj_read32(0x8009C5C8), rrj_read32(0x8009C654));
-    while (h(rrj_host_context(), 0x8009C5D8) != 65535 && !done)
+    (void)sub_80064B30(r_u32(0x8009C5C8), r_u32(0x8009C654));
+    while ((uint32_t)r_u16(0x8009C5D8) != 65535 && !done)
     {
-        menu = rrj_read32(rrj_read32(0x8009C68C) + 4 * sh(h(rrj_host_context(), 0x8009C5D8)));
-        fn = rrj_read32(0x8009C8C0 + 4 * sh(h(rrj_host_context(), menu + 6)));
-        rrj_write32(0x8009C5C8, menu);
+        menu = r_u32(r_u32(0x8009C68C) + 4 * ((scalar_v_15 = ((uint32_t)r_u16(0x8009C5D8))), (((uint32_t)(scalar_v_15 < 32768 ? scalar_v_15 : scalar_v_15 | 0xffff0000)))));
+        fn = r_u32(0x8009C8C0 + 4 * ((scalar_v_16 = ((uint32_t)r_u16((menu + 6)))), (((uint32_t)(scalar_v_16 < 32768 ? scalar_v_16 : scalar_v_16 | 0xffff0000)))));
+        w_u32(0x8009C5C8, menu);
         if (fn)
         {
-            if (!update)
-                abort();
-            done = update(rrj_host_context(), fn, menu);
+            done = rrj_menu_update_function(fn)(menu);
         }
-        half(rrj_host_context(), 0x8009C5D8, h(rrj_host_context(), rrj_read32(0x8009C5C8) + 10));
+        w_u16(0x8009C5D8, (uint16_t)r_u16((r_u32(0x8009C5C8) + 10)));
     }
-    mode = rrj_read32(0x800D80D8);
+    mode = r_u32(0x800D80D8);
     enabled = 0;
     if (mode == 32)
-        enabled = rrj_read32(0x8005AE7C) & 1;
+        enabled = r_u32(0x8005AE7C) & 1;
     if (mode == 1)
-        enabled = rrj_read32(0x8005AE7C) & 2;
+        enabled = r_u32(0x8005AE7C) & 2;
     if (mode == 8)
-        enabled = rrj_read32(0x8005AE7C) & 4;
-    if (enabled && (b(rrj_host_context(), 0x800D7182) || b(rrj_host_context(), 0x800D7192)))
+        enabled = r_u32(0x8005AE7C) & 4;
+    if (enabled && ((uint32_t)r_u8(0x800D7182) || (uint32_t)r_u8(0x800D7192)))
     {
-        uint32_t left = b(rrj_host_context(), 0x800D7182);
-        put(rrj_host_context(), 0x800D80E9, 0);
-        put(rrj_host_context(), 0x800D80DD, b(rrj_host_context(), 0x800D80DD) | 24);
+        uint32_t left = (uint32_t)r_u8(0x800D7182);
+        w_u8(0x800D80E9, (uint8_t)0);
+        w_u8(0x800D80DD, (uint8_t)((uint32_t)r_u8(0x800D80DD) | 24));
         (uint32_t)sub_8002D250();
-        mode = b(rrj_host_context(), 0x800D80DC);
-        put(rrj_host_context(), 0x800D80DC, left ? (mode == 2 ? 0 : mode == 4 ? 2 : 4) : (mode == 2 ? 4 : mode == 4 ? 0 : 2));
+        mode = (uint32_t)r_u8(0x800D80DC);
+        w_u8(0x800D80DC, (uint8_t)(left ? (mode == 2 ? 0 : mode == 4 ? 2 : 4) : (mode == 2 ? 4 : mode == 4 ? 0 : 2)));
     }
-    sub_F_8006738C(0x800D81D8, effect);
-    sub_F_800685BC(rrj_read32(0x8009C654));
-    sub_F_8006310C(rrj_read32(0x8009C664), effect);
-    if (rrj_s32(rrj_read32(0x8005ACAC)) < 1801)
+    sub_8006738C(0x800D81D8);
+    sub_800685BC(r_u32(0x8009C654));
+    sub_8006310C(r_u32(0x8009C664));
+    if (((int32_t)(uint32_t)(r_u32(0x8005ACAC))) < 1801)
         return 4;
-    if (h(rrj_host_context(), 0x8009C5D0) == 4)
-        half(rrj_host_context(), 0x8009C5D2, 58);
+    if ((uint32_t)r_u16(0x8009C5D0) == 4)
+        w_u16(0x8009C5D2, (uint16_t)58);
     return 58;
 }

@@ -1,61 +1,52 @@
+#include "menu_input.h"
+#include "audio.h"
 #include "psx.h"
 /* F8006AE6C generic submenu input wrapper, actual MIPS ordering. */
 #include "submenu.h"
 #include <stdlib.h>
 
-static uint32_t h(RRJMemory *m, uint32_t a)
+uint32_t sub_8006AE6C(uint32_t menu)
 {
-    return rrj_u16(rrj_at(a, 2));
-}
+    uint32_t scalar_v_12;
+    uint32_t scalar_v_13;
+    uint32_t scalar_v_14;
+    uint32_t scalar_v_15;
+    uint32_t scalar_v_16;
+    uint32_t scalar_v_17;
+    uint32_t scalar_v_18;
+    uint32_t scalar_v_19;
+    uint32_t scalar_v_20;
 
-static uint32_t b(RRJMemory *m, uint32_t a)
-{
-    return r_u8(a);
-}
+    uint32_t scalar_v_10;
+    uint32_t scalar_v_11;
 
-static uint32_t sh(uint32_t v)
-{
-    return v & 0x8000 ? v | 0xffff0000 : v;
-}
-
-static uint32_t sb(uint32_t v)
-{
-    return v & 128 ? v | 0xffffff00 : v;
-}
-
-uint32_t sub_F_8006AE6C(uint32_t menu, RRJSubmenuCall cb)
-{
     FUNCTION_MARKER(0x8006AE6Cu, "RASHCDF.BIN");
-    uint32_t item = rrj_read32(menu + 16), selected, index, end, done = 0;
+    uint32_t item = r_u32(menu + 16), selected, index, end, done = 0;
     if (item)
     {
-        selected = item + 120 * sh(h(rrj_host_context(), menu + 4));
-        if (rrj_s32(rrj_read32(0x800D717C)) > 0 && rrj_s32(rrj_read32(0x800D718C)) > 0 && rrj_s32(rrj_read32(0x800D7194)) > 0 && rrj_s32(rrj_read32(0x800D713C)) > 0 && rrj_s32(sb(b(rrj_host_context(), 0x800D717A))) > 0 && h(rrj_host_context(), selected + 8) == 12 && h(rrj_host_context(), selected + 18) == 71)
+        selected = item + 120 * ((scalar_v_10 = ((uint32_t)r_u16((menu + 4)))), (((uint32_t)(scalar_v_10 & 0x8000 ? scalar_v_10 | 0xffff0000 : scalar_v_10))));
+        if (((int32_t)(uint32_t)(r_u32(0x800D717C))) > 0 && ((int32_t)(uint32_t)(r_u32(0x800D718C))) > 0 && ((int32_t)(uint32_t)(r_u32(0x800D7194))) > 0 && ((int32_t)(uint32_t)(r_u32(0x800D713C))) > 0 && ((int32_t)(uint32_t)(((scalar_v_12 = ((uint32_t)r_u8(0x800D717A))), (((uint32_t)(scalar_v_12 & 128 ? scalar_v_12 | 0xffffff00 : scalar_v_12)))))) > 0 && (uint32_t)r_u16((selected + 8)) == 12 && (uint32_t)r_u16((selected + 18)) == 71)
         {
-            rrj_put16(rrj_at(0x8009C5D2, 2), 56);
+            w_u16(0x8009C5D2, 56);
             done = 1;
         }
-        index = sb(b(rrj_host_context(), menu + 14));
-        end = index + sb(b(rrj_host_context(), menu + 15));
-        while (rrj_s32(index) < rrj_s32(end) && !done)
+        index = ((scalar_v_13 = ((uint32_t)r_u8((menu + 14)))), (((uint32_t)(scalar_v_13 & 128 ? scalar_v_13 | 0xffffff00 : scalar_v_13))));
+        end = index + ((scalar_v_14 = ((uint32_t)r_u8((menu + 15)))), (((uint32_t)(scalar_v_14 & 128 ? scalar_v_14 | 0xffffff00 : scalar_v_14))));
+        while (((int32_t)(uint32_t)(index)) < ((int32_t)(uint32_t)(end)) && !done)
         {
-            if (rrj_s32(sb(b(rrj_host_context(), 0x800D7128 + 192 * index + 74))) > 0 && rrj_read32(0x8009C7B8 + 4 * sh(h(rrj_host_context(), 0x8009C5D0))) != 0xffffffff)
+            if (((int32_t)(uint32_t)(((scalar_v_15 = ((uint32_t)r_u8((0x800D7128 + 192 * index + 74)))), (((uint32_t)(scalar_v_15 & 128 ? scalar_v_15 | 0xffffff00 : scalar_v_15)))))) > 0 && r_u32(0x8009C7B8 + 4 * ((scalar_v_11 = ((uint32_t)r_u16(0x8009C5D0))), (((uint32_t)(scalar_v_11 & 0x8000 ? scalar_v_11 | 0xffff0000 : scalar_v_11))))) != 0xffffffff)
             {
-                if (!cb)
-                    abort();
-                (void)cb(rrj_host_context(), 0x8007EAC0, 3, 0, 0);
+                (void)sub_8007EAC0(3);
                 done = 1;
-                rrj_put16(rrj_at(0x8009C5D2, 2), (uint16_t)sb(b(rrj_host_context(), 0x800D80E8)));
+                w_u16(0x8009C5D2, (uint16_t)((scalar_v_16 = ((uint32_t)r_u8(0x800D80E8))), (((uint32_t)(scalar_v_16 & 128 ? scalar_v_16 | 0xffffff00 : scalar_v_16)))));
             }
-            end = sb(b(rrj_host_context(), menu + 14)) + sb(b(rrj_host_context(), menu + 15));
+            end = ((scalar_v_17 = ((uint32_t)r_u8((menu + 14)))), (((uint32_t)(scalar_v_17 & 128 ? scalar_v_17 | 0xffffff00 : scalar_v_17)))) + ((scalar_v_18 = ((uint32_t)r_u8((menu + 15)))), (((uint32_t)(scalar_v_18 & 128 ? scalar_v_18 | 0xffffff00 : scalar_v_18))));
             ++index;
         }
     }
     if (done)
         return done;
-    index = sb(b(rrj_host_context(), menu + 14));
-    end = index + sb(b(rrj_host_context(), menu + 15));
-    if (!cb)
-        abort();
-    return cb(rrj_host_context(), 0x8006B03C, menu, index, end);
+    index = ((scalar_v_19 = ((uint32_t)r_u8((menu + 14)))), (((uint32_t)(scalar_v_19 & 128 ? scalar_v_19 | 0xffffff00 : scalar_v_19))));
+    end = index + ((scalar_v_20 = ((uint32_t)r_u8((menu + 15)))), (((uint32_t)(scalar_v_20 & 128 ? scalar_v_20 | 0xffffff00 : scalar_v_20))));
+    return sub_8006B03C(menu, index, end);
 }

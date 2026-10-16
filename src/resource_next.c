@@ -2,66 +2,63 @@
 /* Two-pass circular resource choice, F80062D6C actual MIPS. */
 #include "resource_next.h"
 
-static uint32_t b(RRJMemory *m, uint32_t a)
+static uint32_t blocked(uint32_t record, uint32_t kind)
 {
-    return r_u8(a);
-}
-
-static uint32_t sb(uint32_t v)
-{
-    return v < 128 ? v : v | 0xffffff00;
-}
-
-static uint32_t blocked(RRJMemory *m, uint32_t record, uint32_t kind)
-{
-    uint32_t bit = b(m, record + 1), index = sb(bit);
+    uint32_t bit = (uint32_t)r_u8((record + 1)), index = ((uint32_t)(((uint32_t)(bit)) < 128 ? ((uint32_t)(bit)) : ((uint32_t)(bit)) | 0xffffff00));
     index = (index >> 3) | (index & 0x80000000 ? 0xe0000000 : 0);
-    return (b(m, 0x800D80D8 + (kind == 4 ? 240 : 252) + index) >> (bit & 7)) & 1;
+    return ((uint32_t)r_u8((0x800D80D8 + (kind == 4 ? 240 : 252) + index)) >> (bit & 7)) & 1;
 }
 
-static uint32_t eligible(RRJMemory *m, uint32_t record, uint32_t pass, uint32_t flags)
+static uint32_t eligible(uint32_t record, uint32_t pass, uint32_t flags)
 {
+    uint32_t scalar_v_15;
+    uint32_t scalar_v_16;
+
     uint32_t kind;
-    if (!(b(m, record + 3) & b(m, 0x8009C5E4)))
+    if (!((uint32_t)r_u8((record + 3)) & (uint32_t)r_u8(0x8009C5E4)))
         return 0;
-    kind = b(m, record);
-    if ((kind == 4 || kind == 8) && blocked(m, record, kind))
+    kind = (uint32_t)r_u8(record);
+    if ((kind == 4 || kind == 8) && blocked(record, kind))
         return 0;
     if (pass)
-        flags = b(m, record + 2);
-    if ((flags & 64) && !rrj_read32(0x800D7138 + 192 * sb(b(m, 0x8009C5E6))))
+        flags = (uint32_t)r_u8((record + 2));
+    if ((flags & 64) && !r_u32(0x800D7138 + 192 * ((scalar_v_15 = ((uint32_t)r_u8(0x8009C5E6))), (((uint32_t)(scalar_v_15 < 128 ? scalar_v_15 : scalar_v_15 | 0xffffff00))))))
         return 0;
-    if ((flags & 32) && rrj_read32(0x800D7138 + 192 * sb(b(m, 0x8009C5E6))))
+    if ((flags & 32) && r_u32(0x800D7138 + 192 * ((scalar_v_16 = ((uint32_t)r_u8(0x8009C5E6))), (((uint32_t)(scalar_v_16 < 128 ? scalar_v_16 : scalar_v_16 | 0xffffff00))))))
         return 0;
-    if ((flags & 128) && (b(m, 0x800D70E1) >> 4) != 8)
+    if ((flags & 128) && ((uint32_t)r_u8(0x800D70E1) >> 4) != 8)
         return 0;
     return 1;
 }
 
-uint32_t sub_F_80062D6C(uint32_t resource)
+uint32_t sub_80062D6C(uint32_t resource)
 {
+    uint32_t scalar_v_17;
+    uint32_t scalar_v_18;
+    uint32_t scalar_v_19;
+
     FUNCTION_MARKER(0x80062D6Cu, "RASHCDF.BIN");
     uint32_t pass, seen = 0;
     for (pass = 0; pass < 2; ++pass)
     {
-        uint32_t count = sb(b(rrj_host_context(), resource)), index = sb(b(rrj_host_context(), resource + 3)), visited = 0;
-        if (rrj_s32(count) <= 0)
+        uint32_t count = ((scalar_v_17 = ((uint32_t)r_u8(resource))), (((uint32_t)(scalar_v_17 < 128 ? scalar_v_17 : scalar_v_17 | 0xffffff00)))), index = ((scalar_v_18 = ((uint32_t)r_u8((resource + 3)))), (((uint32_t)(scalar_v_18 < 128 ? scalar_v_18 : scalar_v_18 | 0xffffff00)))), visited = 0;
+        if (((int32_t)(uint32_t)(count)) <= 0)
             continue;
         do
         {
-            uint32_t record = rrj_read32(resource + 4) + 12 * index, flags = pass ? 0 : b(rrj_host_context(), record + 2);
+            uint32_t record = r_u32(resource + 4) + 12 * index, flags = pass ? 0 : (uint32_t)r_u8((record + 2));
             if (pass || (flags & 16) || seen)
             {
-                if (eligible(rrj_host_context(), record, pass, flags))
+                if (eligible(record, pass, flags))
                     return index;
                 seen = 1;
             }
-            count = sb(b(rrj_host_context(), resource));
+            count = ((scalar_v_19 = ((uint32_t)r_u8(resource))), (((uint32_t)(scalar_v_19 < 128 ? scalar_v_19 : scalar_v_19 | 0xffffff00))));
             ++index;
-            if (rrj_s32(index) >= rrj_s32(count))
+            if (((int32_t)(uint32_t)(index)) >= ((int32_t)(uint32_t)(count)))
                 index = 0;
             ++visited;
-        } while (rrj_s32(visited) < rrj_s32(count));
+        } while (((int32_t)(uint32_t)(visited)) < ((int32_t)(uint32_t)(count)));
     }
     return 0xffffffff;
 }

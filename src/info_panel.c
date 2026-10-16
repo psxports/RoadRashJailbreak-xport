@@ -1,171 +1,78 @@
 #include "psx.h"
-#include "wip.h"
-/* Information-panel dispatcher, audited against F8006FAC8 MIPS. */
 #include "info_panel.h"
+#include "game_main.h"
+#include "native_game_api.h"
 #include "menu_hint.h"
-#include "text_id.h"
-#include <stdlib.h>
 
-static uint32_t h(RRJMemory *m, uint32_t a)
+uint32_t sub_8006FAC8(uint32_t menu, uint32_t entry)
 {
-    return rrj_u16(rrj_at(a, 2));
-}
-
-static uint32_t b(RRJMemory *m, uint32_t a)
-{
-    return r_u8(a);
-}
-
-static uint32_t sh(uint32_t v)
-{
-    return v < 32768 ? v : v | 0xffff0000;
-}
-
-static uint32_t sb(uint32_t v)
-{
-    return v < 128 ? v : v | 0xffffff00;
-}
-
-uint32_t sub_F_8006FAC8(uint32_t menu, uint32_t entry, RRJModeLabel label, RRJSpecialPanel special)
-{
-    FUNCTION_MARKER(0x8006FAC8u, "RASHCDF.BIN");
-    uint32_t font, rect = entry + 16, id, color, mode, link, desc, selector, fn = 0, a0 = menu, a1 = entry, a2 = menu;
-    if ((h(rrj_host_context(), entry + 10) & 32) && !(h(rrj_host_context(), menu) & 2))
+    uint32_t font, rect = entry + 16, id, color, mode, link, desc, selector;
+    FUNCTION_MARKER(0x8006FAC8, "RASHCDF.BIN");
+    if ((r_u16(entry + 10) & 32) && !(r_u16(menu) & 2))
         return 1;
-    if (!b(rrj_host_context(), 0x800D8078 + 24 * rrj_read32(0x8009C5C0)))
+    if (!r_s8(0x800D8078 + 24 * r_u32(0x8009C5C0)))
         return 1;
-    if (!b(rrj_host_context(), 0x800D8078 + 24 * rrj_read32(0x8009C5BC)))
+    if (!r_s8(0x800D8078 + 24 * r_u32(0x8009C5BC)))
         return 1;
-    selector = h(rrj_host_context(), entry + 24);
-    if (h(rrj_host_context(), entry + 10) & 8192)
+    selector = r_u16(entry + 24);
+    if (r_u16(entry + 10) & 8192)
     {
         switch (selector)
         {
-            case 1:
-                fn = 0x80072AF4;
-                break;
-            case 2:
-                fn = 0x80072C44;
-                break;
-            case 3:
-                fn = 0x80072D94;
-                break;
-            case 4:
-                fn = 0x80072F2C;
-                break;
+            case 1: (void)sub_80072AF4(menu, entry); return 1;
+            case 2: (void)sub_80072C44(menu, entry); return 1;
+            case 3: (void)sub_80072D94(menu, entry); return 1;
+            case 4: (void)sub_80072F2C(menu, entry); return 1;
+            case 10: (void)sub_8007593C(menu, entry); return 1;
+            case 15: (void)sub_8007219C(menu, entry); return 1;
+            case 16: (void)sub_80072248(menu, entry); return 1;
+            case 17: (void)sub_80072388(menu, entry); return 1;
+            case 18: (void)sub_800724D0(menu, entry); return 1;
+            case 19: (void)sub_80072668(menu, entry); return 1;
+            case 20: (void)sub_800727C8(menu, entry); return 1;
+            case 21: (void)sub_80072910(menu, entry); return 1;
+            case 27: (void)sub_800733BC(menu, entry); return 1;
+            case 28: (void)sub_80073BAC(menu, entry); return 1;
+            case 29: (void)sub_80074194(menu, entry); return 1;
+            case 30: (void)sub_80074554(menu, entry); return 1;
+            case 40: (void)sub_80075D0C(menu, entry); return 1;
+            case 55: (void)sub_80075098(menu, entry); return 1;
+            case 56: (void)sub_80075AFC(menu, entry); return 1;
             case 5:
             case 6:
-            case 7:
-                fn = 0x80073074;
-                a2 = selector;
-                break;
+            case 7: (void)sub_80073074(menu, entry, selector); return 1;
             case 8:
-            case 9:
-                fn = 0x80073234;
-                a2 = selector;
-                break;
-            case 10:
-                fn = 0x8007593C;
-                break;
-            case 15:
-                fn = 0x8007219C;
-                break;
-            case 16:
-                fn = 0x80072248;
-                break;
-            case 17:
-                fn = 0x80072388;
-                break;
-            case 18:
-                fn = 0x800724D0;
-                break;
-            case 19:
-                fn = 0x80072668;
-                break;
-            case 20:
-                fn = 0x800727C8;
-                break;
-            case 21:
-                fn = 0x80072910;
-                break;
-            case 26:
-                break;
-            case 27:
-                fn = 0x800733BC;
-                break;
-            case 28:
-                fn = 0x80073BAC;
-                break;
-            case 29:
-                fn = 0x80074194;
-                break;
-            case 30:
-                fn = 0x80074554;
-                break;
-            case 31:
-                fn = 0x800758D4;
-                break;
-            case 40:
-                fn = 0x80075D0C;
-                break;
-            case 45:
-                fn = 0x80071064;
-                a1 = rect;
-                a2 = sh(h(rrj_host_context(), rrj_read32(0x8009954C) + 8));
-                break;
-            case 46:
-                fn = 0x80071AF0;
-                a0 = rect;
-                a1 = sh(h(rrj_host_context(), rrj_read32(0x8009954C) + 8));
-                break;
-            case 47:
-                fn = 0x80070DD4;
-                a1 = rect;
-                break;
-            case 54:
-                fn = 0x80074C9C;
-                break;
-            case 55:
-                fn = 0x80075098;
-                break;
-            case 56:
-                fn = 0x80075AFC;
-                break;
-            default:
-                return 1;
+            case 9: (void)sub_80073234(menu, entry, selector); return 1;
+            case 31: (void)sub_800758D4(menu, entry); return 1;
+            case 45: (void)sub_80071064(menu, rect, r_s16(r_u32(0x8009954C) + 8)); return 1;
+            case 46: (void)sub_80071AF0(rect, r_s16(r_u32(0x8009954C) + 8)); return 1;
+            case 47: (void)sub_80070DD4(menu, rect); return 1;
+            case 54: (void)sub_80074C9C(); return 1;
+            case 26: break;
+            default: return 1;
         }
-        if (fn)
-        {
-            if (!special)
-            {
-                RRJ_WIP(rrj_host_context(), fn, "callee", "info_panel", "skip_panel_return_one", ((const uint32_t[]){a0, a1, a2}), 3);
-                return 1;
-            }
-            special(rrj_host_context(), fn, a0, a1, a2);
+        if (!r_s16(0x8009C5EC))
             return 1;
-        }
-        if (!h(rrj_host_context(), 0x8009C5EC))
-            return 1;
-        font = rrj_read32(0x8009C5B8);
+        font = r_u32(0x8009C5B8);
         w_u8(0x800D8078 + 24 * font + 3, 0);
-        font = rrj_read32(0x8009C5B8);
-        color = rrj_read32(rect + 12);
-        id = sh(h(rrj_host_context(), 0x8009C5EC));
-        mode = h(rrj_host_context(), rect + 10);
+        font = r_u32(0x8009C5B8);
+        color = r_u32(rect + 12);
+        id = (uint32_t)r_s16(0x8009C5EC);
+        mode = r_u16(rect + 10);
     }
     else
     {
-        desc = sub_F_80063C7C(selector, label);
+        desc = sub_80063C7C(selector);
         if (!desc)
             return 1;
-        font = rrj_read32(0x8009C5B8);
+        font = r_u32(0x8009C5B8);
         w_u8(0x800D8078 + 24 * font + 3, 0);
-        font = rrj_read32(0x8009C5B8);
-        id = sh(h(rrj_host_context(), desc));
-        color = rrj_read32(desc + 4);
-        mode = sb(b(rrj_host_context(), desc + 2));
+        font = r_u32(0x8009C5B8);
+        id = (uint32_t)r_s16(desc);
+        color = r_u32(desc + 4);
+        mode = (uint32_t)r_s8(desc + 2);
     }
-    link = rrj_read32(0x8009CFC8) + 4 * sb(b(rrj_host_context(), 0x8009C5E1)) + 4;
-    (void)sub_8002CB08(font, id, rect, link, color, mode, rrj_blink_text);
+    link = r_u32(0x8009CFC8) + 4 * (uint32_t)r_s8(0x8009C5E1) + 4;
+    (void)sub_8002CB08(font, id, xport_guest_cptr(rect, 8), link, color, mode);
     return 1;
 }

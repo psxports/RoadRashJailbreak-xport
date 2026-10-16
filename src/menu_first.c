@@ -2,37 +2,29 @@
 /* First eligible menu entry. MIPS caches list, count and resource mode. */
 #include "menu_first.h"
 
-static uint32_t b(RRJMemory *m, uint32_t a)
+uint32_t sub_80080ACC(uint32_t menu)
 {
-    return r_u8(a);
-}
+    uint32_t scalar_v_4;
 
-static uint32_t sb(uint32_t v)
-{
-    return v < 128 ? v : v | 0xffffff00;
-}
-
-uint32_t sub_F_80080ACC(uint32_t menu)
-{
     FUNCTION_MARKER(0x80080ACCu, "RASHCDF.BIN");
-    uint32_t list = rrj_read32(menu + 16), count, mode, index;
+    uint32_t list = r_u32(menu + 16), count, mode, index;
     if (!list)
         return 0;
-    count = rrj_u16(rrj_at(menu + 8, 2));
+    count = r_u16(menu + 8);
     if (!count || count >= 32768)
         return 0;
-    mode = rrj_read32(0x800D80D8);
+    mode = r_u32(0x800D80D8);
     for (index = 0; index < count; ++index, list += 120)
     {
-        uint32_t type = rrj_u16(rrj_at(list + 8, 2)), flags;
+        uint32_t type = r_u16(list + 8), flags;
         if (type != 12 && type != 13 && type != 17)
             continue;
-        flags = rrj_read32(list);
-        if ((flags & 0x40000000) && (b(rrj_host_context(), 0x800D70E1) >> 4) != 8)
+        flags = r_u32(list);
+        if ((flags & 0x40000000) && ((uint32_t)r_u8(0x800D70E1) >> 4) != 8)
             continue;
-        if ((flags & 0x02000000) && rrj_read32(0x800D742C + 24 * sb(b(rrj_host_context(), 0x8009C5E6))) != 1)
+        if ((flags & 0x02000000) && r_u32(0x800D742C + 24 * ((scalar_v_4 = ((uint32_t)r_u8(0x8009C5E6))), (((uint32_t)(scalar_v_4 < 128 ? scalar_v_4 : scalar_v_4 | 0xffffff00))))) != 1)
             continue;
-        if ((flags & 0x10000000) && !b(rrj_host_context(), 0x800D80F3))
+        if ((flags & 0x10000000) && !(uint32_t)r_u8(0x800D80F3))
             continue;
         if ((flags & 0x08000000) && mode != 4)
             continue;

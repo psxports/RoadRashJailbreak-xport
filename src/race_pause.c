@@ -1,5 +1,9 @@
+#include "race_bodyless_batch_007.h"
+#include "race_pause_frontier.h"
+#include "gpu.h"
 /* Resident8002305C: refresh pause conditions; callees require native binding. */
 #include "race_pause.h"
+#include "native_game_api.h"
 #include "menu_latch.h"
 #include "fixed_math.h"
 #include "race_trace_runtime.h"
@@ -11,47 +15,43 @@ uint32_t sub_80022C64(void)
 {
     FUNCTION_MARKER(0x80022C64u, "SLUS_010.53");
     uint32_t elapsed;
-    if (!rrj_read32(0x8005AE20))
+    if (!r_u32(0x8005AE20))
         return 0;
-    elapsed = rrj_read32(rrj_read32(0x8005B2F8) + 12) - rrj_read32(0x8005AE1C);
-    if (rrj_s32(elapsed) < 0)
+    elapsed = r_u32(r_u32(0x8005B2F8) + 12) - r_u32(0x8005AE1C);
+    if (((int32_t)(uint32_t)(elapsed)) < 0)
         elapsed = 0u - elapsed;
-    if (rrj_s32(elapsed) < 241)
+    if (((int32_t)(uint32_t)(elapsed)) < 241)
         return 0;
-    return rrj_s32(elapsed) < 3001 ? 1u : 2u;
+    return ((int32_t)(uint32_t)(elapsed)) < 3001 ? 1u : 2u;
 }
 
-uint32_t sub_80023870(RRJRacePlayerCheck check)
+uint32_t sub_80023870(void)
 {
     FUNCTION_MARKER(0x80023870u, "SLUS_010.53");
     uint32_t result;
-    if (!check)
-        abort();
-    result = check(rrj_read32(0x8005B38C)) >> 31;
-    result |= check(0x800CD898) >> 31;
-    if (rrj_read32(rrj_read32(0x8005B2F8) + 48) == 2)
+    result = sub_8008B99C(r_u32(0x8005B38C)) >> 31;
+    result |= sub_8008B99C(0x800CD898) >> 31;
+    if (r_u32(r_u32(0x8005B2F8) + 48) == 2)
     {
-        result |= check(rrj_read32(0x8005B21C)) >> 31;
-        result |= check(0x800CDD04) >> 31;
+        result |= sub_8008B99C(r_u32(0x8005B21C)) >> 31;
+        result |= sub_8008B99C(0x800CDD04) >> 31;
     }
     return result;
 }
 
-uint32_t sub_8002305C(RRJRacePauseCall call)
+uint32_t sub_8002305C(void)
 {
     FUNCTION_MARKER(0x8002305Cu, "SLUS_010.53");
     uint32_t reason, result;
-    if (!call)
-        abort();
-    (void)call(rrj_host_context(), 0x800237B8);
-    (void)call(rrj_host_context(), 0x80030608);
-    if (rrj_read32(rrj_read32(0x8005B2F8) + 48) == 1)
-        (void)call(rrj_host_context(), 0x800247E8);
-    reason = call(rrj_host_context(), 0x80022C64);
-    if (!reason && r_u8(rrj_read32(0x8005B2F8)) != 4)
+    (void)sub_800237B8();
+    (void)sub_80030608();
+    if (r_u32(r_u32(0x8005B2F8) + 48) == 1)
+        (void)sub_800247E8();
+    reason = sub_80022C64();
+    if (!reason && r_u8(r_u32(0x8005B2F8)) != 4)
         return 4;
-    result = 2u * (call(rrj_host_context(), 0x80023870) != 0) | (reason == 2);
-    rrj_put16(rrj_at(rrj_read32(0x8005B2F8) + 40, 2), result);
+    result = 2u * (sub_80023870() != 0) | (reason == 2);
+    w_u16(r_u32(0x8005B2F8) + 40, result);
     return result;
 }
 
@@ -59,25 +59,25 @@ uint32_t sub_8002305C(RRJRacePauseCall call)
 uint32_t sub_80030500(uint32_t tag, uint32_t position)
 {
     FUNCTION_MARKER(0x80030500u, "SLUS_010.53");
-    uint32_t base = rrj_read32(0x8005ACBC), count = rrj_read32(base + 0xA58);
+    uint32_t base = r_u32(0x8005ACBC), count = r_u32(base + 0xA58);
     uint32_t i, entry = base + 44;
-    for (i = 0; rrj_s32(i) < rrj_s32(count); ++i, entry += 36)
+    for (i = 0; ((int32_t)(uint32_t)(i)) < ((int32_t)(uint32_t)(count)); ++i, entry += 36)
     {
         uint32_t object, kind, ranges, j;
-        if ((rrj_read32(entry) & 0x12) != 0x12)
+        if ((r_u32(entry) & 0x12) != 0x12)
             continue;
-        object = rrj_read32(entry + 20);
-        kind = rrj_read32(object) >> 28;
+        object = r_u32(entry + 20);
+        kind = r_u32(object) >> 28;
         if (kind != 0 && kind != 8)
             continue;
-        ranges = rrj_read32(entry + 24);
+        ranges = r_u32(entry + 24);
         for (j = 0; j < 4; ++j, ranges += 12)
         {
-            uint32_t candidate = rrj_read32(ranges);
+            uint32_t candidate = r_u32(ranges);
             if (candidate == 0xFFFFFFFF)
                 break;
-            if (tag == candidate && rrj_s32(position) >= rrj_s32(rrj_read32(ranges + 4)) && rrj_s32(position) < rrj_s32(rrj_read32(ranges + 8)))
-                return rrj_read32(rrj_read32(entry + 20)) & 0x0FFFFFFF;
+            if (tag == candidate && ((int32_t)(uint32_t)(position)) >= ((int32_t)(uint32_t)(r_u32(ranges + 4))) && ((int32_t)(uint32_t)(position)) < ((int32_t)(uint32_t)(r_u32(ranges + 8))))
+                return r_u32(r_u32(entry + 20)) & 0x0FFFFFFF;
         }
     }
     return 0xFFFFFFFF;
@@ -86,78 +86,78 @@ uint32_t sub_80030500(uint32_t tag, uint32_t position)
 uint32_t sub_800245DC(uint32_t index)
 {
     FUNCTION_MARKER(0x800245DCu, "SLUS_010.53");
-    return rrj_read32(rrj_read32(0x8005AE64) + 24) + (index << 4);
+    return r_u32(r_u32(0x8005AE64) + 24) + (index << 4);
 }
 
 uint32_t sub_800245F4(uint32_t index)
 {
     FUNCTION_MARKER(0x800245F4u, "SLUS_010.53");
-    return rrj_read32(rrj_read32(0x8005AE64) + 20) + ((index + (index << 2)) << 3);
-}
-
-static uint32_t pause_asr(uint32_t value, uint32_t shift)
-{
-    if (!shift)
-        return value;
-    return (value >> shift) | ((value & 0x80000000) ? (0xFFFFFFFFu << (32 - shift)) : 0);
+    return r_u32(r_u32(0x8005AE64) + 20) + ((index + (index << 2)) << 3);
 }
 
 uint32_t sub_80030410(uint32_t input, uint32_t step)
 {
+    uint32_t scalar_value_1;
+    uint32_t scalar_value_2;
+    uint32_t scalar_value_3;
+
     FUNCTION_MARKER(0x80030410u, "SLUS_010.53");
-    uint32_t tag = rrj_read32(input + 188), position;
-    uint32_t reference = rrj_u16(rrj_at(0x800CDA00, 2));
+    uint32_t tag = r_u32(input + 188), position;
+    uint32_t reference = r_u16(0x800CDA00);
     if (!(tag >> 16))
     {
-        position = pause_asr(rrj_read32(input + 196), 10);
-        step = pause_asr(step << 16, 16);
+        position = ((scalar_value_1 = (r_u32(input + 196))), (((uint32_t)((!((uint32_t)(10))) ? (scalar_value_1) : ((scalar_value_1 >> ((uint32_t)(10))) | ((scalar_value_1 & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(10)))) : 0))))));
+        step = ((scalar_value_2 = (step << 16)), (((uint32_t)((!((uint32_t)(16))) ? (scalar_value_2) : ((scalar_value_2 >> ((uint32_t)(16))) | ((scalar_value_2 & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(16)))) : 0))))));
         if (step && (tag & 0xFFFF) == reference)
         {
-            uint32_t target = pause_asr(rrj_read32(0x800CDA08), 10), adjusted;
-            if (rrj_s32(position) < rrj_s32(target))
+            uint32_t target = ((scalar_value_3 = (r_u32(0x800CDA08))), (((uint32_t)((!((uint32_t)(10))) ? (scalar_value_3) : ((scalar_value_3 >> ((uint32_t)(10))) | ((scalar_value_3 & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(10)))) : 0)))))), adjusted;
+            if (((int32_t)(uint32_t)(position)) < ((int32_t)(uint32_t)(target)))
             {
                 adjusted = position + step;
-                if (rrj_s32(target) < rrj_s32(adjusted))
+                if (((int32_t)(uint32_t)(target)) < ((int32_t)(uint32_t)(adjusted)))
                     adjusted = target;
             }
             else
             {
                 adjusted = position - step;
-                if (rrj_s32(adjusted) < rrj_s32(target))
+                if (((int32_t)(uint32_t)(adjusted)) < ((int32_t)(uint32_t)(target)))
                     adjusted = target;
             }
             position = adjusted;
         }
-        tag = rrj_u16(rrj_at(input + 188, 2));
+        tag = r_u16(input + 188);
     }
     else
     {
         uint32_t first = sub_800245F4(tag & 0xFFFF), second;
-        tag = rrj_read32(first + 8);
+        tag = r_u32(first + 8);
         second = sub_800245DC(tag);
-        position = rrj_s32(rrj_read32(first + 12)) > 0 ? 1u : rrj_read32(second + 4) - 1;
+        position = ((int32_t)(uint32_t)(r_u32(first + 12))) > 0 ? 1u : r_u32(second + 4) - 1;
     }
     return sub_80030500(tag, position);
 }
 
 uint32_t sub_8008B99C(uint32_t player)
 {
+    uint32_t scalar_value_4;
+    uint32_t scalar_value_5;
+
     FUNCTION_MARKER(0x8008B99Cu, "RASHCDG.BIN");
-    uint32_t type = rrj_u16(rrj_at(player + 172, 2)), value = 0, result;
+    uint32_t type = r_u16(player + 172), value = 0, result;
     if ((type >> 5) != 6 && ((type >> 5) != 4 || (type & 31) < 30))
     {
-        uint32_t shift = rrj_u16(rrj_at(rrj_read32(player) + 14, 2)) >> 12;
-        value = pause_asr(rrj_read32(player + 40), shift);
+        uint32_t shift = r_u16(r_u32(player) + 14) >> 12;
+        value = ((scalar_value_4 = (r_u32(player + 40))), (((uint32_t)((!((uint32_t)(shift))) ? (scalar_value_4) : ((scalar_value_4 >> ((uint32_t)(shift))) | ((scalar_value_4 & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(shift)))) : 0))))));
     }
-    result = sub_80030410(player + 172, pause_asr(value << 16, 16));
-    rrj_write32(player + 176, result);
+    result = sub_80030410(player + 172, ((scalar_value_5 = (value << 16)), (((uint32_t)((!((uint32_t)(16))) ? (scalar_value_5) : ((scalar_value_5 >> ((uint32_t)(16))) | ((scalar_value_5 & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(16)))) : 0)))))));
+    w_u32(player + 176, result);
     return result;
 }
 
 uint32_t sub_8002379C(uint32_t index)
 {
     FUNCTION_MARKER(0x8002379Cu, "SLUS_010.53");
-    rrj_write32(0x8005AE34, 0x80053478 + (index << 7));
+    w_u32(0x8005AE34, 0x80053478 + (index << 7));
     return 0x80053478;
 }
 
@@ -167,64 +167,56 @@ uint32_t sub_80023860(uint32_t value)
     return value;
 }
 
-uint32_t sub_80023D7C(RRJRacePlayerCall call)
+uint32_t sub_80023D7C(void)
 {
     FUNCTION_MARKER(0x80023D7Cu, "SLUS_010.53");
-    if (!call)
-        abort();
-    return call(rrj_host_context(), 0x80030E58, rrj_read32(rrj_read32(0x8005AE34)), 0, 0);
+    return sub_80030E58(r_u32(r_u32(0x8005AE34)));
 }
 
-uint32_t sub_80023C4C(RRJRacePlayerCall call)
+uint32_t sub_80023C4C(void)
 {
     FUNCTION_MARKER(0x80023C4Cu, "SLUS_010.53");
     uint32_t result, record;
-    if (!call)
-        abort();
-    result = call(rrj_host_context(), 0x800312D0, rrj_read32(rrj_read32(0x8005AE34)), 0, 0);
-    record = rrj_read32(0x8005AE34);
-    if (result && !(rrj_read32(record + 28) & 2))
+    result = sub_800312D0(r_u32(r_u32(0x8005AE34)));
+    record = r_u32(0x8005AE34);
+    if (result && !(r_u32(record + 28) & 2))
     {
-        rrj_write32(record + 108, 1);
+        w_u32(record + 108, 1);
         return 1;
     }
-    rrj_write32(record + 108, 0);
+    w_u32(record + 108, 0);
     return record;
 }
 
-uint32_t sub_800237B8(RRJRacePlayerCall call)
+uint32_t sub_800237B8(void)
 {
     FUNCTION_MARKER(0x800237B8u, "SLUS_010.53");
     uint32_t index = 0;
-    if (!call)
-        abort();
-    while (index < rrj_read32(rrj_read32(0x8005B2F8) + 48))
+    while (index < r_u32(r_u32(0x8005B2F8) + 48))
     {
         uint32_t record;
         (void)sub_8002379C(index);
-        (void)call(rrj_host_context(), 0x80023A14, 0, 0, 0);
-        record = rrj_read32(0x8005AE34);
-        if (rrj_read32(record + 44))
-            (void)call(rrj_host_context(), 0x80031E1C, rrj_read32(record + 72), 0, index);
+        (void)sub_80023A14();
+        record = r_u32(0x8005AE34);
+        if (r_u32(record + 44))
+            (void)sub_80031E1C(r_u32(record + 72), 0, index);
         ++index;
-        (void)call(rrj_host_context(), 0x80023FBC, 0, 0, 0);
-        (void)sub_80023D7C(call);
-        (void)sub_80023C4C(call);
+        (void)sub_80023FBC();
+        (void)sub_80023D7C();
+        (void)sub_80023C4C();
     }
-    return call(rrj_host_context(), 0x80023CAC, 0, 0, 0);
+    return sub_80023CAC();
 }
 
 /* 80030608: queued object classification, pending dispatch and record sweep. */
-uint32_t sub_80030608(RRJRacePlayerCall call)
+uint32_t sub_80030608(void)
 {
     FUNCTION_MARKER(0x80030608u, "SLUS_010.53");
     uint32_t pending[64], count = 0, object, i, record;
-    if (!call)
-        abort();
-    while ((object = call(rrj_host_context(), 0x80031D70, 0, 0, 0)) != 0)
+    while ((object = sub_80031D70()) != 0)
     {
-        uint32_t classification = call(rrj_host_context(), 0x80031BF8, object, r_u8(object + 34), 0);
-        if (rrj_s32(classification) < 0)
+        uint32_t classification = sub_80031BF8(object, r_u8(object + 34));
+        if (((int32_t)(uint32_t)(classification)) < 0)
         {
             /* Original has 64 stack slots; overflow corrupts its saved registers. */
             if (count >= 64)
@@ -233,80 +225,78 @@ uint32_t sub_80030608(RRJRacePlayerCall call)
         }
         else
         {
-            uint32_t value = rrj_read32(rrj_read32(object + 20) + 28) >> 1;
-            uint32_t saved = rrj_read32(object + 32), target;
-            (void)call(rrj_host_context(), 0x800313EC, object, 0, 0);
-            record = rrj_read32(0x8005ACBC) + 44 + 36 * classification;
+            uint32_t value = r_u32(r_u32(object + 20) + 28) >> 1;
+            uint32_t saved = r_u32(object + 32), target;
+            (void)sub_800313EC(object);
+            record = r_u32(0x8005ACBC) + 44 + 36 * classification;
             value = sub_80023860(value);
-            target = rrj_read32(record + 20);
-            rrj_write32(target + 28, (rrj_read32(target + 28) & 1) | (value << 1));
-            rrj_write32(record + 32, saved);
+            target = r_u32(record + 20);
+            w_u32(target + 28, (r_u32(target + 28) & 1) | (value << 1));
+            w_u32(record + 32, saved);
         }
     }
     for (i = 0; i < count; ++i)
     {
         uint32_t kind;
         object = pending[i];
-        if (rrj_read32(object) & 0x20)
+        if (r_u32(object) & 0x20)
             continue;
-        kind = rrj_read32(rrj_read32(object + 20)) >> 28;
+        kind = r_u32(r_u32(object + 20)) >> 28;
         if (kind == 1 || kind == 2)
-            (void)call(rrj_host_context(), kind == 1 ? 0x800319F8 : 0x80031B4C, object, r_u8(object + 34), 0);
+            (void)(kind == 1 ? sub_800319F8(object, r_u8(object + 34)) : sub_80031B4C(object));
         else
-            rrj_write32(object, rrj_read32(object) | 0x20);
+            w_u32(object, r_u32(object) | 0x20);
     }
-    record = rrj_read32(0x8005ACBC) + 44;
-    for (i = 0; rrj_s32(i) < rrj_s32(rrj_read32(rrj_read32(0x8005ACBC) + 0xA58)); ++i, record += 36)
+    record = r_u32(0x8005ACBC) + 44;
+    for (i = 0; ((int32_t)(uint32_t)(i)) < ((int32_t)(uint32_t)(r_u32(r_u32(0x8005ACBC) + 0xA58))); ++i, record += 36)
     {
-        if ((rrj_read32(record) & 0x22) == 0x20)
-            (void)call(rrj_host_context(), 0x80031604, record, r_u8(record + 34), 0);
+        if ((r_u32(record) & 0x22) == 0x20)
+            (void)sub_80031604(record, r_u8(record + 34));
     }
-    (void)call(rrj_host_context(), 0x800320CC, 5, 0, 0);
-    if (!rrj_read32(0x8005AED8))
+    (void)sub_800320CC(5);
+    if (!r_u32(0x8005AED8))
         return 0;
-    rrj_write32(0x8005AED8, 0);
-    return call(rrj_host_context(), 0x800320AC, 0, 0, 0);
+    w_u32(0x8005AED8, 0);
+    return sub_800320AC();
 }
 
-uint32_t sub_80031D70(RRJRacePlayerCall call)
+uint32_t sub_80031D70(void)
 {
     FUNCTION_MARKER(0x80031D70u, "SLUS_010.53");
     uint32_t base, object = 0;
-    if (!call)
-        abort();
-    (void)call(rrj_host_context(), 0x80043DA4, 0, 0, 0);
-    base = rrj_read32(0x8005ACBC);
-    if (rrj_read32(base + 0x934))
+    (void)sub_80043DA4();
+    base = r_u32(0x8005ACBC);
+    if (r_u32(base + 0x934))
     {
         uint32_t index, next, rounded, count;
-        index = rrj_read32(base + 0x930);
-        object = rrj_read32(base + 0x938 + (index << 2));
-        rrj_write32(object, rrj_read32(object) & 0xFFFFFF7F);
-        index = rrj_read32(base + 0x930);
+        index = r_u32(base + 0x930);
+        object = r_u32(base + 0x938 + (index << 2));
+        w_u32(object, r_u32(object) & 0xFFFFFF7F);
+        index = r_u32(base + 0x930);
         next = index + 1;
-        rounded = rrj_s32(next) < 0 ? index + 64 : next;
-        rounded = pause_asr(rounded, 6) << 6;
-        count = rrj_read32(base + 0x934);
-        rrj_write32(base + 0x930, next - rounded);
-        rrj_write32(base + 0x934, count - 1);
+        rounded = ((int32_t)(uint32_t)(next)) < 0 ? index + 64 : next;
+        rounded = ((uint32_t)((!((uint32_t)(6))) ? (((uint32_t)(rounded))) : ((((uint32_t)(rounded)) >> ((uint32_t)(6))) | ((((uint32_t)(rounded)) & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(6)))) : 0)))) << 6;
+        count = r_u32(base + 0x934);
+        w_u32(base + 0x930, next - rounded);
+        w_u32(base + 0x934, count - 1);
     }
-    (void)call(rrj_host_context(), 0x80043DB4, 0, 0, 0);
+    (void)sub_80043DB4();
     return object;
 }
 
 uint32_t sub_80031BF8(uint32_t object, uint32_t group)
 {
     FUNCTION_MARKER(0x80031BF8u, "SLUS_010.53");
-    uint32_t base = rrj_read32(0x8005ACBC), descriptor = rrj_read32(object + 20);
-    uint32_t word = rrj_read32(descriptor), index = rrj_read32(base + (group << 3) + 0xA40);
-    uint32_t record = base + 44 + 36 * index, bit = rrj_read32(descriptor + 28) & 1;
-    uint32_t last = rrj_read32(base + (group << 3) + 0xA44);
+    uint32_t base = r_u32(0x8005ACBC), descriptor = r_u32(object + 20);
+    uint32_t word = r_u32(descriptor), index = r_u32(base + (group << 3) + 0xA40);
+    uint32_t record = base + 44 + 36 * index, bit = r_u32(descriptor + 28) & 1;
+    uint32_t last = r_u32(base + (group << 3) + 0xA44);
     while (index <= last)
     {
-        if (record != object && (rrj_read32(record) & 0x91) == 0x11)
+        if (record != object && (r_u32(record) & 0x91) == 0x11)
         {
-            uint32_t other = rrj_read32(record + 20);
-            if (rrj_read32(other) == word && ((word >> 28) != 1 || (rrj_read32(other + 28) & 1) == bit))
+            uint32_t other = r_u32(record + 20);
+            if (r_u32(other) == word && ((word >> 28) != 1 || (r_u32(other + 28) & 1) == bit))
                 return index;
         }
         ++index;
@@ -342,7 +332,7 @@ uint32_t sub_800320CC(uint32_t mode)
         default:
             return 0xFFFFFFFF;
     }
-    return rrj_read32(rrj_read32(0x8005ACBC) + offset);
+    return r_u32(r_u32(0x8005ACBC) + offset);
 }
 
 uint32_t sub_800320AC(void)
@@ -367,12 +357,12 @@ uint32_t sub_80031B98(uint32_t left, uint32_t right)
 uint32_t sub_80031B4C(uint32_t object)
 {
     FUNCTION_MARKER(0x80031B4Cu, "SLUS_010.53");
-    uint32_t base = rrj_read32(object + 16), target = base + 16352, result;
+    uint32_t base = r_u32(object + 16), target = base + 16352, result;
     (void)sub_80031B98(base, target);
-    result = rrj_read32(object);
-    rrj_write32(object + 20, target);
+    result = r_u32(object);
+    w_u32(object + 20, target);
     result |= 0x20;
-    rrj_write32(object, result);
+    w_u32(object, result);
     return result;
 }
 
@@ -380,19 +370,19 @@ uint32_t sub_800319F8(uint32_t object, uint32_t group)
 {
     FUNCTION_MARKER(0x800319F8u, "SLUS_010.53");
     uint32_t base, index, last, record, descriptor, word, bit, found = 0, left, right, data, result;
-    result = rrj_read32(object) & 0x20;
+    result = r_u32(object) & 0x20;
     if (result)
         return result;
-    base = rrj_read32(0x8005ACBC);
-    index = rrj_read32(base + (group << 3) + 0xA40);
+    base = r_u32(0x8005ACBC);
+    index = r_u32(base + (group << 3) + 0xA40);
     record = base + 44 + 36 * index;
-    descriptor = rrj_read32(object + 20);
-    last = rrj_read32(base + (group << 3) + 0xA44);
-    bit = rrj_read32(descriptor + 28) & 1;
-    word = rrj_read32(descriptor);
+    descriptor = r_u32(object + 20);
+    last = r_u32(base + (group << 3) + 0xA44);
+    bit = r_u32(descriptor + 28) & 1;
+    word = r_u32(descriptor);
     while (index <= last)
     {
-        if (record != object && (rrj_read32(record) & 0x91) == 0x11 && rrj_read32(rrj_read32(record + 20)) == word)
+        if (record != object && (r_u32(record) & 0x91) == 0x11 && r_u32(r_u32(record + 20)) == word)
         {
             found = record;
             break;
@@ -404,14 +394,14 @@ uint32_t sub_800319F8(uint32_t object, uint32_t group)
         return 1;
     left = bit ? found : object;
     right = bit ? object : found;
-    (void)sub_80031B98(rrj_read32(left + 16), rrj_read32(right + 16) + 16224);
-    data = rrj_read32(right + 16);
+    (void)sub_80031B98(r_u32(left + 16), r_u32(right + 16) + 16224);
+    data = r_u32(right + 16);
     (void)sub_80031B98(data, data + 16352);
-    rrj_write32(left + 20, rrj_read32(right + 16) + 16224);
-    rrj_write32(right + 20, rrj_read32(right + 16) + 16352);
-    rrj_write32(left, rrj_read32(left) | 0x20);
-    result = rrj_read32(right) | 0x20;
-    rrj_write32(right, result);
+    w_u32(left + 20, r_u32(right + 16) + 16224);
+    w_u32(right + 20, r_u32(right + 16) + 16352);
+    w_u32(left, r_u32(left) | 0x20);
+    result = r_u32(right) | 0x20;
+    w_u32(right, result);
     return result;
 }
 
@@ -422,126 +412,134 @@ uint32_t sub_80032190(uint32_t from, uint32_t to)
     FUNCTION_MARKER(0x80032190, "SLUS_010.53");
     if (from < 4)
     {
-        address = rrj_read32(0x8005ACBC) + offsets[from];
-        rrj_write32(address, rrj_read32(address) - 1);
+        address = r_u32(0x8005ACBC) + offsets[from];
+        w_u32(address, r_u32(address) - 1);
     }
     if (to >= 4)
         return 3;
-    address = rrj_read32(0x8005ACBC) + offsets[to];
-    result = rrj_read32(address) + 1;
-    rrj_write32(address, result);
+    address = r_u32(0x8005ACBC) + offsets[to];
+    result = r_u32(address) + 1;
+    w_u32(address, result);
     return result;
 }
 
-uint32_t sub_800322D0(uint32_t from, uint32_t to, RRJRacePlayerCall call)
+static const RRJObjectCounterProbe *object_counter_probe;
+
+const RRJObjectCounterProbe *rrj_object_counter_set_probe(const RRJObjectCounterProbe *probe)
+{
+    const RRJObjectCounterProbe *previous = object_counter_probe;
+    object_counter_probe = probe;
+    return previous;
+}
+
+uint32_t sub_800322D0(uint32_t from, uint32_t to)
 {
     FUNCTION_MARKER(0x800322D0u, "SLUS_010.53");
     uint32_t result;
-    if (!call)
-        abort();
-    if (!rrj_read32(0x800541D0))
-        (void)call(rrj_host_context(), 0x80043DA4, 0, 0, 0);
+    if (!r_u32(0x800541D0u))
+    {
+        if (object_counter_probe)
+            (void)object_counter_probe->enter();
+        else
+            sub_80043DA4();
+    }
     (void)sub_80032190(from, to);
-    result = rrj_read32(0x800541D0);
+    result = r_u32(0x800541D0u);
     if (!result)
-        return call(rrj_host_context(), 0x80043DB4, 0, 0, 0);
+    {
+        if (object_counter_probe)
+            return object_counter_probe->leave();
+        sub_80043DB4();
+    }
     return result;
 }
 
-uint32_t sub_800313EC(uint32_t object, RRJRacePlayerCall call)
+uint32_t sub_800313EC(uint32_t object)
 {
     FUNCTION_MARKER(0x800313ECu, "SLUS_010.53");
-    uint32_t flags = rrj_read32(object), retained = (flags >> 12) & 15, original_active = flags & 1;
+    uint32_t flags = r_u32(object), retained = (flags >> 12) & 15, original_active = flags & 1;
     uint32_t result, address, offset;
     if (original_active)
     {
-        rrj_write32(object, flags & 0xFFFFFFDC);
-        (void)sub_800322D0(1, 0, call);
+        w_u32(object, flags & 0xFFFFFFDC);
+        (void)sub_800322D0(1, 0);
     }
     else
-        (void)sub_800322D0(2, 0, call);
-    flags = rrj_read32(object);
+        (void)sub_800322D0(2, 0);
+    flags = r_u32(object);
     result = flags & 8;
     if (flags & 16)
     {
         offset = original_active ? 4u : 24u;
-        address = rrj_read32(0x8005ACBC) + offset;
-        result = rrj_read32(address) - 1;
-        rrj_write32(address, result);
+        address = r_u32(0x8005ACBC) + offset;
+        result = r_u32(address) - 1;
+        w_u32(address, result);
     }
     else if (result)
     {
         offset = original_active ? 8u : 28u;
-        address = rrj_read32(0x8005ACBC) + offset;
-        result = rrj_read32(address) - 1;
-        rrj_write32(address, result);
+        address = r_u32(0x8005ACBC) + offset;
+        result = r_u32(address) - 1;
+        w_u32(address, result);
     }
     if (retained)
     {
-        rrj_write32(object, (rrj_read32(object) - 4096) | 4);
-        return sub_800322D0(0, 2, call);
+        w_u32(object, (r_u32(object) - 4096) | 4);
+        return sub_800322D0(0, 2);
     }
-    rrj_write32(object + 8, 0);
-    rrj_write32(object, 0);
-    rrj_write32(object + 16, 0);
-    rrj_write32(object + 20, 0);
+    w_u32(object + 8, 0);
+    w_u32(object, 0);
+    w_u32(object + 16, 0);
+    w_u32(object + 20, 0);
     return result;
 }
 
-static uint32_t dispatch_object_call(RRJMemory *m, RRJObjectDispatchCall call, uint32_t fn, uint32_t a, uint32_t b, uint32_t c, uint32_t d, uint32_t e, uint32_t f)
+uint32_t sub_80031604(uint32_t object, uint32_t group)
 {
-    uint32_t args[6] = {a, b, c, d, e, f};
-    return call(m, fn, args);
-}
-
-uint32_t sub_80031604(uint32_t object, uint32_t group, RRJObjectDispatchCall call, RRJRacePlayerCall critical)
-{
-    uint32_t flags = rrj_read32(object), buffer = rrj_read32(object + 16);
+    uint32_t flags = r_u32(object), buffer = r_u32(object + 16);
     uint32_t id = 0, kind = 0, status, descriptor, extra, value, result, target;
-    if (!call || !critical)
-        abort();
     FUNCTION_MARKER(0x80031604, "SLUS_010.53");
     if (flags & 8)
     {
-        (void)dispatch_object_call(rrj_host_context(), call, 0x800248E4, rrj_read32(object + 4), buffer, 0, 0, 0, 0);
+        (void)sub_800248E4(r_u32(object + 4), buffer);
         status = 1;
     }
     else
     {
-        descriptor = rrj_read32(object + 20);
-        extra = rrj_read32(object + 24);
-        value = sub_80023860(rrj_read32(descriptor + 28) >> 1) << 1;
-        id = rrj_read32(descriptor);
+        descriptor = r_u32(object + 20);
+        extra = r_u32(object + 24);
+        value = sub_80023860(r_u32(descriptor + 28) >> 1) << 1;
+        id = r_u32(descriptor);
         kind = id >> 28;
         id &= 0x0FFFFFFF;
-        value |= rrj_read32(descriptor + 28) & 1;
-        rrj_write32(descriptor + 28, value);
+        value |= r_u32(descriptor + 28) & 1;
+        w_u32(descriptor + 28, value);
         switch (kind)
         {
             case 0:
             case 8:
-                (void)dispatch_object_call(rrj_host_context(), call, 0x80031E1C, rrj_read32(rrj_read32(0x8005AE34) + 72), object, group, 0, 0, 0);
-                status = dispatch_object_call(rrj_host_context(), call, 0x80032A20, buffer, id, kind, extra, object + 28, group);
+                (void)sub_80031E1C(r_u32(r_u32(0x8005AE34) + 72), object, group);
+                status = sub_80032A20(buffer, id, kind, extra, object + 28, group);
                 break;
             case 9:
-                status = dispatch_object_call(rrj_host_context(), call, 0x80032A20, buffer, id, kind, 0, 0, group);
+                status = sub_80032A20(buffer, id, kind, 0, 0, group);
                 break;
             case 1:
-                status = (rrj_read32(object) & 0x20) ? dispatch_object_call(rrj_host_context(), call, 0x80032CC8, buffer, id, value & 1, value, descriptor + 4, group) : 0;
+                status = (r_u32(object) & 0x20) ? sub_80032CC8(buffer, id, value & 1, value, descriptor + 4, group) : 0;
                 break;
             case 2:
-                status = (rrj_read32(object) & 0x20) ? dispatch_object_call(rrj_host_context(), call, 0x80032C6C, buffer, id, value, descriptor + 4, group, 0) : 0;
+                status = (r_u32(object) & 0x20) ? sub_80032C6C(buffer, id, value, descriptor + 4, group) : 0;
                 break;
             case 3:
-                status = dispatch_object_call(rrj_host_context(), call, 0x8003CEC4, buffer, id & 0xFFFF, group, value, 0, 0);
+                status = sub_8003CEC4(buffer, id & 0xFFFF, group);
                 if (status == 3)
                     status = 1;
                 break;
             case 4:
-                status = rrj_read32(rrj_read32(0x8005B2F8) + 48) == 1 ? dispatch_object_call(rrj_host_context(), call, 0x800136BC, buffer, descriptor + 4, rrj_read32(descriptor), 0, 0, 0) : 2;
+                status = r_u32(r_u32(0x8005B2F8) + 48) == 1 ? sub_800136BC(buffer, descriptor + 4, r_u32(descriptor)) : 2;
                 break;
             case 10:
-                status = dispatch_object_call(rrj_host_context(), call, 0x8001A0C0, buffer, id, rrj_read32(object + 4), 0, 0, 0);
+                status = sub_8001A0C0(buffer, id, r_u32(object + 4));
                 break;
             default:
                 status = 2;
@@ -553,30 +551,30 @@ uint32_t sub_80031604(uint32_t object, uint32_t group, RRJObjectDispatchCall cal
         if (!status)
             return 2;
         if (status == 2 || status == 3)
-            return sub_800313EC(object, critical);
+            return sub_800313EC(object);
         return 3;
     }
-    flags = rrj_read32(object);
+    flags = r_u32(object);
     result = flags | 2;
     if (!flags)
         return result;
-    rrj_write32(object, result);
+    w_u32(object, result);
     result &= 16;
     if (!result)
         return result;
-    (void)dispatch_object_call(rrj_host_context(), call, 0x80023960, rrj_read32(object + 20), group, 0, 0, 0, 0);
+    (void)sub_80023960(r_u32(object + 20), group);
     if (kind != 0 && kind != 8)
         return 8;
-    target = rrj_read32(0x800D6184);
-    result = rrj_read32(target + 16);
+    target = r_u32(0x800D6184);
+    result = r_u32(target + 16);
     if (id != result)
     {
-        target = rrj_read32(0x800D6188);
-        result = rrj_read32(target + 16);
+        target = r_u32(0x800D6188);
+        result = r_u32(target + 16);
         if (id != result)
             return result;
     }
-    rrj_write32(0x8005B310, target);
+    w_u32(0x8005B310, target);
     return result;
 }
 
@@ -584,9 +582,9 @@ uint32_t sub_80022218(uint32_t id, uint32_t group)
 {
     FUNCTION_MARKER(0x80022218u, "SLUS_010.53");
     uint32_t index = 24 * group, end = index + 24, record = 0x800D9268 + index * 48;
-    while (rrj_s32(index) < rrj_s32(end))
+    while (((int32_t)(uint32_t)(index)) < ((int32_t)(uint32_t)(end)))
     {
-        if (rrj_read32(record + 8) == id)
+        if (r_u32(record + 8) == id)
             return index;
         ++index;
         record += 48;
@@ -594,341 +592,224 @@ uint32_t sub_80022218(uint32_t id, uint32_t group)
     return 0xFFFFFFFF;
 }
 
-uint32_t sub_8002227C(uint32_t channel, uint32_t id, uint32_t pixels0, uint32_t pixels1, uint32_t group, RRJImageUpload upload)
+uint32_t sub_8002227C(uint32_t channel, uint32_t id, uint32_t pixels0, uint32_t pixels1, uint32_t group)
 {
     FUNCTION_MARKER(0x8002227Cu, "SLUS_010.53");
-    uint32_t count = rrj_read32(rrj_read32(0x8005B2F8) + 48), kind = id >> 15;
+    uint32_t count = r_u32(r_u32(0x8005B2F8) + 48), kind = id >> 15;
     uint32_t index = sub_80022218(id, group), slot, config, bits, parity, result;
     uint8_t rect[8];
     if (index == 0xFFFFFFFF)
         index = sub_80022218(0xFFFFFFFF, group);
     slot = 0x800D9268 + 48 * index;
-    rrj_write32(slot + 8, id);
+    w_u32(slot + 8, id);
     if (kind > 1)
         return 1;
-    if (!upload)
-        abort();
     config = 0x800533B4 + 88 * (count - 1) + 4 * (group + (kind ? 2 : 0));
     bits = r_u8(config + 2);
-    rrj_put16(rect + 4, 64);
-    rrj_put16(rect + 6, 128);
+    xport_store_le16(rect + 4, 64);
+    xport_store_le16(rect + 6, 128);
     if (!kind)
     {
-        rrj_put16(rect, ((channel & 15) + (bits & 15)) << 6);
-        rrj_put16(rect + 2, 0);
-        (void)upload(rrj_host_context(), rect, pixels0);
-        rrj_put16(rect + 2, rrj_u16(rect + 2) + 128);
-        result = upload(rrj_host_context(), rect, pixels1);
+        xport_store_le16(rect, ((channel & 15) + (bits & 15)) << 6);
+        xport_store_le16(rect + 2, 0);
+        (void)rrj_gpu_upload(rect, pixels0);
+        xport_store_le16(rect + 2, xport_load_le16(rect + 2) + 128);
+        result = rrj_gpu_upload(rect, pixels1);
     }
     else
     {
         parity = (channel & 1) << 7;
-        rrj_put16(rect, ((bits & 15) << 6) + ((channel << 5) & 0x3C0));
-        rrj_put16(rect + 2, r_u8(config + 1) + ((bits & 16) << 4) + parity);
-        (void)upload(rrj_host_context(), rect, pixels0);
+        xport_store_le16(rect, ((bits & 15) << 6) + ((channel << 5) & 0x3C0));
+        xport_store_le16(rect + 2, r_u8(config + 1) + ((bits & 16) << 4) + parity);
+        (void)rrj_gpu_upload(rect, pixels0);
         result = 0x800D76D0 + 32 * group + 8 * channel;
         w_u8(result + 6, 0);
         w_u8(result + 7, (uint8_t)parity);
     }
-    rrj_write32(slot, channel);
+    w_u32(slot, channel);
     return result;
 }
 
-uint32_t sub_80031008(uint32_t buffer, RRJRacePlayerCall critical)
+uint32_t sub_80031008(uint32_t buffer)
 {
     FUNCTION_MARKER(0x80031008u, "SLUS_010.53");
-    uint32_t base = rrj_read32(0x8005ACBC), count = rrj_read32(base + 0xA58);
+    uint32_t base = r_u32(0x8005ACBC), count = r_u32(base + 0xA58);
     uint32_t record = base + 44, index;
-    for (index = 0; rrj_s32(index) < rrj_s32(count); ++index, record += 36)
-        if (rrj_read32(record + 16) == buffer)
+    for (index = 0; ((int32_t)(uint32_t)(index)) < ((int32_t)(uint32_t)(count)); ++index, record += 36)
+        if (r_u32(record + 16) == buffer)
             break;
     /* The original cleans the following record when no match exists. */
-    return sub_800313EC(record, critical);
+    return sub_800313EC(record);
 }
 
-uint32_t sub_800333F4(uint32_t mode, uint32_t group, RRJObjectDispatchCall call)
+uint32_t sub_800333F4(uint32_t mode, uint32_t group)
 {
     FUNCTION_MARKER(0x800333F4u, "SLUS_010.53");
     uint32_t index = 12 * group, end = index + 12, record = 0x800D87E8 + 1344 * group;
-    if (!call)
-        abort();
-    while (rrj_s32(index) < rrj_s32(end))
+    while (((int32_t)(uint32_t)(index)) < ((int32_t)(uint32_t)(end)))
     {
-        (void)dispatch_object_call(rrj_host_context(), call, 0x80033F14, record, mode, group, 0, 0, 0);
+        (void)sub_80033F14(record, mode, group);
         ++index;
         record += 112;
     }
     return 0;
 }
 
-uint32_t sub_80034DEC(const uint32_t args[7], RRJObjectDispatchCall call)
+uint32_t sub_80034DEC(uint32_t id, uint32_t buffer, uint32_t mode, uint32_t side, uint32_t value, uint32_t data, uint32_t group)
 {
     FUNCTION_MARKER(0x80034DECu, "SLUS_010.53");
-    uint32_t id = args[0], buffer = args[1], mode = args[2], side = args[3], value = args[4], data = args[5], group = args[6];
     uint32_t index = sub_80022218(id, group), record, found;
-    if (!call)
-        abort();
     if (index == 0xFFFFFFFF)
         index = sub_80022218(0xFFFFFFFF, group);
     else
     {
         record = 0x800D9268 + index * 48;
-        if (!mode && ((!side && rrj_read32(record + 12)) || (side == 1 && rrj_read32(record + 16))))
+        if (!mode && ((!side && r_u32(record + 12)) || (side == 1 && r_u32(record + 16))))
             return 3;
-        if (mode == 1 && rrj_read32(record + 12))
+        if (mode == 1 && r_u32(record + 12))
             return 3;
-        if (rrj_read32(record) != 0xFFFFFFFF)
+        if (r_u32(record) != 0xFFFFFFFF)
             return 3;
     }
     record = 0x800D9268 + index * 48;
-    rrj_write32(record + 8, id);
+    w_u32(record + 8, id);
     if (!mode)
     {
-        rrj_write32(record + 4, 0);
-        rrj_write32(record + (side ? 16 : 12), buffer);
+        w_u32(record + 4, 0);
+        w_u32(record + (side ? 16 : 12), buffer);
     }
     else
     {
-        rrj_write32(record + 12, buffer);
-        rrj_write32(record + 4, mode);
+        w_u32(record + 12, buffer);
+        w_u32(record + 4, mode);
     }
-    rrj_write32(record + 20, value);
-    (void)sub_8001E0B4(record + 24, data, 24);
-    (void)dispatch_object_call(rrj_host_context(), call, 0x800324CC, record, mode, group, 0, 0, 0);
-    if (mode != 1 && (mode || !rrj_read32(record + 12) || !rrj_read32(record + 16)))
+    w_u32(record + 20, value);
+    (void)sub_8001E0B4(xport_guest_ptr(record + 24, 24), xport_guest_ptr(data, 1), 24);
+    (void)sub_800324CC(record, mode, group);
+    if (mode != 1 && (mode || !r_u32(record + 12) || !r_u32(record + 16)))
         return 1;
-    found = dispatch_object_call(rrj_host_context(), call, 0x800335B4, mode, id, group, 0, 0, 0);
-    if (rrj_s32(found) < 0)
+    found = sub_800335B4(mode, id, group);
+    if (((int32_t)(uint32_t)(found)) < 0)
     {
-        found = dispatch_object_call(rrj_host_context(), call, 0x800335B4, mode, 0xFFFFFFFF, group, 0, 0, 0);
+        found = sub_800335B4(mode, 0xFFFFFFFF, group);
         if (found != 0xFFFFFFFF)
-            (void)dispatch_object_call(rrj_host_context(), call, 0x80033B50, found, index, mode, group, 0, 0);
+            (void)sub_80033B50(found, index, mode, group);
     }
     return 1;
 }
 
-static uint32_t pack_object_id(uint32_t id)
-{
-    return ((id >> 16) & 0x8000) | ((id >> 13) & 0x7C00) | (id & 0x3FF);
-}
-
-uint32_t sub_80032C6C(const uint32_t input[6], RRJObjectDispatchCall call)
+uint32_t sub_80032C6C(uint32_t buffer, uint32_t id, uint32_t value, uint32_t data, uint32_t group)
 {
     FUNCTION_MARKER(0x80032C6Cu, "SLUS_010.53");
-    uint32_t args[7] = {pack_object_id(input[1]) | 0x8000, input[0], 1, 0, input[2], input[3], input[4]};
-    return sub_80034DEC(args, call);
+    return sub_80034DEC(((uint32_t)(((((uint32_t)(id)) >> 16) & 0x8000) | ((((uint32_t)(id)) >> 13) & 0x7C00) | (((uint32_t)(id)) & 0x3FF))) | 0x8000, buffer, 1, 0, value, data, group);
 }
 
-uint32_t sub_80032CC8(const uint32_t input[6], RRJObjectDispatchCall call)
+uint32_t sub_80032CC8(uint32_t buffer, uint32_t id, uint32_t side, uint32_t value, uint32_t data, uint32_t group)
 {
     FUNCTION_MARKER(0x80032CC8u, "SLUS_010.53");
-    uint32_t args[7] = {pack_object_id(input[1]), input[0], 0, input[2] != 0, input[3], input[4], input[5]};
-    return sub_80034DEC(args, call);
+    return sub_80034DEC(((uint32_t)(((((uint32_t)(id)) >> 16) & 0x8000) | ((((uint32_t)(id)) >> 13) & 0x7C00) | (((uint32_t)(id)) & 0x3FF))), buffer, 0, side != 0, value, data, group);
 }
 
 uint32_t sub_800324CC(uint32_t slot, uint32_t mode, uint32_t group)
 {
     FUNCTION_MARKER(0x800324CCu, "SLUS_010.53");
     uint32_t index = 12 * group, end = index + 12, record = 0x800D87E8 + index * 112, j;
-    if (rrj_s32(index) >= rrj_s32(end))
+    if (((int32_t)(uint32_t)(index)) >= ((int32_t)(uint32_t)(end)))
         return 0x800E0000;
     do
     {
         for (j = 0; j < 2; ++j)
         {
-            if (rrj_read32(record + (mode ? 88 : 80) + 4 * j) == rrj_read32(slot + 8))
-                rrj_write32(record + (mode ? 96 : 104) + 4 * j, slot);
+            if (r_u32(record + (mode ? 88 : 80) + 4 * j) == r_u32(slot + 8))
+                w_u32(record + (mode ? 96 : 104) + 4 * j, slot);
         }
         ++index;
         record += 112;
-    } while (rrj_s32(index) < rrj_s32(end));
+    } while (((int32_t)(uint32_t)(index)) < ((int32_t)(uint32_t)(end)));
     return 0;
 }
 
 uint32_t sub_800335B4(uint32_t mode, uint32_t id, uint32_t group)
 {
     FUNCTION_MARKER(0x800335B4u, "SLUS_010.53");
-    uint32_t count = rrj_read32(mode ? 0x8005AEE8 : 0x8005AEE4), index;
+    uint32_t count = r_u32(mode ? 0x8005AEE8 : 0x8005AEE4), index;
     uint32_t record = mode ? 0x800D76D0 + 32 * group : 0x800D7710 + 24 * group;
-    for (index = 0; rrj_s32(index) < rrj_s32(count); ++index, record += 8)
-        if (rrj_read32(record) == id)
+    for (index = 0; ((int32_t)(uint32_t)(index)) < ((int32_t)(uint32_t)(count)); ++index, record += 8)
+        if (r_u32(record) == id)
             return index;
     return 0xFFFFFFFF;
 }
 
-uint32_t sub_80033B50(uint32_t channel, uint32_t index, uint32_t mode, uint32_t group, RRJObjectDispatchCall call)
+uint32_t sub_80033B50(uint32_t channel, uint32_t index, uint32_t mode, uint32_t group)
 {
     FUNCTION_MARKER(0x80033B50u, "SLUS_010.53");
-    uint32_t slot = 0x800D9268 + 48 * index, record, target, id, value;
-    if (!call)
-        abort();
-    if (!rrj_read32(slot + 12))
+    uint32_t slot = 0x800D9268 + 48 * index, record, target, id, value, first, second;
+    if (!r_u32(slot + 12))
         return 1;
-    if (rrj_read32(slot + 16) && !mode)
+    if (r_u32(slot + 16) && !mode)
     {
-        (void)dispatch_object_call(rrj_host_context(), call, 0x8002227C, channel, rrj_read32(slot + 8), rrj_read32(slot + 12), rrj_read32(slot + 16), group, 0);
-        (void)dispatch_object_call(rrj_host_context(), call, 0x80031008, rrj_read32(slot + 12), 0, 0, 0, 0, 0);
-        (void)dispatch_object_call(rrj_host_context(), call, 0x80031008, rrj_read32(slot + 16), 0, 0, 0, 0, 0);
+        id = r_u32(slot + 8);
+        first = r_u32(slot + 12);
+        second = r_u32(slot + 16);
+        (void)sub_8002227C(channel, id, first, second, group);
+        (void)sub_80031008(r_u32(slot + 12));
+        (void)sub_80031008(r_u32(slot + 16));
         record = 0x800D7710 + 24 * group + 8 * channel;
-        rrj_write32(slot + 12, 0);
-        rrj_write32(slot + 16, 0);
-        rrj_write32(slot, channel);
-        target = 0x800D8768 + 4 * (rrj_u16(rrj_at(record + 4, 2)) & 31);
-        rrj_write32(target, rrj_read32(slot + 8));
-        rrj_write32(record, rrj_read32(slot + 8));
-        (void)dispatch_object_call(rrj_host_context(), call, 0x800333F4, 0, group, 0, 0, 0, 0);
+        w_u32(slot + 12, 0);
+        w_u32(slot + 16, 0);
+        w_u32(slot, channel);
+        target = 0x800D8768 + 4 * (r_u16(record + 4) & 31);
+        w_u32(target, r_u32(slot + 8));
+        w_u32(record, r_u32(slot + 8));
+        (void)sub_800333F4(0, group);
     }
-    else if (rrj_read32(slot + 12) && mode == 1)
+    else if (r_u32(slot + 12) && mode == 1)
     {
-        (void)dispatch_object_call(rrj_host_context(), call, 0x8002227C, channel, rrj_read32(slot + 8), rrj_read32(slot + 12), rrj_read32(slot + 16), group, 0);
-        (void)dispatch_object_call(rrj_host_context(), call, 0x80031008, rrj_read32(slot + 12), 0, 0, 0, 0, 0);
-        rrj_write32(slot + 12, 0);
-        rrj_write32(slot + 16, 0);
-        rrj_write32(slot, channel);
+        id = r_u32(slot + 8);
+        first = r_u32(slot + 12);
+        second = r_u32(slot + 16);
+        (void)sub_8002227C(channel, id, first, second, group);
+        (void)sub_80031008(r_u32(slot + 12));
+        w_u32(slot + 12, 0);
+        w_u32(slot + 16, 0);
+        w_u32(slot, channel);
         record = 0x800D76D0 + 32 * group + 8 * channel;
-        target = 0x800D8768 + 4 * (rrj_u16(rrj_at(record + 4, 2)) & 31);
-        id = rrj_read32(slot + 8);
+        target = 0x800D8768 + 4 * (r_u16(record + 4) & 31);
+        id = r_u32(slot + 8);
         if (channel & 1)
-            rrj_write32(target, (rrj_read32(target) & 0xFFFF0000) | id);
+            w_u32(target, (r_u32(target) & 0xFFFF0000) | id);
         else
         {
-            value = rrj_u16(rrj_at(target, 2)) | (id << 16);
-            rrj_write32(target, value);
-            rrj_put16(rrj_at(record + 4, 2), rrj_u16(rrj_at(record + 4, 2)) | 0x800);
+            value = r_u16(target) | (id << 16);
+            w_u32(target, value);
+            w_u16(record + 4, r_u16(record + 4) | 0x800);
         }
-        rrj_write32(record, rrj_read32(slot + 8));
-        (void)dispatch_object_call(rrj_host_context(), call, 0x800333F4, 1, group, 0, 0, 0, 0);
+        w_u32(record, r_u32(slot + 8));
+        (void)sub_800333F4(1, group);
     }
     return 1;
 }
 
 /* 33F14 local material/lookup helpers retain C stack storage, not PSX addresses. */
-static void sub_80033D70(uint32_t ids[3], uint32_t pointers[3], unsigned a, unsigned b)
-{
-    uint32_t t = ids[b];
-    ids[b] = ids[a];
-    ids[a] = t;
-    t = pointers[b];
-    pointers[b] = pointers[a];
-    pointers[a] = t;
-}
 
-static void sub_80033DAC(uint32_t ids[3], uint32_t pointers[3])
-{
-    if (rrj_s32(ids[1]) < 0)
-        return;
-    if (rrj_s32(ids[0]) < rrj_s32(ids[1]))
-        sub_80033D70(ids, pointers, 0, 1);
-    if (rrj_s32(ids[2]) < 0)
-        return;
-    if (rrj_s32(ids[1]) < rrj_s32(ids[2]))
-    {
-        sub_80033D70(ids, pointers, 1, 2);
-        if (rrj_s32(ids[0]) < rrj_s32(ids[1]))
-            sub_80033D70(ids, pointers, 0, 1);
-    }
-}
-
-static uint32_t material_half(RRJMemory *m, uint32_t address)
-{
-    uint32_t v = rrj_u16(rrj_at(address, 2));
-    return v & 0x8000 ? v | 0xFFFF0000 : v;
-}
-
-static uint32_t material_byte(RRJMemory *m, uint32_t address)
-{
-    return r_u8(address);
-}
-
-static unsigned material_index(const uint8_t material[9], const uint32_t ids[3])
-{
-    unsigned i = 0;
-    uint32_t id = rrj_u16(material);
-    while (rrj_s32(id) < rrj_s32(ids[i]))
-    {
-        if (++i >= 3)
-            abort();
-    }
-    return id == ids[i] ? i : 0;
-}
-
-static void sub_80022758(uint8_t material[9], const uint32_t ids[3], const uint32_t pointers[3], uint32_t group)
-{
-    uint32_t count = rrj_read32(rrj_read32(0x8005B2F8) + 48);
-    uint32_t channel = rrj_read32(pointers[material_index(material, ids)]);
-    uint32_t cfg = 0x80053254 + 176 * (count - 1) + 8 * group, divisor, quotient, remainder, bits, x, y;
-    rrj_put16(material + 6, rrj_u16(rrj_at(0x800D7714 + 24 * group + 8 * channel, 2)));
-    divisor = material_byte(rrj_host_context(), cfg + 4);
-    quotient = divisor ? material[2] / divisor : 0xFFFFFFFF;
-    remainder = divisor ? material[2] % divisor : material[2];
-    bits = material_byte(rrj_host_context(), 0x800533B6 + 88 * (count - 1) + 4 * group);
-    x = (((channel & 15) + (bits & 15)) << 6) + material_half(rrj_host_context(), cfg) + remainder * material_byte(rrj_host_context(), cfg + 6);
-    y = material_half(rrj_host_context(), cfg + 2) + quotient;
-    rrj_put16(material + 4, (y << 6) | ((x >> 4) & 63));
-}
-
-static void sub_8002289C(uint8_t material[9], const uint32_t ids[3], const uint32_t pointers[3], uint32_t group)
-{
-    uint32_t channel = rrj_read32(pointers[material_index(material, ids)]);
-    uint32_t record = 0x800D76D0 + 32 * group + 8 * channel, count, bits, x, y;
-    material[8] = (uint8_t)material_byte(rrj_host_context(), record + 7);
-    rrj_put16(material + 6, rrj_u16(rrj_at(record + 4, 2)));
-    count = rrj_read32(rrj_read32(0x8005B2F8) + 48);
-    bits = pause_asr(channel, 1) + material_byte(rrj_host_context(), 0x800533B6 + 88 * (count - 1) + 4 * (group + 2));
-    x = ((bits & 15) << 2) | 3;
-    y = ((bits & 16) << 4) + ((channel & 1) << 7) + material[2] + 96;
-    rrj_put16(material + 4, (y << 6) | x);
-}
-
-static void material_special(RRJMemory *m, uint8_t material[9])
+static void material_special(uint8_t material[9])
 {
     uint32_t count, cfg, divisor, quotient, remainder, bits, x, y;
-    material[8] = (uint8_t)material_byte(m, 0x800D6168);
-    rrj_put16(material + 6, rrj_u16(rrj_at(0x800D6160, 2)));
-    count = rrj_read32(rrj_read32(0x8005B2F8) + 48);
+    material[8] = (uint8_t)r_u8(0x800D6168);
+    xport_store_le16(material + 6, r_u16(0x800D6160));
+    count = r_u32(r_u32(0x8005B2F8) + 48);
     cfg = 0x80053254 + 176 * (count - 1);
-    divisor = material_byte(m, cfg + 68);
+    divisor = (uint32_t)r_u8((cfg + 68));
     quotient = divisor ? material[2] / divisor : 0xFFFFFFFF;
     remainder = divisor ? material[2] % divisor : material[2];
-    bits = material_byte(m, 0x800533D6 + 88 * (count - 1));
-    x = ((bits & 15) << 6) + material_half(m, cfg + 64) + remainder * material_byte(m, cfg + 70);
-    y = ((bits & 16) << 4) + material_half(m, cfg + 66) + quotient;
+    bits = (uint32_t)r_u8((0x800533D6 + 88 * (count - 1)));
+    x = ((bits & 15) << 6) + (uint32_t)r_s16((cfg + 64)) + remainder * (uint32_t)r_u8((cfg + 70));
+    y = ((bits & 16) << 4) + (uint32_t)r_s16((cfg + 66)) + quotient;
     /* 8004CD84 / PsyQ getClut: arithmetic shift low six bits are identical. */
-    rrj_put16(material + 4, (y << 6) | ((x >> 4) & 63));
+    xport_store_le16(material + 4, (y << 6) | ((x >> 4) & 63));
 }
 
-static uint32_t sub_80033E5C(uint32_t polygon)
-{
-    uint32_t value = rrj_u16(rrj_at(polygon + 2, 2));
-    if (value & 15)
-        rrj_put16(rrj_at(polygon + 2, 2), value & 240);
-    return value & 240;
-}
-
-static uint32_t sub_80033E7C(uint32_t polygon)
-{
-    /* lbu followed by (value>>4)<16 always skips the original store. */
-    return material_byte(rrj_host_context(), polygon) | 240;
-}
-
-static uint32_t sub_80033EA0(uint32_t object_pointer, uint32_t polygon, const uint8_t material[9])
-{
-    uint32_t high = material_byte(rrj_host_context(), polygon) >> 4, result = 0;
-    if (!(rrj_read32(object_pointer + 8) & 64))
-    {
-        if (high >= 15)
-        {
-            high = 30;
-            result = 1;
-        }
-        else if (material[8] & 128)
-            high += 15;
-    }
-    w_u8(polygon, (uint8_t)((high << 3) | (material_byte(rrj_host_context(), polygon) & 15)));
-    return result;
-}
-
-static void material_add_uv(RRJMemory *m, uint32_t polygon, uint8_t offset, unsigned quad)
+static void material_add_uv(uint32_t polygon, uint8_t offset, unsigned quad)
 {
     static const unsigned positions[4] = {5, 9, 13, 15};
     unsigned i;
@@ -945,76 +826,76 @@ uint32_t sub_80033F14(uint32_t record, uint32_t mode, uint32_t group)
     uint32_t flags, result, first, second, model, polygon, index, table_offset, count, ids[3], pointers[3];
     uint8_t material[9] = {0};
     unsigned j, quad;
-    if (rrj_read32(record) == 0xFFFFFFFF && rrj_read32(record + 8) == 0xFFFFFFFF)
+    if (r_u32(record) == 0xFFFFFFFF && r_u32(record + 8) == 0xFFFFFFFF)
         return 0xFFFFFFFF;
-    flags = rrj_read32(record + 12);
+    flags = r_u32(record + 12);
     if (!(flags & 16) && (flags & 3))
-        rrj_write32(record + 12, flags | 16);
-    result = rrj_read32(record + 12) & (mode ? 8u : 4u);
+        w_u32(record + 12, flags | 16);
+    result = r_u32(record + 12) & (mode ? 8u : 4u);
     if (result)
         return result;
-    first = rrj_read32(record + (mode ? 96 : 104));
+    first = r_u32(record + (mode ? 96 : 104));
     if (!first)
         return 0;
-    result = rrj_read32(first);
-    if (rrj_s32(result) < 0)
+    result = r_u32(first);
+    if (((int32_t)(uint32_t)(result)) < 0)
         return result;
-    second = rrj_read32(record + (mode ? 100 : 108));
+    second = r_u32(record + (mode ? 100 : 108));
     if (second)
     {
-        result = rrj_read32(second);
-        if (rrj_s32(result) < 0)
+        result = r_u32(second);
+        if (((int32_t)(uint32_t)(result)) < 0)
             return result;
     }
-    else if (rrj_read32(record + (mode ? 92 : 84)) != 0xFFFFFFFF)
+    else if (r_u32(record + (mode ? 92 : 84)) != 0xFFFFFFFF)
         return 0xFFFFFFFF;
-    model = rrj_read32(record + 4);
+    model = r_u32(record + 4);
     if (!mode)
     {
-        result = rrj_read32(model + 60);
+        result = r_u32(model + 60);
         if (!result)
             return result;
     }
     for (j = 0; j < 2; ++j)
     {
-        pointers[j] = rrj_read32(record + (mode ? 96 : 104) + 4 * j);
-        ids[j] = rrj_read32(record + (mode ? 88 : 80) + 4 * j);
+        pointers[j] = r_u32(record + (mode ? 96 : 104) + 4 * j);
+        ids[j] = r_u32(record + (mode ? 88 : 80) + 4 * j);
     }
     ids[2] = 0xFFFFFFFF;
     pointers[2] = 0;
     sub_80033DAC(ids, pointers);
-    rrj_write32(record + 12, rrj_read32(record + 12) | (mode ? 8u : 4u));
-    model = rrj_read32(record + 4);
-    polygon = rrj_read32(model + (mode ? 56 : 60));
-    index = mode ? 0 : rrj_u16(rrj_at(model + 4, 2)) + rrj_u16(rrj_at(model + 6, 2));
-    count = rrj_u16(rrj_at(model + 4, 2)) + (mode ? 1u : 2u) * rrj_u16(rrj_at(model + 6, 2));
-    result = mode ? count : 2u * rrj_u16(rrj_at(model + 6, 2));
+    w_u32(record + 12, r_u32(record + 12) | (mode ? 8u : 4u));
+    model = r_u32(record + 4);
+    polygon = r_u32(model + (mode ? 56 : 60));
+    index = mode ? 0 : r_u16(model + 4) + r_u16(model + 6);
+    count = r_u16(model + 4) + (mode ? 1u : 2u) * r_u16(model + 6);
+    result = mode ? count : 2u * r_u16(model + 6);
     table_offset = 12 * index;
-    while (rrj_s32(index) < rrj_s32(count))
+    while (((int32_t)(uint32_t)(index)) < ((int32_t)(uint32_t)(count)))
     {
         for (quad = 0; quad < 2; ++quad)
         {
-            uint32_t remaining = rrj_read32(rrj_read32(model + 40) + table_offset + 4 + 4 * quad);
-            while (rrj_s32(remaining) > 0)
+            uint32_t remaining = r_u32(r_u32(model + 40) + table_offset + 4 + 4 * quad);
+            while (((int32_t)(uint32_t)(remaining)) > 0)
             {
                 uint32_t special;
-                rrj_put16(material, rrj_u16(rrj_at(polygon + 10, 2)));
-                material[2] = (uint8_t)material_byte(rrj_host_context(), polygon + 1);
-                special = ((rrj_u16(material) >> 10) & 31) == 30;
+                xport_store_le16(material, r_u16(polygon + 10));
+                material[2] = (uint8_t)r_u8((polygon + 1));
+                special = ((xport_load_le16(material) >> 10) & 31) == 30;
                 if (special)
-                    material_special(rrj_host_context(), material);
+                    material_special(material);
                 else if (mode)
                     sub_8002289C(material, ids, pointers, group);
                 else
                     sub_80022758(material, ids, pointers, group);
                 if (!mode && special)
-                    material_add_uv(rrj_host_context(), polygon, material[8], quad);
-                rrj_put16(rrj_at(polygon + 10, 2), rrj_u16(material + 6));
-                rrj_put16(rrj_at(polygon + 6, 2), rrj_u16(material + 4));
+                    material_add_uv(polygon, material[8], quad);
+                w_u16(polygon + 10, xport_load_le16(material + 6));
+                w_u16(polygon + 6, xport_load_le16(material + 4));
                 if (mode)
                 {
                     if (sub_80033EA0(record + 4, polygon, material))
-                        material_add_uv(rrj_host_context(), polygon, material[8], quad);
+                        material_add_uv(polygon, material[8], quad);
                 }
                 else
                 {
@@ -1024,68 +905,70 @@ uint32_t sub_80033F14(uint32_t record, uint32_t mode, uint32_t group)
                 --remaining;
                 polygon += quad ? 24 : 20;
             }
-            model = rrj_read32(record + 4);
+            model = r_u32(record + 4);
         }
         ++index;
-        count = rrj_u16(rrj_at(model + 4, 2)) + (mode ? 1u : 2u) * rrj_u16(rrj_at(model + 6, 2));
-        result = rrj_s32(index) < rrj_s32(count);
+        count = r_u16(model + 4) + (mode ? 1u : 2u) * r_u16(model + 6);
+        result = ((int32_t)(uint32_t)(index)) < ((int32_t)(uint32_t)(count));
         table_offset += 12;
     }
     if (mode)
     {
-        rrj_write32(record + 12, rrj_read32(record + 12) | 32);
-        result = rrj_read32(record + 12) | 64;
-        rrj_write32(record + 12, result);
+        w_u32(record + 12, r_u32(record + 12) | 32);
+        result = r_u32(record + 12) | 64;
+        w_u32(record + 12, result);
     }
     return result;
 }
 
 uint32_t sub_80031E1C(uint32_t track, uint32_t object, uint32_t group)
 {
+    uint32_t scalar_value_7;
+
     FUNCTION_MARKER(0x80031E1Cu, "SLUS_010.53");
     uint32_t index = 0, end = 0, info;
     if (!object)
     {
-        uint32_t manager = rrj_read32(0x8005ACBC);
-        index = rrj_read32(manager + 8 * group + 0xA40);
-        end = rrj_read32(manager + 8 * group + 0xA44);
+        uint32_t manager = r_u32(0x8005ACBC);
+        index = r_u32(manager + 8 * group + 0xA40);
+        end = r_u32(manager + 8 * group + 0xA44);
         object = manager + 44 + 36 * index;
     }
     info = sub_800245DC(track);
     while (index <= end)
     {
-        if ((rrj_read32(object) & 17) == 17)
+        if ((r_u32(object) & 17) == 17)
         {
-            uint32_t kind = rrj_read32(rrj_read32(object + 20)) >> 28;
+            uint32_t kind = r_u32(r_u32(object + 20)) >> 28;
             if (!kind || kind == 8)
             {
-                uint32_t entries = rrj_read32(object + 24), i, entry = entries, value;
+                uint32_t entries = r_u32(object + 24), i, entry = entries, value;
                 for (i = 0; i < 4; ++i, entry += 12)
-                    if (rrj_read32(entry) == track)
+                    if (r_u32(entry) == track)
                         break;
                 if (i < 4)
-                    value = pause_asr(rrj_read32(entry + 4), 6);
+                    value = ((scalar_value_7 = (r_u32(entry + 4))), (((uint32_t)((!((uint32_t)(6))) ? (scalar_value_7) : ((scalar_value_7 >> ((uint32_t)(6))) | ((scalar_value_7 & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(6)))) : 0))))));
                 else
                 {
-                    uint32_t first = rrj_read32(entries), first_info = sub_800245DC(first), side;
+                    uint32_t first = r_u32(entries), first_info = sub_800245DC(first), side;
                     value = 0xFFFF0000;
                     for (side = 0; side < 2; ++side)
                     {
-                        uint32_t table = sub_800245F4(rrj_read32(info + 8 + 4 * side));
-                        uint32_t count = rrj_read32(table + 4), j;
+                        uint32_t table = sub_800245F4(r_u32(info + 8 + 4 * side));
+                        uint32_t count = r_u32(table + 4), j;
                         for (j = 0; j < count; ++j)
-                            if (rrj_read32(table + 8 + 8 * j) == first)
+                            if (r_u32(table + 8 + 8 * j) == first)
                                 break;
-                        if (j < rrj_read32(table + 4))
+                        if (j < r_u32(table + 4))
                         {
-                            value = rrj_s32(rrj_read32(table + 12 + 8 * j)) > 0 ? rrj_read32(entries + 4) : rrj_read32(first_info + 4) - rrj_read32(entries + 8);
-                            value = pause_asr(value, 6);
+                            value = ((int32_t)(uint32_t)(r_u32(table + 12 + 8 * j))) > 0 ? r_u32(entries + 4) : r_u32(first_info + 4) - r_u32(entries + 8);
+                            value = ((uint32_t)((!((uint32_t)(6))) ? (((uint32_t)(value))) : ((((uint32_t)(value)) >> ((uint32_t)(6))) | ((((uint32_t)(value)) & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(6)))) : 0))));
                             value = side ? value + 0x10000 : 0u - value;
                             break;
                         }
                     }
                 }
-                rrj_write32(object + 28, value);
+                w_u32(object + 28, value);
             }
         }
         ++index;
@@ -1098,8 +981,8 @@ uint32_t sub_800329BC(uint32_t id, uint32_t group)
 {
     FUNCTION_MARKER(0x800329BCu, "SLUS_010.53");
     uint32_t i = 12 * group, end = i + 12, p = 0x800D87E8 + 1344 * group;
-    for (; rrj_s32(i) < rrj_s32(end); ++i, p += 112)
-        if (rrj_read32(p) == id)
+    for (; ((int32_t)(uint32_t)(i)) < ((int32_t)(uint32_t)(end)); ++i, p += 112)
+        if (r_u32(p) == id)
             return i;
     return 0xFFFFFFFF;
 }
@@ -1107,7 +990,7 @@ uint32_t sub_800329BC(uint32_t id, uint32_t group)
 uint32_t sub_80032338(uint32_t model_pointer, uint32_t buffer)
 {
     FUNCTION_MARKER(0x80032338u, "SLUS_010.53");
-    rrj_write32(rrj_read32(model_pointer) + 60, buffer);
+    w_u32(r_u32(model_pointer) + 60, buffer);
     return 0;
 }
 
@@ -1115,29 +998,29 @@ uint32_t sub_8003234C(uint32_t record, uint32_t buffer)
 {
     FUNCTION_MARKER(0x8003234Cu, "SLUS_010.53");
     static const uint32_t fields[8] = {36, 32, 40, 44, 48, 52, 56, 60};
-    uint32_t limit = 2 * (rrj_read32(buffer) - 13), i, low = 0, high = 0, model;
-    for (i = 0; rrj_s32(i) < rrj_s32(limit); ++i)
+    uint32_t limit = 2 * (r_u32(buffer) - 13), i, low = 0, high = 0, model;
+    for (i = 0; ((int32_t)(uint32_t)(i)) < ((int32_t)(uint32_t)(limit)); ++i)
     {
-        uint32_t id = rrj_u16(rrj_at(buffer + 4 + 2 * i, 2));
+        uint32_t id = r_u16(buffer + 4 + 2 * i);
         if (id == 0xFFFF)
             continue;
         if (id & 0x8000)
         {
             if (high < 2)
-                rrj_write32(record + 88 + 4 * high++, id);
+                w_u32(record + 88 + 4 * high++, id);
         }
         else if (low < 2)
-            rrj_write32(record + 80 + 4 * low++, id);
+            w_u32(record + 80 + 4 * low++, id);
     }
-    model = buffer + 4 * rrj_read32(buffer);
-    rrj_write32(record + 4, model);
-    w_u8(record + 72, (uint8_t)(material_byte(rrj_host_context(), model + 6) + 1));
-    w_u8(record + 73, (uint8_t)(material_byte(rrj_host_context(), model + 4) + 2 * rrj_u16(rrj_at(model + 6, 2))));
+    model = buffer + 4 * r_u32(buffer);
+    w_u32(record + 4, model);
+    w_u8(record + 72, (uint8_t)((uint32_t)r_u8((model + 6)) + 1));
+    w_u8(record + 73, (uint8_t)((uint32_t)r_u8((model + 4)) + 2 * r_u16(model + 6)));
     for (i = 0; i < 8; ++i)
     {
         if (i)
-            model = rrj_read32(record + 4);
-        rrj_write32(model + fields[i], rrj_read32(model + fields[i]) + buffer);
+            model = r_u32(record + 4);
+        w_u32(model + fields[i], r_u32(model + fields[i]) + buffer);
     }
     return 1;
 }
@@ -1149,12 +1032,12 @@ uint32_t sub_800325BC(uint32_t record, uint32_t group)
     for (mode = 0; mode < 2; ++mode)
         for (i = 0; i < 2; ++i)
         {
-            uint32_t id = rrj_read32(record + 80 + 8 * mode + 4 * i), index;
+            uint32_t id = r_u32(record + 80 + 8 * mode + 4 * i), index;
             if (id == 0xFFFFFFFF)
                 break;
             index = sub_80022218(id, group);
             if (index != 0xFFFFFFFF)
-                rrj_write32(record + (mode ? 96 : 104) + 4 * i, 0x800D9268 + 48 * index);
+                w_u32(record + (mode ? 96 : 104) + 4 * i, 0x800D9268 + 48 * index);
         }
     return 1;
 }
@@ -1165,7 +1048,7 @@ uint32_t sub_80013204(uint32_t id, uint32_t group)
     uint32_t record = 0x800D87E8 + 1344 * group, end = record + 1344;
     while (record < end)
     {
-        uint32_t tag = rrj_read32(record), match = rrj_read32(record + 8), model = rrj_read32(record + 4);
+        uint32_t tag = r_u32(record), match = r_u32(record + 8), model = r_u32(record + 4);
         if (tag != 0xFFFFFFFF && match != 0xFFFFFFFF && model && match == id)
             return record;
         record += 112;
@@ -1176,48 +1059,50 @@ uint32_t sub_80013204(uint32_t id, uint32_t group)
 uint32_t sub_80013360(uint32_t id, uint32_t group)
 {
     FUNCTION_MARKER(0x80013360u, "SLUS_010.53");
-    return material_byte(rrj_host_context(), rrj_read32(0x8005B2F8) + 4) & 16 ? sub_80013204(id, group == 0) : 0;
+    return (uint32_t)r_u8((r_u32(0x8005B2F8) + 4)) & 16 ? sub_80013204(id, group == 0) : 0;
 }
 
 uint32_t sub_80012BA8(uint32_t header, uint32_t id, uint32_t group)
 {
     FUNCTION_MARKER(0x80012BA8u, "SLUS_010.53");
     uint32_t out = 0x800D43C0 + 28 * group, last;
-    rrj_write32(out, rrj_read32(header + 8));
-    rrj_write32(out + 4, rrj_read32(header + 20));
-    rrj_write32(out + 8, rrj_read32(header + 24));
-    rrj_write32(out + 12, rrj_read32(header + 28));
-    rrj_put16(rrj_at(out + 16, 2), rrj_u16(rrj_at(header + 14, 2)));
-    rrj_put16(rrj_at(out + 18, 2), rrj_u16(rrj_at(header + 16, 2)));
-    last = rrj_u16(rrj_at(header + 18, 2));
-    rrj_write32(out + 24, id);
-    rrj_put16(rrj_at(out + 22, 2), 1);
-    rrj_put16(rrj_at(out + 20, 2), last);
+    w_u32(out, r_u32(header + 8));
+    w_u32(out + 4, r_u32(header + 20));
+    w_u32(out + 8, r_u32(header + 24));
+    w_u32(out + 12, r_u32(header + 28));
+    w_u16(out + 16, r_u16(header + 14));
+    w_u16(out + 18, r_u16(header + 16));
+    last = r_u16(header + 18);
+    w_u32(out + 24, id);
+    w_u16(out + 22, 1);
+    w_u16(out + 20, last);
     return out;
 }
 
 uint32_t sub_80013110(uint32_t kind, uint32_t point, uint32_t group, uint32_t extra, uint32_t extended)
 {
+    uint32_t scalar_value_16;
+
     FUNCTION_MARKER(0x80013110u, "SLUS_010.53");
-    uint32_t player = 0x800CD898 + 1132 * group, x = material_half(rrj_host_context(), player + 186) - material_half(rrj_host_context(), point + 2);
-    uint32_t y = material_half(rrj_host_context(), player + 194) - material_half(rrj_host_context(), point + 10), sign, t, distance, limit;
-    sign = pause_asr(x, 31);
+    uint32_t player = 0x800CD898 + 1132 * group, x = (uint32_t)r_s16((player + 186)) - (uint32_t)r_s16((point + 2));
+    uint32_t y = (uint32_t)r_s16((player + 194)) - (uint32_t)r_s16((point + 10)), sign, t, distance, limit;
+    sign = ((uint32_t)((!((uint32_t)(31))) ? (((uint32_t)(x))) : ((((uint32_t)(x)) >> ((uint32_t)(31))) | ((((uint32_t)(x)) & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(31)))) : 0))));
     x = (x + sign) ^ sign;
-    sign = pause_asr(y, 31);
+    sign = ((uint32_t)((!((uint32_t)(31))) ? (((uint32_t)(y))) : ((((uint32_t)(y)) >> ((uint32_t)(31))) | ((((uint32_t)(y)) & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(31)))) : 0))));
     y = (y + sign) ^ sign;
-    if (rrj_s32(x) < rrj_s32(y))
+    if (((int32_t)(uint32_t)(x)) < ((int32_t)(uint32_t)(y)))
     {
         t = x;
         x = y;
         y = t;
     }
-    t = y + pause_asr(y, 1);
-    distance = x - pause_asr(x, 5) - pause_asr(x, 7) + pause_asr(t, 2) + pause_asr(t, 6);
+    t = y + ((uint32_t)((!((uint32_t)(1))) ? (((uint32_t)(y))) : ((((uint32_t)(y)) >> ((uint32_t)(1))) | ((((uint32_t)(y)) & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(1)))) : 0))));
+    distance = x - ((uint32_t)((!((uint32_t)(5))) ? (((uint32_t)(x))) : ((((uint32_t)(x)) >> ((uint32_t)(5))) | ((((uint32_t)(x)) & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(5)))) : 0)))) - ((uint32_t)((!((uint32_t)(7))) ? (((uint32_t)(x))) : ((((uint32_t)(x)) >> ((uint32_t)(7))) | ((((uint32_t)(x)) & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(7)))) : 0)))) + ((uint32_t)((!((uint32_t)(2))) ? (((uint32_t)(t))) : ((((uint32_t)(t)) >> ((uint32_t)(2))) | ((((uint32_t)(t)) & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(2)))) : 0)))) + ((uint32_t)((!((uint32_t)(6))) ? (((uint32_t)(t))) : ((((uint32_t)(t)) >> ((uint32_t)(6))) | ((((uint32_t)(t)) & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(6)))) : 0))));
     if (kind == 6)
-        limit = pause_asr(rrj_read32(0x8005AD58) + extra, 16);
+        limit = ((scalar_value_16 = (r_u32(0x8005AD58) + extra)), (((uint32_t)((!((uint32_t)(16))) ? (scalar_value_16) : ((scalar_value_16 >> ((uint32_t)(16))) | ((scalar_value_16 & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(16)))) : 0))))));
     else
         limit = kind < 2 ? (extended ? 350u : 300u) : (extended ? 230u : 200u);
-    return rrj_s32(distance) < rrj_s32(limit);
+    return ((int32_t)(uint32_t)(distance)) < ((int32_t)(uint32_t)(limit));
 }
 
 uint32_t sub_80013294(uint32_t kind, uint32_t id, uint32_t group)
@@ -1226,9 +1111,9 @@ uint32_t sub_80013294(uint32_t kind, uint32_t id, uint32_t group)
     uint32_t object, nearby, flags, bit, value;
     if (((id - 1) & 0xFFFF) >= 223)
         return 0;
-    object = rrj_read32(0x800CD6C4) + 280 * (id & 31);
+    object = r_u32(0x800CD6C4) + 280 * (id & 31);
     nearby = sub_80013110(kind, object + 12, group, 0, 1);
-    flags = material_byte(rrj_host_context(), object + 3);
+    flags = (uint32_t)r_u8((object + 3));
     bit = 1u << (group & 31);
     if (flags & bit)
     {
@@ -1251,33 +1136,33 @@ uint32_t sub_8001339C(uint32_t id, uint32_t group)
     FUNCTION_MARKER(0x8001339Cu, "SLUS_010.53");
     static const uint32_t counts[5] = {2, 0, 6, 4, 8}, fields[5] = {40, 36, 48, 44, 52}, strides[5] = {76, 68, 88, 64, 64};
     uint32_t source, target, result, pass;
-    if (!(material_byte(rrj_host_context(), rrj_read32(0x8005B2F8) + 4) & 16))
+    if (!((uint32_t)r_u8((r_u32(0x8005B2F8) + 4)) & 16))
         return 0;
     source = sub_80013204(id, group);
     result = sub_80013360(id, group);
     if (!source || !result)
         return result;
-    source = rrj_read32(rrj_read32(source + 4) + 32);
-    target = rrj_read32(rrj_read32(result + 4) + 32);
+    source = r_u32(r_u32(source + 4) + 32);
+    target = r_u32(r_u32(result + 4) + 32);
     for (pass = 0; pass < 5; ++pass)
     {
         uint32_t i = 0, offset = 0;
-        result = rrj_u16(rrj_at(source + counts[pass], 2));
-        while (i < rrj_u16(rrj_at(source + counts[pass], 2)))
+        result = r_u16(source + counts[pass]);
+        while (i < r_u16(source + counts[pass]))
         {
-            uint32_t sp = rrj_read32(source + fields[pass]), tp = rrj_read32(target + fields[pass]);
-            uint32_t state = pass == 3 ? rrj_read32(0x8005B2F8) : 0;
-            rrj_put16(rrj_at(tp + offset + 4, 2), rrj_u16(rrj_at(sp + offset + 4, 2)));
+            uint32_t sp = r_u32(source + fields[pass]), tp = r_u32(target + fields[pass]);
+            uint32_t state = pass == 3 ? r_u32(0x8005B2F8) : 0;
+            w_u16(tp + offset + 4, r_u16(sp + offset + 4));
             if (pass == 2)
             {
-                sp = rrj_read32(source + 48) + offset;
-                if (rrj_s32(material_half(rrj_host_context(), sp + 4)) > 0)
-                    (void)sub_80013294(6, rrj_u16(rrj_at(sp + 4, 2)), group ^ 1);
+                sp = r_u32(source + 48) + offset;
+                if (((int32_t)(uint32_t)((uint32_t)r_s16((sp + 4)))) > 0)
+                    (void)sub_80013294(6, r_u16(sp + 4), group ^ 1);
             }
-            if (pass == 3 && (material_byte(rrj_host_context(), state + 4) & 16) && rrj_u16(rrj_at(rrj_read32(target + 44) + offset + 2, 2)) == 50)
+            if (pass == 3 && ((uint32_t)r_u8((state + 4)) & 16) && r_u16(r_u32(target + 44) + offset + 2) == 50)
                 (void)sub_80012BA8(target, id, group);
             ++i;
-            result = i < rrj_u16(rrj_at(source + counts[pass], 2));
+            result = i < r_u16(source + counts[pass]);
             offset += strides[pass];
         }
     }
@@ -1287,20 +1172,20 @@ uint32_t sub_8001339C(uint32_t id, uint32_t group)
 uint32_t sub_800135E8(uint32_t model_pointer, uint32_t group)
 {
     FUNCTION_MARKER(0x800135E8u, "SLUS_010.53");
-    uint32_t header = rrj_read32(rrj_read32(model_pointer) + 32), i, value;
+    uint32_t header = r_u32(r_u32(model_pointer) + 32), i, value;
     for (i = 0; i < 5; ++i)
     {
-        value = rrj_u16(rrj_at(header + 2 * i, 2)) ? header + rrj_read32(header + 36 + 4 * i) : 0;
-        rrj_write32(header + 36 + 4 * i, value);
+        value = r_u16(header + 2 * i) ? header + r_u32(header + 36 + 4 * i) : 0;
+        w_u32(header + 36 + 4 * i, value);
     }
-    return sub_8001339C(rrj_read32(model_pointer + 4), group);
+    return sub_8001339C(r_u32(model_pointer + 4), group);
 }
 
-uint32_t sub_80032A20(const uint32_t args[6])
+uint32_t sub_80032A20(uint32_t buffer, uint32_t id, uint32_t kind, uint32_t extra, uint32_t owner, uint32_t group)
 {
     FUNCTION_MARKER(0x80032A20u, "SLUS_010.53");
-    uint32_t buffer = args[0], id = args[1], kind = args[2], group = args[5], index, record, flags;
-    if (rrj_s32(rrj_read32(0x8005AEDC)) >= 24)
+    uint32_t index, record, flags;
+    if (((int32_t)(uint32_t)(r_u32(0x8005AEDC))) >= 24)
         return 0;
     index = sub_800329BC(id & 0x0FFFFFFF, group);
     if (kind == 0 || kind == 8)
@@ -1311,22 +1196,22 @@ uint32_t sub_80032A20(const uint32_t args[6])
         if (index == 0xFFFFFFFF)
             return 0;
         record = 0x800D87E8 + 112 * index;
-        rrj_write32(record, id);
-        if (rrj_read32(record + 8) == 0xFFFFFFFF)
+        w_u32(record, id);
+        if (r_u32(record + 8) == 0xFFFFFFFF)
         {
-            rrj_write32(record + 8, id);
-            rrj_write32(record + 12, 0);
-            rrj_write32(record + 76, args[3]);
+            w_u32(record + 8, id);
+            w_u32(record + 12, 0);
+            w_u32(record + 76, extra);
             (void)sub_8003234C(record, buffer);
-            rrj_write32(0x8005AEDC, rrj_read32(0x8005AEDC) + 1);
+            w_u32(0x8005AEDC, r_u32(0x8005AEDC) + 1);
             (void)sub_800135E8(record + 4, group);
-            flags = rrj_read32(record + 12);
-            rrj_write32(record + 12, flags | 1);
+            flags = r_u32(record + 12);
+            w_u32(record + 12, flags | 1);
             if (kind)
-                rrj_write32(rrj_read32(record + 4) + 60, 0);
+                w_u32(r_u32(record + 4) + 60, 0);
             else
-                rrj_write32(record + 12, flags | 3);
-            rrj_write32(record + 68, args[4]);
+                w_u32(record + 12, flags | 3);
+            w_u32(record + 68, owner);
         }
     }
     else
@@ -1334,12 +1219,12 @@ uint32_t sub_80032A20(const uint32_t args[6])
         if (index == 0xFFFFFFFF)
             return 0;
         record = 0x800D87E8 + 112 * index;
-        if (!rrj_read32(record + 4))
+        if (!r_u32(record + 4))
             return 0;
-        if (rrj_read32(record + 12) & 2)
+        if (r_u32(record + 12) & 2)
             return 3;
         (void)sub_80032338(record + 4, buffer);
-        rrj_write32(record + 12, rrj_read32(record + 12) | 2);
+        w_u32(record + 12, r_u32(record + 12) | 2);
     }
     (void)sub_800325BC(record, group);
     (void)sub_80033F14(record, 0, group);
@@ -1350,17 +1235,17 @@ uint32_t sub_80032A20(const uint32_t args[6])
 uint32_t sub_80023960(uint32_t input, uint32_t group)
 {
     FUNCTION_MARKER(0x80023960u, "SLUS_010.53");
-    uint32_t state = 0x80053478 + 128 * group, id = rrj_read32(state + 72), i, value, result;
+    uint32_t state = 0x80053478 + 128 * group, id = r_u32(state + 72), i, value, result;
     for (i = 0; i < 4; ++i)
-        if (material_half(rrj_host_context(), input + 4 + 6 * i) == id)
+        if ((uint32_t)r_s16((input + 4 + 6 * i)) == id)
             break;
     if (i == 4)
         return 0;
-    value = material_half(rrj_host_context(), input + 6 * i + (rrj_s32(rrj_read32(state + 64)) > 0 ? 6 : 8));
-    i = rrj_s32(rrj_read32(state + 64)) > 0;
-    rrj_write32(state + 104, value);
-    result = i ? value - rrj_read32(state + 68) : rrj_read32(state + 68) - value;
-    rrj_write32(state + 100, result);
+    value = (uint32_t)r_s16((input + 6 * i + (((int32_t)(uint32_t)(r_u32(state + 64))) > 0 ? 6 : 8)));
+    i = ((int32_t)(uint32_t)(r_u32(state + 64))) > 0;
+    w_u32(state + 104, value);
+    result = i ? value - r_u32(state + 68) : r_u32(state + 68) - value;
+    w_u32(state + 100, result);
     return result;
 }
 
@@ -1368,71 +1253,71 @@ uint32_t sub_800136BC(uint32_t buffer, uint32_t input, uint32_t value)
 {
     FUNCTION_MARKER(0x800136BCu, "SLUS_010.53");
     uint32_t manager, record, i, j, last;
-    if (rrj_read32(0x8005B2D0) || rrj_read32(buffer + 12) != 0x50414E4F)
+    if (r_u32(0x8005B2D0) || r_u32(buffer + 12) != 0x50414E4F)
         return 2;
-    manager = rrj_read32(0x8005B278);
-    if (rrj_s32(material_half(rrj_host_context(), manager + 34)) >= 20)
+    manager = r_u32(0x8005B278);
+    if (((int32_t)(uint32_t)((uint32_t)r_s16((manager + 34)))) >= 20)
         return 0;
     record = manager + 740;
     for (i = 0; i < 20; ++i, record += 12)
-        if (rrj_read32(record))
+        if (r_u32(record))
         {
-            uint32_t candidate = rrj_read32(record + 4), id = rrj_u16(rrj_at(input, 2));
+            uint32_t candidate = r_u32(record + 4), id = r_u16(input);
             /* Each candidate triple compares to the same input triple in MIPS. */
             for (j = 0; j < 4; ++j, candidate += 6)
-                if (rrj_u16(rrj_at(candidate, 2)) != id || rrj_u16(rrj_at(candidate + 2, 2)) != rrj_u16(rrj_at(input + 2, 2)) || rrj_u16(rrj_at(candidate + 4, 2)) != rrj_u16(rrj_at(input + 4, 2)))
+                if (r_u16(candidate) != id || r_u16(candidate + 2) != r_u16(input + 2) || r_u16(candidate + 4) != r_u16(input + 4))
                     break;
             if (j == 4)
                 return 3;
         }
-    record = rrj_read32(0x8005B278) + 740;
+    record = r_u32(0x8005B278) + 740;
     for (i = 0; i < 20; ++i, record += 12)
-        if (!rrj_read32(record))
+        if (!r_u32(record))
             break;
     if (i == 20)
         return 0;
-    last = rrj_u16(rrj_at(buffer + 4, 2));
-    manager = rrj_read32(0x8005B278);
-    rrj_write32(buffer + 24, last);
-    last = rrj_read32(buffer + 8);
-    rrj_write32(buffer + 36, buffer);
-    rrj_write32(buffer + 28, last);
-    rrj_put16(rrj_at(manager + 34, 2), rrj_u16(rrj_at(manager + 34, 2)) + 1);
-    rrj_write32(record, buffer);
-    rrj_write32(record + 4, input);
-    rrj_write32(record + 8, value);
+    last = r_u16(buffer + 4);
+    manager = r_u32(0x8005B278);
+    w_u32(buffer + 24, last);
+    last = r_u32(buffer + 8);
+    w_u32(buffer + 36, buffer);
+    w_u32(buffer + 28, last);
+    w_u16(manager + 34, r_u16(manager + 34) + 1);
+    w_u32(record, buffer);
+    w_u32(record + 4, input);
+    w_u32(record + 8, value);
     return 1;
 }
 
 uint32_t sub_8003CA50(uint32_t id, uint32_t buffer, uint32_t group)
 {
     FUNCTION_MARKER(0x8003CA50u, "SLUS_010.53");
-    uint32_t state = rrj_read32(0x8005B2F8), free_index = 0xFFFFFFFF, i, record;
+    uint32_t state = r_u32(0x8005B2F8), free_index = 0xFFFFFFFF, i, record;
     for (i = 0; i < 6; ++i)
     {
         record = 0x800D4B10 + 16 * i;
-        if (rrj_read32(record) == id)
+        if (r_u32(record) == id)
         {
-            if (!(material_byte(rrj_host_context(), state + 4) & 16) || group == rrj_read32(record + 4))
+            if (!((uint32_t)r_u8((state + 4)) & 16) || group == r_u32(record + 4))
                 return 0xFFFFFFFD;
-            rrj_write32(record + 8 + 4 * group, buffer);
+            w_u32(record + 8 + 4 * group, buffer);
             return 0xFFFFFFFF;
         }
-        if (free_index == 0xFFFFFFFF && rrj_read32(record) == 0xFFFFFFFF)
+        if (free_index == 0xFFFFFFFF && r_u32(record) == 0xFFFFFFFF)
             free_index = i;
     }
     if (free_index == 0xFFFFFFFF)
         return 0;
     record = 0x800D4B10 + 16 * free_index;
-    rrj_write32(record, id);
-    rrj_write32(record + 4, group);
-    rrj_write32(record + 8 + 4 * group, buffer);
-    rrj_write32(record + 8 + 4 * (group ^ 1), 0);
-    i = rrj_read32(0x8005B320) + 1;
-    group = rrj_s32(free_index) < rrj_s32(rrj_read32(0x8005B31C));
-    rrj_write32(0x8005B320, i);
+    w_u32(record, id);
+    w_u32(record + 4, group);
+    w_u32(record + 8 + 4 * group, buffer);
+    w_u32(record + 8 + 4 * (group ^ 1), 0);
+    i = r_u32(0x8005B320) + 1;
+    group = ((int32_t)(uint32_t)(free_index)) < ((int32_t)(uint32_t)(r_u32(0x8005B31C)));
+    w_u32(0x8005B320, i);
     if (!group)
-        rrj_write32(0x8005B31C, free_index);
+        w_u32(0x8005B31C, free_index);
     return 1;
 }
 
@@ -1440,26 +1325,26 @@ uint32_t sub_80039A08(uint32_t id)
 {
     FUNCTION_MARKER(0x80039A08u, "SLUS_010.53");
     uint32_t manager, mapped, threshold, address;
-    if (rrj_s32(id) < 0)
+    if (((int32_t)(uint32_t)(id)) < 0)
         return 0;
-    manager = rrj_read32(0x8005B240);
-    if (rrj_s32(id) >= rrj_s32(material_half(rrj_host_context(), manager + 40)))
+    manager = r_u32(0x8005B240);
+    if (((int32_t)(uint32_t)(id)) >= ((int32_t)(uint32_t)((uint32_t)r_s16((manager + 40)))))
         return 0;
-    threshold = material_half(rrj_host_context(), manager + 44);
-    mapped = rrj_s32(id) < rrj_s32(threshold) ? id + material_half(rrj_host_context(), manager + 42) : id - threshold;
-    manager = rrj_read32(0x8005B240);
-    if (rrj_s32(mapped) >= rrj_s32(material_half(rrj_host_context(), manager + 40)))
+    threshold = (uint32_t)r_s16((manager + 44));
+    mapped = ((int32_t)(uint32_t)(id)) < ((int32_t)(uint32_t)(threshold)) ? id + (uint32_t)r_s16((manager + 42)) : id - threshold;
+    manager = r_u32(0x8005B240);
+    if (((int32_t)(uint32_t)(mapped)) >= ((int32_t)(uint32_t)((uint32_t)r_s16((manager + 40)))))
         return 0;
-    address = rrj_read32(manager + 28) + (mapped << 5);
-    return rrj_read32(address) == id ? address : 0;
+    address = r_u32(manager + 28) + (mapped << 5);
+    return r_u32(address) == id ? address : 0;
 }
 
-static unsigned segment_tag_equal(RRJMemory *m, uint32_t a, uint32_t b)
+static unsigned segment_tag_equal(uint32_t a, uint32_t b)
 {
     unsigned i;
     for (i = 0; i < 4; ++i)
     {
-        uint32_t x = material_byte(m, a + i), y = material_byte(m, b + i);
+        uint32_t x = (uint32_t)r_u8((a + i)), y = (uint32_t)r_u8((b + i));
         if (x != y)
             return 0;
         if (!x)
@@ -1479,123 +1364,123 @@ uint32_t sub_8003CFCC(uint32_t buffer, uint32_t id)
     while (p < end)
     {
         for (i = 0; i < 12; ++i)
-            if (segment_tag_equal(rrj_host_context(), p, 0x8005AEEC + 8 * i))
+            if (segment_tag_equal(p, 0x8005AEEC + 8 * i))
                 break;
         if (i == 12)
             break;
-        rrj_write32(buffer + fields[i], p + 8);
-        p += rrj_read32(p + 4);
+        w_u32(buffer + fields[i], p + 8);
+        p += r_u32(p + 4);
     }
-    global = rrj_read32(0x8005AD54);
-    rrj_write32(record + 12, buffer);
+    global = r_u32(0x8005AD54);
+    w_u32(record + 12, buffer);
     if (!global)
-        rrj_write32(0x8005AD54, buffer);
-    if ((material_byte(rrj_host_context(), rrj_read32(0x8005B2F8) + 4) & 16) && buffer && rrj_read32(buffer) == 11)
+        w_u32(0x8005AD54, buffer);
+    if (((uint32_t)r_u8((r_u32(0x8005B2F8) + 4)) & 16) && buffer && r_u32(buffer) == 11)
     {
-        data = rrj_read32(buffer + 96) + 1560;
-        rrj_write32(data + 8, 0x0B897B7D);
-        rrj_write32(data + 12, 0xFFF0DC54);
-        rrj_write32(data + 16, 0x1538BC84);
-        data = rrj_read32(buffer + 96) + 400;
-        rrj_write32(data + 8, 0x0B775E29);
-        rrj_write32(data + 12, 0xFFF0BB49);
-        rrj_write32(data + 16, 0x1515ACCF);
-        data = rrj_read32(buffer + 96) + 1000;
-        rrj_write32(data + 8, 0x0B38FCEC);
-        rrj_write32(data + 12, 0xFFF0BB49);
-        rrj_write32(data + 16, 0x15361E79);
-        data = rrj_read32(buffer + 96) + 1360;
-        rrj_write32(data + 12, rrj_read32(data + 24));
+        data = r_u32(buffer + 96) + 1560;
+        w_u32(data + 8, 0x0B897B7D);
+        w_u32(data + 12, 0xFFF0DC54);
+        w_u32(data + 16, 0x1538BC84);
+        data = r_u32(buffer + 96) + 400;
+        w_u32(data + 8, 0x0B775E29);
+        w_u32(data + 12, 0xFFF0BB49);
+        w_u32(data + 16, 0x1515ACCF);
+        data = r_u32(buffer + 96) + 1000;
+        w_u32(data + 8, 0x0B38FCEC);
+        w_u32(data + 12, 0xFFF0BB49);
+        w_u32(data + 16, 0x15361E79);
+        data = r_u32(buffer + 96) + 1360;
+        w_u32(data + 12, r_u32(data + 24));
     }
-    if (buffer && rrj_read32(buffer) == 105)
+    if (buffer && r_u32(buffer) == 105)
     {
-        data = rrj_read32(buffer + 96) + 2520;
-        rrj_write32(data + 8, 0xED2431AD);
-        rrj_write32(data + 12, 0xFE062800);
-        rrj_write32(data + 16, 0xEBC76784);
-        data = rrj_read32(buffer + 96) + 2480;
-        rrj_write32(data + 20, 0xED2431AD);
-        rrj_write32(data + 24, 0xFE062800);
-        rrj_write32(data + 28, 0xEBC76784);
-        rrj_write32(data + 8, 0xED08D8CA);
-        rrj_write32(data + 12, 0xFE0A3D4D);
-        rrj_write32(data + 16, 0xEBC6469D);
-        data = rrj_read32(buffer + 96) + 2440;
-        rrj_write32(data + 20, 0xED08D8CA);
-        rrj_write32(data + 24, 0xFE0A3D4D);
-        rrj_write32(data + 28, 0xEBC6469D);
-        rrj_write32(data + 8, 0xECED651D);
-        rrj_write32(data + 12, 0xFE09E617);
-        rrj_write32(data + 16, 0xEBBF1AEC);
+        data = r_u32(buffer + 96) + 2520;
+        w_u32(data + 8, 0xED2431AD);
+        w_u32(data + 12, 0xFE062800);
+        w_u32(data + 16, 0xEBC76784);
+        data = r_u32(buffer + 96) + 2480;
+        w_u32(data + 20, 0xED2431AD);
+        w_u32(data + 24, 0xFE062800);
+        w_u32(data + 28, 0xEBC76784);
+        w_u32(data + 8, 0xED08D8CA);
+        w_u32(data + 12, 0xFE0A3D4D);
+        w_u32(data + 16, 0xEBC6469D);
+        data = r_u32(buffer + 96) + 2440;
+        w_u32(data + 20, 0xED08D8CA);
+        w_u32(data + 24, 0xFE0A3D4D);
+        w_u32(data + 28, 0xEBC6469D);
+        w_u32(data + 8, 0xECED651D);
+        w_u32(data + 12, 0xFE09E617);
+        w_u32(data + 16, 0xEBBF1AEC);
     }
     return 1;
 }
 
 /* Effects-only ABI: all audited callers discard the residual MIPS v0. */
-void sub_80093F94(uint32_t object, uint32_t previous, RRJReverbCall reverb)
+void sub_80093F94(uint32_t object, uint32_t previous)
 {
     FUNCTION_MARKER(0x80093F94u, "RASHCDG.BIN");
     uint32_t active;
     if (!object)
         return;
-    active = rrj_u16(rrj_at(object + 320, 2));
+    active = r_u16(object + 320);
     if ((active & 1u) == (previous & 1u))
         return;
     if (active)
         (void)sub_8009432C(object);
     else
-        sub_80093FE4(object, reverb);
+        sub_80093FE4(object);
 }
 
-void sub_80093ED4(uint32_t object, uint32_t force, RRJReverbCall reverb)
+void sub_80093ED4(uint32_t object, uint32_t force)
 {
     FUNCTION_MARKER(0x80093ED4u, "RASHCDG.BIN");
     uint32_t previous, value;
-    if (!rrj_u16(rrj_at(object + 320, 2)) && rrj_u16(rrj_at(object + 172, 2)) >= rrj_read32(rrj_read32(0x8005B2F8) + 48) && (material_byte(rrj_host_context(), rrj_read32(object + 1084) + 1) & 15u) == 2u && !(material_byte(rrj_host_context(), object + 928) & 16u))
+    if (!r_u16(object + 320) && r_u16(object + 172) >= r_u32(r_u32(0x8005B2F8) + 48) && ((uint32_t)r_u8((r_u32(object + 1084) + 1)) & 15u) == 2u && !((uint32_t)r_u8((object + 928)) & 16u))
         return;
-    previous = material_half(rrj_host_context(), object + 320);
+    previous = (uint32_t)r_s16((object + 320));
     value = force ? 0 : sub_80039F68(object + 172);
-    rrj_put16(rrj_at(object + 320, 2), (uint16_t)((0u - value) & ((rrj_u16(rrj_at(object + 320, 2)) & 2u) | 1u)));
-    sub_80093F94(object, previous, reverb);
+    w_u16(object + 320, (uint16_t)((0u - value) & ((r_u16(object + 320) & 2u) | 1u)));
+    sub_80093F94(object, previous);
 }
 
 /* 80037338: live scratchpad actor list shared with the frame's other passes. */
 uint32_t sub_80037338(void)
 {
     FUNCTION_MARKER(0x80037338u, "SLUS_010.53");
-    uint32_t cursor = 0x1f800004u, end = rrj_read32(0x1f800000u), actor, flags, state;
+    uint32_t cursor = 0x1f800004u, end = r_u32(0x1f800000u), actor, flags, state;
     for (;;)
     {
         /* The original fetches the sentinel entry before comparing the end. */
-        actor = rrj_read32(cursor);
+        actor = r_u32(cursor);
         if (cursor >= end)
             return 0;
-        if (rrj_read32(actor + 828))
+        if (r_u32(actor + 828))
         {
-            flags = rrj_read32(actor + 388) & 0xffffff7fu;
-            state = rrj_read32(actor + 564) & 0xfbffffffu;
-            rrj_write32(actor + 388, flags);
-            rrj_write32(actor + 564, state);
+            flags = r_u32(actor + 388) & 0xffffff7fu;
+            state = r_u32(actor + 564) & 0xfbffffffu;
+            w_u32(actor + 388, flags);
+            w_u32(actor + 564, state);
         }
         else
         {
-            rrj_write32(actor + 388, rrj_read32(actor + 388) | 0x80u);
-            rrj_write32(actor + 564, rrj_read32(actor + 564) | 0x04000000u);
+            w_u32(actor + 388, r_u32(actor + 388) | 0x80u);
+            w_u32(actor + 564, r_u32(actor + 564) | 0x04000000u);
         }
-        if (rrj_read32(actor + 560) & 0x08000000u)
-            flags = rrj_read32(actor + 388) & 0xffffffdfu;
+        if (r_u32(actor + 560) & 0x08000000u)
+            flags = r_u32(actor + 388) & 0xffffffdfu;
         else
         {
             sub_800396A8(actor);
-            flags = rrj_read32(actor + 388) | 0x20u;
+            flags = r_u32(actor + 388) | 0x20u;
         }
-        rrj_write32(actor + 388, flags);
+        w_u32(actor + 388, flags);
         (void)sub_8003701C(actor);
-        if (rrj_read32(actor + 564) & 0x40000u)
-            rrj_write32(actor + 364, rrj_read32(rrj_read32(actor + 832) + 192));
+        if (r_u32(actor + 564) & 0x40000u)
+            w_u32(actor + 364, r_u32(r_u32(actor + 832) + 192));
         (void)sub_80037104(actor);
         cursor += 4;
-        end = rrj_read32(0x1f800000u);
+        end = r_u32(0x1f800000u);
     }
 }
 
@@ -1603,36 +1488,36 @@ uint32_t sub_80037338(void)
 uint32_t sub_8003AE24(void)
 {
     FUNCTION_MARKER(0x8003AE24u, "SLUS_010.53");
-    uint32_t cursor = 0x1F800004, end = rrj_read32(0x1F800000), actor, linked, descriptor, word, record;
-    actor = rrj_read32(cursor);
+    uint32_t cursor = 0x1F800004, end = r_u32(0x1F800000), actor, linked, descriptor, word, record;
+    actor = r_u32(cursor);
     /* The initial branch delay slot overwrites v0 with LUI 800D. */
     if (cursor >= end)
         return 0x800D0000;
     do
     {
         sub_8003AF9C(actor + 172, 1, 0);
-        linked = rrj_read32(actor + 856);
+        linked = r_u32(actor + 856);
         if (linked)
-            rrj_write32(linked + 428, rrj_read32(actor + 428));
-        descriptor = rrj_read32(actor + 1084);
-        w_u8(descriptor, (uint8_t)(material_byte(rrj_host_context(), descriptor) & 127u));
-        if (material_half(rrj_host_context(), 0x800D6182) != 0xffffffffu && rrj_read32(rrj_read32(actor + 852) + 604) < 3u && (rrj_u16(rrj_at(actor + 172, 2)) < rrj_read32(rrj_read32(0x8005B2F8) + 48) || (material_byte(rrj_host_context(), rrj_read32(actor + 1084) + 1) & 15u) != 2u))
+            w_u32(linked + 428, r_u32(actor + 428));
+        descriptor = r_u32(actor + 1084);
+        w_u8(descriptor, (uint8_t)((uint32_t)r_u8(descriptor) & 127u));
+        if ((uint32_t)r_s16(0x800D6182) != 0xffffffffu && r_u32(r_u32(actor + 852) + 604) < 3u && (r_u16(actor + 172) < r_u32(r_u32(0x8005B2F8) + 48) || ((uint32_t)r_u8((r_u32(actor + 1084) + 1)) & 15u) != 2u))
         {
-            word = rrj_read32(actor + 360);
+            word = r_u32(actor + 360);
             if (!(word >> 16))
             {
-                record = sub_8003B4B0(rrj_read32(actor + 428), word & 65535u);
-                if (record && ((rrj_read32(record + 4) ^ rrj_read32(actor + 364)) & 0x80000000u))
+                record = sub_8003B4B0(r_u32(actor + 428), word & 65535u);
+                if (record && ((r_u32(record + 4) ^ r_u32(actor + 364)) & 0x80000000u))
                 {
-                    descriptor = rrj_read32(actor + 1084);
-                    w_u8(descriptor, (uint8_t)(material_byte(rrj_host_context(), descriptor) | 128u));
+                    descriptor = r_u32(actor + 1084);
+                    w_u8(descriptor, (uint8_t)((uint32_t)r_u8(descriptor) | 128u));
                 }
             }
         }
         (void)sub_8003A9D8(actor);
         cursor += 4;
-        end = rrj_read32(0x1F800000);
-        actor = rrj_read32(cursor);
+        end = r_u32(0x1F800000);
+        actor = r_u32(cursor);
     } while (cursor < end);
     return 0;
 }
@@ -1640,32 +1525,32 @@ uint32_t sub_8003AE24(void)
 uint32_t sub_8003B520(void)
 {
     FUNCTION_MARKER(0x8003B520u, "SLUS_010.53");
-    uint32_t cursor = 0x1F800004, end = rrj_read32(0x1F800000), actor, previous, value, limit, descriptor, linked;
+    uint32_t cursor = 0x1F800004, end = r_u32(0x1F800000), actor, previous, value, limit, descriptor, linked;
     for (;;)
     {
-        actor = rrj_read32(cursor);
+        actor = r_u32(cursor);
         if (cursor >= end)
             return 0;
-        previous = rrj_read32(actor + 324);
+        previous = r_u32(actor + 324);
         value = sub_8003B61C(actor + 172);
-        rrj_write32(actor + 324, value);
+        w_u32(actor + 324, value);
         limit = 0x649581;
-        while (rrj_s32(value) < rrj_s32(limit))
+        while (((int32_t)(uint32_t)(value)) < ((int32_t)(uint32_t)(limit)))
         {
-            descriptor = rrj_read32(actor + 1084);
-            if (material_byte(rrj_host_context(), descriptor + 68) & 1u)
+            descriptor = r_u32(actor + 1084);
+            if ((uint32_t)r_u8((descriptor + 68)) & 1u)
                 break;
-            if (rrj_s32(limit) < rrj_s32(previous))
-                w_u8(descriptor + 68, (uint8_t)(material_byte(rrj_host_context(), descriptor + 68) | 1u));
+            if (((int32_t)(uint32_t)(limit)) < ((int32_t)(uint32_t)(previous)))
+                w_u8(descriptor + 68, (uint8_t)((uint32_t)r_u8((descriptor + 68)) | 1u));
             else
                 limit += 0xFFE6DAA0u;
-            value = rrj_read32(actor + 324);
+            value = r_u32(actor + 324);
         }
-        linked = rrj_read32(actor + 856);
+        linked = r_u32(actor + 856);
         if (linked)
-            rrj_write32(linked + 324, rrj_read32(actor + 324));
+            w_u32(linked + 324, r_u32(actor + 324));
         cursor += 4;
-        end = rrj_read32(0x1F800000);
+        end = r_u32(0x1F800000);
     }
 }
 
@@ -1673,178 +1558,124 @@ uint32_t sub_8003B520(void)
 uint32_t sub_8003E150(void)
 {
     FUNCTION_MARKER(0x8003E150u, "SLUS_010.53");
-    uint32_t cursor = 0x1F800004, end = rrj_read32(0x1F800000), actor, linked;
+    uint32_t cursor = 0x1F800004, end = r_u32(0x1F800000), actor, linked;
     for (;;)
     {
-        actor = rrj_read32(cursor); /* Sentinel load precedes unsigned test. */
+        actor = r_u32(cursor); /* Sentinel load precedes unsigned test. */
         if (cursor >= end)
             return 0;
         (void)sub_8003DFF4(actor);
-        linked = rrj_read32(actor + 0x358);
+        linked = r_u32(actor + 0x358);
         if (linked)
             (void)sub_8003DFF4(linked);
-        if (rrj_read32(actor + 0x238) & 0x800u)
-            rrj_write32(actor + 0x184, rrj_read32(actor + 0x184) | 0x40u);
+        if (r_u32(actor + 0x238) & 0x800u)
+            w_u32(actor + 0x184, r_u32(actor + 0x184) | 0x40u);
         cursor += 4;
-        end = rrj_read32(0x1F800000);
+        end = r_u32(0x1F800000);
     }
 }
 
-uint32_t sub_80093E6C(RRJReverbCall reverb)
+uint32_t sub_80093E6C(void)
 {
     FUNCTION_MARKER(0x80093E6Cu, "RASHCDG.BIN");
-    uint32_t result = rrj_read32(0x800CE4DC), count = rrj_read32(result), object = rrj_read32(0x800CE4D0);
-    while (rrj_s32(count) >= 0)
+    uint32_t result = r_u32(0x800CE4DC), count = r_u32(result), object = r_u32(0x800CE4D0);
+    while (((int32_t)(uint32_t)(count)) >= 0)
     {
-        sub_80093ED4(object, 0, reverb);
-        result = rrj_read32(0x800CE4D4);
+        sub_80093ED4(object, 0);
+        result = r_u32(0x800CE4D4);
         --count;
         object += result;
     }
     return result;
 }
 
-uint32_t rrj_probe_actor_activity(RRJMemory *m, RRJRacePlayerCall call)
+uint32_t sub_800950E8(void)
 {
-    uint32_t result = rrj_read32(0x800CE4DC), count = rrj_read32(result), object = rrj_read32(0x800CE4D0);
-    if (!call)
-        abort();
-    while (rrj_s32(count) >= 0)
+    uint32_t result, count, object, body;
+    FUNCTION_MARKER(0x800950E8, "RASHCDG.BIN");
+    result = r_u32(0x800CE4DC);
+    count = r_u32(result);
+    object = r_u32(0x800CE4D0);
+    while ((int32_t)count >= 0)
     {
-        (void)call(m, 0x80093ED4, object, 0, 0);
-        result = rrj_read32(0x800CE4D4);
-        --count;
-        object += result;
-    }
-    return result;
-}
-
-static uint32_t update_activity_list(RRJMemory *m, RRJRacePlayerCall diagnostic, RRJReverbCall reverb)
-{
-    uint32_t result = rrj_read32(0x800CE4DC), count = rrj_read32(result), object = rrj_read32(0x800CE4D0), body;
-    while (rrj_s32(count) >= 0)
-    {
-        body = rrj_read32(object + 852);
-        if (rrj_read32(body + 604) - 3 < 2)
+        body = r_u32(object + 852);
+        if (r_u32(body + 604) - 3 < 2)
+            sub_800951B8(body, 0);
+        body = r_u32(object + 852);
+        if (r_u8(body + 572) & 16)
         {
-            if (diagnostic)
-                (void)diagnostic(m, 0x800951B8, body, 0, 0);
-            else
-                sub_800951B8(body, 0, reverb);
+            body = r_u32(r_u32(object + 856) + 852);
+            if (r_u32(body + 604) - 3 < 2)
+                sub_800951B8(body, 0);
         }
-        body = rrj_read32(object + 852);
-        if (material_byte(m, body + 572) & 16)
-        {
-            body = rrj_read32(rrj_read32(object + 856) + 852);
-            if (rrj_read32(body + 604) - 3 < 2)
-            {
-                if (diagnostic)
-                    (void)diagnostic(m, 0x800951B8, body, 0, 0);
-                else
-                    sub_800951B8(body, 0, reverb);
-            }
-        }
-        result = rrj_read32(0x800CE4D4);
+        result = r_u32(0x800CE4D4);
         --count;
         object += result;
     }
     return result;
 }
 
-uint32_t sub_800950E8(RRJReverbCall reverb)
-{
-    FUNCTION_MARKER(0x800950E8u, "RASHCDG.BIN");
-    return update_activity_list(rrj_host_context(), NULL, reverb);
-}
-
-uint32_t rrj_probe_activity_list(RRJMemory *m, RRJRacePlayerCall diagnostic)
-{
-    if (!diagnostic)
-        abort();
-    return update_activity_list(m, diagnostic, NULL);
-}
-
-static uint32_t load_segment(RRJMemory *m, uint32_t buffer, uint32_t id, uint32_t group, RRJRacePlayerCall diagnostic, RRJReverbCall reverb)
+uint32_t sub_8003CEC4(uint32_t buffer, uint32_t id, uint32_t group)
 {
     uint32_t result, player;
+    FUNCTION_MARKER(0x8003CEC4, "SLUS_010.53");
     id &= 0xFFFF;
-    if (rrj_s32(id) >= rrj_s32(material_half(m, rrj_read32(0x8005B240) + 40)))
+    if ((int32_t)id >= r_s16(r_u32(0x8005B240) + 40))
         return 2;
     result = sub_8003CA50(id, buffer, group);
-    if (rrj_s32(result) <= 0)
-        return rrj_s32(result) < 0 ? 0u - result : result;
+    if ((int32_t)result <= 0)
+        return (int32_t)result < 0 ? 0 - result : result;
     if (!sub_8003CFCC(buffer, id))
         return 0;
-    player = rrj_read32(0x8005B38C);
-    if (player && !rrj_read32(rrj_read32(player + 1084) + 40))
+    player = r_u32(0x8005B38C);
+    if (player && !r_u32(r_u32(player + 1084) + 40))
         goto refresh;
-    player = rrj_read32(0x8005B21C);
-    if (!player || rrj_read32(rrj_read32(player + 1084) + 40))
+    player = r_u32(0x8005B21C);
+    if (!player || r_u32(r_u32(player + 1084) + 40))
         return 1;
 refresh:
-    if (diagnostic)
-    {
-        (void)rrj_probe_actor_activity(m, diagnostic);
-        (void)rrj_probe_activity_list(m, diagnostic);
-    }
-    else
-    {
-        (void)sub_80093E6C(reverb);
-        (void)sub_800950E8(reverb);
-    }
+    (void)sub_80093E6C();
+    (void)sub_800950E8();
     return 1;
-}
-
-uint32_t sub_8003CEC4(uint32_t buffer, uint32_t id, uint32_t group, RRJReverbCall reverb)
-{
-    FUNCTION_MARKER(0x8003CEC4u, "SLUS_010.53");
-    return load_segment(rrj_host_context(), buffer, id, group, NULL, reverb);
-}
-
-uint32_t rrj_probe_segment_load(RRJMemory *m, uint32_t buffer, uint32_t id, uint32_t group, RRJRacePlayerCall diagnostic)
-{
-    if (!diagnostic)
-        abort();
-    return load_segment(m, buffer, id, group, diagnostic, NULL);
 }
 
 /* RASHCDG 80099D48: follow the linked object's road/junction position. */
 uint32_t sub_80099D48(uint32_t object)
 {
     FUNCTION_MARKER(0x80099D48u, "RASHCDG.BIN");
-    uint32_t road = 0, linked = rrj_read32(object + 596), route = rrj_read32(object + 360);
-    uint32_t id = route & 0xFFFF, linked_id = rrj_u16(rrj_at(linked + 360, 2));
+    uint32_t road = 0, linked = r_u32(object + 596), route = r_u32(object + 360);
+    uint32_t id = route & 0xFFFF, linked_id = r_u16(linked + 360);
     uint32_t junction = 0, linked_road = 0, linked_junction = 0, step = 0, unmatched = 1;
     uint32_t p, end, length, zero_progress = 0, previous, progress, result;
     if (id == linked_id)
     {
         if (!(route >> 16))
-            step = rrj_s32(rrj_read32(object + 368)) < rrj_s32(rrj_read32(linked + 368)) ? 0x50000 : 0xFFFB0000;
+            step = ((int32_t)(uint32_t)(r_u32(object + 368))) < ((int32_t)(uint32_t)(r_u32(linked + 368))) ? 0x50000 : 0xFFFB0000;
         goto finish;
     }
     if (route >> 16)
         junction = sub_800245F4(id);
     else
         road = sub_800245DC(id);
-    if (rrj_u16(rrj_at(linked + 362, 2)))
+    if (r_u16(linked + 362))
         linked_junction = sub_800245F4(linked_id);
     else
         linked_road = sub_800245DC(linked_id);
     if (linked_road)
     {
-        length = (rrj_read32(linked_road + 4) >> 6) << 16;
+        length = (r_u32(linked_road + 4) >> 6) << 16;
         if (junction)
         {
             p = junction + 8;
-            end = p + (rrj_read32(junction + 4) << 3);
+            end = p + (r_u32(junction + 4) << 3);
             while (p < end)
             {
-                if (rrj_read32(p) == linked_id)
+                if (r_u32(p) == linked_id)
                 {
                     road = linked_road;
-                    rrj_write32(object + 360, linked_id);
+                    w_u32(object + 360, linked_id);
                     unmatched = 0;
-                    zero_progress = rrj_s32(rrj_read32(p + 4)) > 0;
+                    zero_progress = ((int32_t)(uint32_t)(r_u32(p + 4))) > 0;
                     break;
                 }
                 p += 8;
@@ -1852,7 +1683,7 @@ uint32_t sub_80099D48(uint32_t object)
         }
         else
         {
-            uint32_t head = rrj_read32(road + 8), linked_head = rrj_read32(linked_road + 8), linked_tail = rrj_read32(linked_road + 12);
+            uint32_t head = r_u32(road + 8), linked_head = r_u32(linked_road + 8), linked_tail = r_u32(linked_road + 12);
             if (head == linked_head || head == linked_tail)
             {
                 unmatched = 0;
@@ -1860,7 +1691,7 @@ uint32_t sub_80099D48(uint32_t object)
             }
             else
             {
-                uint32_t tail = rrj_read32(road + 12);
+                uint32_t tail = r_u32(road + 12);
                 if (tail == linked_head || tail == linked_tail)
                 {
                     unmatched = 0;
@@ -1871,23 +1702,23 @@ uint32_t sub_80099D48(uint32_t object)
         if (unmatched)
         {
             road = linked_road;
-            rrj_write32(object + 360, linked_id);
-            zero_progress = rrj_s32(pause_asr(length, 1)) < rrj_s32(rrj_read32(linked + 368));
+            w_u32(object + 360, linked_id);
+            zero_progress = ((int32_t)(uint32_t)(((uint32_t)((!((uint32_t)(1))) ? (((uint32_t)(length))) : ((((uint32_t)(length)) >> ((uint32_t)(1))) | ((((uint32_t)(length)) & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(1)))) : 0)))))) < ((int32_t)(uint32_t)(r_u32(linked + 368)));
         }
         if (!step)
-            rrj_write32(object + 368, zero_progress ? 0 : length);
+            w_u32(object + 368, zero_progress ? 0 : length);
     }
     else
     {
         p = linked_junction + 8;
         if (road)
         {
-            end = p + (rrj_read32(linked_junction + 4) << 3);
+            end = p + (r_u32(linked_junction + 4) << 3);
             while (p < end)
             {
-                if (rrj_read32(p) == id)
+                if (r_u32(p) == id)
                 {
-                    step = rrj_s32(rrj_read32(p + 4)) < 0 ? 0x50000 : 0xFFFB0000;
+                    step = ((int32_t)(uint32_t)(r_u32(p + 4))) < 0 ? 0x50000 : 0xFFFB0000;
                     unmatched = 0;
                     break;
                 }
@@ -1896,28 +1727,28 @@ uint32_t sub_80099D48(uint32_t object)
         }
         if (unmatched)
         {
-            id = rrj_read32(linked_junction + 8);
-            rrj_write32(object + 360, id);
+            id = r_u32(linked_junction + 8);
+            w_u32(object + 360, id);
             road = sub_800245DC(id);
-            rrj_write32(object + 368, rrj_s32(rrj_read32(linked_junction + 12)) < 0 ? 0 : (rrj_read32(road + 4) >> 6) << 16);
+            w_u32(object + 368, ((int32_t)(uint32_t)(r_u32(linked_junction + 12))) < 0 ? 0 : (r_u32(road + 4) >> 6) << 16);
         }
     }
 finish:
-    previous = rrj_read32(object + 368);
+    previous = r_u32(object + 368);
     progress = previous + step;
-    rrj_write32(object + 368, progress);
+    w_u32(object + 368, progress);
     if (!road)
         return previous;
-    if (rrj_s32(progress) < 0)
-        result = rrj_u16(rrj_at(road + 8, 2)) | 0x10000;
+    if (((int32_t)(uint32_t)(progress)) < 0)
+        result = r_u16(road + 8) | 0x10000;
     else
     {
-        length = (rrj_read32(road + 4) >> 6) << 16;
-        if (rrj_s32(length) >= rrj_s32(progress))
+        length = (r_u32(road + 4) >> 6) << 16;
+        if (((int32_t)(uint32_t)(length)) >= ((int32_t)(uint32_t)(progress)))
             return 0;
-        result = rrj_u16(rrj_at(road + 12, 2)) | 0x10000;
+        result = r_u16(road + 12) | 0x10000;
     }
-    rrj_write32(object + 360, result);
+    w_u32(object + 360, result);
     return result;
 }
 
@@ -1925,63 +1756,72 @@ uint32_t sub_80039C90(uint32_t buffer, uint32_t id)
 {
     FUNCTION_MARKER(0x80039C90u, "SLUS_010.53");
     uint32_t p, end;
-    if (!buffer || material_half(rrj_host_context(), buffer + 16) != 1)
+    if (!buffer || (uint32_t)r_s16((buffer + 16)) != 1)
         return 0;
-    p = rrj_read32(buffer + 44);
-    end = p + (material_half(rrj_host_context(), buffer + 18) << 5);
+    p = r_u32(buffer + 44);
+    end = p + ((uint32_t)r_s16((buffer + 18)) << 5);
     while (p < end)
     {
-        if (!(material_half(rrj_host_context(), p + 2) | (rrj_read32(p + 12) - id)))
+        if (!((uint32_t)r_s16((p + 2)) | (r_u32(p + 12) - id)))
             return p;
         p += 32;
     }
     return 0;
 }
 
-uint32_t sub_80039CFC(uint32_t record, uint32_t position)
+
+uint32_t sub_80039CFC(uint32_t record, const uint32_t position[3])
 {
-    FUNCTION_MARKER(0x80039CFCu, "SLUS_010.53");
-    uint32_t buffer, kind, tag, p;
+    uint32_t buffer;
+    uint32_t kind;
+    uint32_t tag;
+    uint32_t route;
     int32_t progress;
+    FUNCTION_MARKER(0x80039CFC, "SLUS_010.53");
     if (!position || !record)
         return 0;
-    buffer = rrj_read32(record + 12);
+    buffer = r_u32(record + 12);
     if (!buffer)
         return 0;
-    kind = material_half(rrj_host_context(), record + 4);
-    tag = (kind << 16) | rrj_u16(rrj_at(record + 16, 2));
-    progress = rrj_s32(material_half(rrj_host_context(), position + 10));
+    kind = (uint32_t)r_s16(record + 4);
+    tag = (kind << 16) | r_u16(record + 16);
+    progress = (int16_t)(position[2] >> 16);
     if (!kind)
-        return tag == rrj_read32(position) && progress >= rrj_s32(material_half(rrj_host_context(), record + 22)) && progress <= rrj_s32(material_half(rrj_host_context(), record + 26));
-    if (tag == rrj_read32(position))
-        return !rrj_read32(record + 28);
-    p = sub_80039C90(buffer, rrj_read32(position) & 0xFFFF);
-    return p && !material_half(rrj_host_context(), p + 2) && progress >= rrj_s32(material_half(rrj_host_context(), p + 26)) && progress <= rrj_s32(material_half(rrj_host_context(), p + 30));
+        return tag == position[0] && progress >= r_s16(record + 22) && progress <= r_s16(record + 26);
+    if (tag == position[0])
+        return !r_u32(record + 28);
+    route = sub_80039C90(buffer, position[0] & 0xFFFF);
+    return route && !r_s16(route + 2) && progress >= r_s16(route + 26) && progress <= r_s16(route + 30);
 }
 
-uint32_t sub_80039DFC(uint32_t object_position, uint32_t position)
+uint32_t sub_80039DFC(uint32_t object_position, const uint32_t position[3])
 {
-    FUNCTION_MARKER(0x80039DFCu, "SLUS_010.53");
-    uint32_t prior_id = 0xFFFFFFFF, prior_buffer = 0, record, id, i, tag;
-    if (object_position && material_half(rrj_host_context(), object_position + 148))
+    uint32_t prior_id = 0xFFFFFFFF;
+    uint32_t prior_buffer = 0;
+    uint32_t record;
+    uint32_t id;
+    uint32_t index;
+    uint32_t tag;
+    FUNCTION_MARKER(0x80039DFC, "SLUS_010.53");
+    if (object_position && r_s16(object_position + 148))
     {
-        record = sub_80039A08(rrj_read32(rrj_read32(object_position + 156)));
+        record = sub_80039A08(r_u32(r_u32(object_position + 156)));
         if (!record)
             return 0;
-        tag = rrj_u16(rrj_at(object_position, 2));
-        if (((tag >> 5) < 2 && rrj_s32(tag & 31) < rrj_s32(rrj_read32(rrj_read32(0x8005B2F8) + 48))) || sub_80039CFC(record, position))
-            return rrj_read32(record + 12);
-        prior_buffer = rrj_read32(record + 12);
-        prior_id = rrj_read32(rrj_read32(object_position + 156));
+        tag = r_u16(object_position);
+        if (((tag >> 5) < 2 && (int32_t)(tag & 31) < r_s32(r_u32(0x8005B2F8) + 48)) || sub_80039CFC(record, position))
+            return r_u32(record + 12);
+        prior_buffer = r_u32(record + 12);
+        prior_id = r_u32(r_u32(object_position + 156));
     }
-    for (i = 0; rrj_s32(i) <= rrj_s32(rrj_read32(0x8005B31C)); ++i)
+    for (index = 0; (int32_t)index <= r_s32(0x8005B31C); ++index)
     {
-        id = rrj_read32(0x800D4B10 + 16 * i);
+        id = r_u32(0x800D4B10 + 16 * index);
         if (id == 0xFFFFFFFF || id == prior_id)
             continue;
         record = sub_80039A08(id);
         if (record && sub_80039CFC(record, position))
-            return prior_id == 0xFFFFFFFF ? rrj_read32(record + 12) : prior_buffer;
+            return prior_id == 0xFFFFFFFF ? r_u32(record + 12) : prior_buffer;
     }
     return 0;
 }
@@ -1989,12 +1829,12 @@ uint32_t sub_80039DFC(uint32_t object_position, uint32_t position)
 uint32_t sub_8003F3B4(uint32_t id)
 {
     FUNCTION_MARKER(0x8003F3B4u, "SLUS_010.53");
-    uint32_t count = material_half(rrj_host_context(), 0x800D6182), p, i;
-    if (rrj_s32(count) <= 0)
+    uint32_t count = (uint32_t)r_s16(0x800D6182), p, i;
+    if (((int32_t)(uint32_t)(count)) <= 0)
         return 0;
-    p = rrj_read32(0x800D6194);
-    for (i = 0; rrj_s32(i) < rrj_s32(count); ++i, p += 120)
-        if (rrj_read32(p) == id)
+    p = r_u32(0x800D6194);
+    for (i = 0; ((int32_t)(uint32_t)(i)) < ((int32_t)(uint32_t)(count)); ++i, p += 120)
+        if (r_u32(p) == id)
             return p;
     return 0;
 }
@@ -2003,13 +1843,13 @@ uint32_t sub_80039B60(uint32_t id)
 {
     FUNCTION_MARKER(0x80039B60u, "SLUS_010.53");
     uint32_t manager, count, p, i;
-    if (rrj_s32(id) < 0)
+    if (((int32_t)(uint32_t)(id)) < 0)
         return 0;
-    manager = rrj_read32(0x8005B240);
-    count = material_half(rrj_host_context(), manager + 60);
-    p = rrj_read32(manager + 48);
-    for (i = 0; rrj_s32(i) < rrj_s32(count); ++i, p += 12)
-        if (material_half(rrj_host_context(), p) == id)
+    manager = r_u32(0x8005B240);
+    count = (uint32_t)r_s16((manager + 60));
+    p = r_u32(manager + 48);
+    for (i = 0; ((int32_t)(uint32_t)(i)) < ((int32_t)(uint32_t)(count)); ++i, p += 12)
+        if ((uint32_t)r_s16(p) == id)
             return p;
     return 0;
 }
@@ -2022,275 +1862,275 @@ uint32_t sub_8002EAD8(const uint32_t origin[3], const uint16_t direction[3], uin
     FUNCTION_MARKER(0x8002EAD8u, "SLUS_010.53");
     for (axis = 0; axis < 3; ++axis)
     {
-        int32_t component = (int16_t)rrj_u16((const uint8_t *)direction + 2u * axis) * 16;
-        int64_t product = (int64_t)component * rrj_s32(scale);
-        uint32_t position = rrj_u32((const uint8_t *)origin + 4u * axis);
+        int32_t component = (int16_t)xport_load_le16((const uint8_t *)direction + 2u * axis) * 16;
+        int64_t product = (int64_t)component * ((int32_t)(uint32_t)(scale));
+        uint32_t position = xport_load_le32((const uint8_t *)origin + 4u * axis);
         uint32_t scaled = (uint32_t)((uint64_t)product >> 16);
 
         result = scaled + position;
-        rrj_put32((uint8_t *)output + 4u * axis, result);
+        xport_store_le32((uint8_t *)output + 4u * axis, result);
     }
     return result;
 }
 
 /* Sequential loads preserve shifted aliases. Upper return word is residual v1,
  * not a carry from the origin addition (8002E570..8002E600). */
-uint64_t sub_8002E570(uint32_t origin, uint32_t velocity, uint32_t scale, uint32_t output)
+uint64_t sub_8002E570(const uint32_t origin[3], const uint32_t velocity[3], uint32_t scale, uint32_t output[3])
 {
-    FUNCTION_MARKER(0x8002E570u, "SLUS_010.53");
-    unsigned i;
-    uint64_t product = 0;
+    uint64_t shifted = 0;
     uint32_t value = 0;
-    for (i = 0; i < 3; ++i)
+    uint32_t axis;
+    FUNCTION_MARKER(0x8002E570, "SLUS_010.53");
+    for (axis = 0; axis < 3; ++axis)
     {
-        product = (uint64_t)sub_8001FC90(rrj_s32(rrj_read32(velocity + 4 * i)), rrj_s32(scale));
-        value = (uint32_t)product + rrj_read32(origin + 4 * i);
-        rrj_write32(output + 4 * i, value);
+        uint32_t velocity_value = xport_load_le32((const uint8_t *)velocity + 4u * axis);
+        int64_t product = (int64_t)((int32_t)(uint32_t)(velocity_value)) * ((int32_t)(uint32_t)(scale));
+        uint32_t origin_value = xport_load_le32((const uint8_t *)origin + 4u * axis);
+        shifted = ((uint64_t)product >> 16) | (product < 0 ? UINT64_C(0xFFFF000000000000) : 0);
+        value = (uint32_t)shifted + origin_value;
+        xport_store_le32((uint8_t *)output + 4u * axis, value);
     }
-    return (product & UINT64_C(0xFFFFFFFF00000000)) | value;
+    return (shifted & UINT64_C(0xFFFFFFFF00000000)) | value;
 }
 
-/* The original captures all six halfwords before any output store. scale_b
- * is the fifth argument at entry SP+16, absent from the IDA draft signature. */
-static uint64_t combine_short_vectors(RRJMemory *m, uint32_t input_a, uint32_t input_b, uint32_t output, uint16_t *local, uint32_t scale_a, uint32_t scale_b)
+uint64_t sub_8002EB78(const uint16_t input_a[3], const uint16_t input_b[3], uint16_t output[3], uint32_t scale_a, uint32_t scale_b)
 {
-    uint32_t a[3], b[3], value = 0;
-    uint64_t product = 0;
-    unsigned i;
-    for (i = 0; i < 3; ++i)
-    {
-        a[i] = material_half(m, input_a + 2 * i) << 4;
-        b[i] = material_half(m, input_b + 2 * i) << 4;
-    }
-    for (i = 0; i < 3; ++i)
-    {
-        uint32_t first = (uint32_t)sub_8001FC90(rrj_s32(scale_a), rrj_s32(a[i]));
-        product = (uint64_t)sub_8001FC90(rrj_s32(scale_b), rrj_s32(b[i]));
-        value = pause_asr(first + (uint32_t)product, 4);
-        if (local)
-            local[i] = (uint16_t)value;
-        else
-            rrj_put16(rrj_at(output + 2 * i, 2), (uint16_t)value);
-    }
-    return (product & UINT64_C(0xFFFFFFFF00000000)) | value;
-}
-
-uint64_t sub_8002EB78(uint32_t input_a, uint32_t input_b, uint32_t output, uint32_t scale_a, uint32_t scale_b)
-{
+    uint32_t first[3], second[3];
+    uint64_t second_shifted = 0;
+    uint32_t result = 0;
+    uint32_t axis;
     FUNCTION_MARKER(0x8002EB78u, "SLUS_010.53");
-    return combine_short_vectors(rrj_host_context(), input_a, input_b, output, NULL, scale_a, scale_b);
+    for (axis = 0; axis < 3; ++axis)
+    {
+        int32_t left = (int16_t)xport_load_le16((const uint8_t *)input_a + 2u * axis) * 16;
+        int64_t product = (int64_t)((int32_t)(uint32_t)(scale_a)) * left;
+        int32_t right = (int16_t)xport_load_le16((const uint8_t *)input_b + 2u * axis) * 16;
+        first[axis] = (uint32_t)((uint64_t)product >> 16);
+        product = (int64_t)((int32_t)(uint32_t)(scale_b)) * right;
+        second_shifted = ((uint64_t)product >> 16) | (product < 0 ? UINT64_C(0xFFFF000000000000) : 0);
+        second[axis] = (uint32_t)second_shifted;
+    }
+    for (axis = 0; axis < 3; ++axis)
+    {
+        result = (uint32_t)(((int32_t)(uint32_t)(first[axis] + second[axis])) >> 4);
+        xport_store_le16((uint8_t *)output + 2u * axis, (uint16_t)result);
+    }
+    return (second_shifted & UINT64_C(0xFFFFFFFF00000000)) | result;
 }
 
-
-
-uint32_t sub_80037524(uint32_t record, uint32_t delta)
+uint32_t sub_80037524(uint32_t record[8], uint32_t delta)
 {
-    FUNCTION_MARKER(0x80037524u, "SLUS_010.53");
-    uint32_t subrecord, segment, route, distance, last, current, progress, index, candidate = 0, limit;
+    FUNCTION_MARKER(0x80037524, "SLUS_010.53");
+    uint32_t subrecord, segment, route, distance, last, current, progress;
+    uint32_t candidate = 0;
+    int32_t index, limit, progress_high;
     if (!record)
         return 0;
-    subrecord = rrj_read32(record + 8);
-    segment = rrj_read32(record);
-    route = rrj_read32(record + 4);
-    distance = rrj_read32(segment + 68);
-    last = rrj_read32(segment + 52) + 52 * (material_half(rrj_host_context(), subrecord + 8) + material_half(rrj_host_context(), subrecord + 10)) - 52;
-    current = rrj_read32(rrj_read32(record + 12) + 40);
-    progress = rrj_s32(delta) > 0 ? current + delta : current - delta;
-    if (material_half(rrj_host_context(), route + 2) || rrj_s32(material_half(rrj_host_context(), segment + 28)) <= 0 || !distance)
+    subrecord = record[2];
+    segment = record[0];
+    route = record[1];
+    distance = r_u32(segment + 68);
+    last = r_u32(segment + 52) + 52 * ((uint32_t)r_s16(subrecord + 8) + (uint32_t)r_s16(subrecord + 10)) - 52;
+    current = r_u32(record[3] + 40);
+    progress = (int32_t)delta > 0 ? current + delta : current - delta;
+    if (r_s16(route + 2) || r_s16(segment + 28) <= 0 || !distance)
         return 0;
-    if (rrj_s32(pause_asr(progress, 16)) >= rrj_s32(pause_asr(rrj_read32(route + 24), 16)) && rrj_s32(pause_asr(progress, 16)) <= rrj_s32(material_half(rrj_host_context(), route + 30)))
+    progress_high = (int32_t)progress >> 16;
+    if (progress_high >= (r_s32(route + 24) >> 16) && progress_high <= r_s16(route + 30))
     {
-        index = (uint32_t)(rrj_s32(pause_asr(progress - rrj_read32(route + 24), 16)) / 50) - 1;
-        limit = material_half(rrj_host_context(), subrecord + 22) - 1;
-        if (rrj_s32(limit) < rrj_s32(index))
+        index = ((int32_t)(progress - r_u32(route + 24)) >> 16) / 50 - 1;
+        limit = r_s16(subrecord + 22) - 1;
+        if (limit < index)
             index = limit;
-        if (rrj_s32(index) < 0)
-            candidate = rrj_read32(segment + 52) + 52 * material_half(rrj_host_context(), subrecord + 8);
+        if (index < 0)
+            candidate = r_u32(segment + 52) + 52 * (uint32_t)r_s16(subrecord + 8);
         else
-            candidate = rrj_read32(segment + 52) + 52 * (material_half(rrj_host_context(), subrecord + 8) + material_half(rrj_host_context(), distance + 4 * (material_half(rrj_host_context(), subrecord + 20) + index) + 2));
-        limit = material_half(rrj_host_context(), subrecord + 10);
-        while (rrj_s32(material_half(rrj_host_context(), candidate)) < rrj_s32(limit))
+            candidate = r_u32(segment + 52) + 52 * ((uint32_t)r_s16(subrecord + 8) + (uint32_t)r_s16(distance + 4 * ((uint32_t)r_s16(subrecord + 20) + (uint32_t)index) + 2));
+        limit = r_s16(subrecord + 10);
+        while (r_s16(candidate) < limit)
         {
-            if (rrj_s32(rrj_read32(candidate + 32)) >= rrj_s32(progress - rrj_read32(candidate + 40)))
+            if (r_s32(candidate + 32) >= (int32_t)(progress - r_u32(candidate + 40)))
                 break;
             candidate += 52;
         }
         if (candidate <= last)
         {
-            rrj_write32(record + 12, candidate);
-            rrj_write32(record + 20, progress - rrj_read32(candidate + 40));
+            record[3] = candidate;
+            record[5] = progress - r_u32(candidate + 40);
             return candidate;
         }
     }
-    else if (rrj_s32(pause_asr(progress, 16)) < rrj_s32(material_half(rrj_host_context(), route + 30)))
+    else if (progress_high < r_s16(route + 30))
     {
-        candidate = rrj_read32(segment + 52) + 52 * material_half(rrj_host_context(), subrecord + 8);
-        rrj_write32(record + 20, 0);
-        rrj_write32(record + 12, candidate);
+        candidate = r_u32(segment + 52) + 52 * (uint32_t)r_s16(subrecord + 8);
+        record[5] = 0;
+        record[3] = candidate;
         return candidate;
     }
-    rrj_write32(record + 12, last);
-    rrj_write32(record + 20, rrj_read32(last + 32));
+    record[3] = last;
+    record[5] = r_u32(last + 32);
     return candidate;
 }
 
-/* The native caller owns its temporary output word; no emulated stack allocation. */
-static uint32_t track_link_match(RRJMemory *m, uint32_t record, uint32_t position, uint32_t selector, uint32_t *value, unsigned *written)
+uint32_t sub_8003BE1C(const uint32_t record[8], uint32_t position, uint32_t selector, uint32_t *output)
 {
-    uint32_t route, segment, i, j, piece, metadata, manager, entry, link, index;
-    *written = 0;
+    FUNCTION_MARKER(0x8003BE1C, "SLUS_010.53");
+    uint32_t route, segment, piece, metadata, manager, entry, link;
+    int32_t i, j;
     if (!record || selector == 0xFFFFFFFF)
         return 0;
-    route = rrj_read32(record + 4);
-    segment = rrj_read32(record);
-    for (i = 0; rrj_s32(i) < rrj_s32(material_half(m, route + 22)); ++i)
+    route = record[1];
+    segment = record[0];
+    for (i = 0; i < r_s16(route + 22); ++i)
     {
-        piece = rrj_read32(segment + 48) + 28 * (material_half(m, route + 20) + i);
-        if (pause_asr(rrj_read32(piece + 12) + 0x8000, 16) != pause_asr(position, 12))
+        piece = r_u32(segment + 48) + 28 * ((uint32_t)r_s16(route + 20) + (uint32_t)i);
+        if (((int32_t)(r_u32(piece + 12) + 0x8000) >> 16) != ((int32_t)position >> 12))
             continue;
-        metadata = sub_80039B60(rrj_read32(segment));
+        metadata = sub_80039B60(r_u32(segment));
         if (!metadata)
             continue;
-        for (j = 0; rrj_s32(j) < rrj_s32(material_half(m, metadata + 8)); ++j)
+        for (j = 0; j < r_s16(metadata + 8); ++j)
         {
-            index = material_half(m, metadata + 6) + j;
-            manager = rrj_read32(0x8005B240);
-            entry = rrj_read32(manager + 52) + 12 * index;
-            if (material_half(m, entry + 10) != selector)
+            manager = r_u32(0x8005B240);
+            entry = r_u32(manager + 52) + 12 * ((uint32_t)r_s16(metadata + 6) + (uint32_t)j);
+            if ((uint32_t)r_s16(entry + 10) != selector)
                 continue;
-            link = rrj_read32(manager + 56) + 12 * material_half(m, entry + 2);
-            if (piece != rrj_read32(segment + 48) + 28 * (material_half(m, route + 20) + material_half(m, link + 4)))
+            link = r_u32(manager + 56) + 12 * (uint32_t)r_s16(entry + 2);
+            if (piece != r_u32(segment + 48) + 28 * ((uint32_t)r_s16(route + 20) + (uint32_t)r_s16(link + 4)))
                 continue;
-            *value = material_half(m, link + 8);
-            if (rrj_s32(material_half(m, entry + 6)) <= 0)
-                *value = 0u - *value;
-            *written = 1;
+            *output = (uint32_t)r_s16(link + 8);
+            if (r_s16(entry + 6) <= 0)
+                *output = 0 - *output;
             return piece;
         }
     }
     return 0;
 }
 
-uint32_t sub_8003BE1C(uint32_t record, uint32_t position, uint32_t selector, uint32_t output)
+uint32_t sub_8003A700(uint32_t segment, const uint32_t position[3], uint32_t output[8])
 {
-    FUNCTION_MARKER(0x8003BE1Cu, "SLUS_010.53");
-    uint32_t value = 0, result;
-    unsigned written;
-    result = track_link_match(rrj_host_context(), record, position, selector, &value, &written);
-    if (written)
-        rrj_write32(output, value);
-    return result;
-}
-
-uint32_t sub_8003A700(uint32_t segment, uint32_t position, uint32_t output)
-{
-    FUNCTION_MARKER(0x8003A700u, "SLUS_010.53");
-    uint32_t route_word, high, route, subrecord, record, metadata, entry = 0, base1, base2, pieces, i, count, start, link, value;
-    unsigned written;
+    FUNCTION_MARKER(0x8003A700, "SLUS_010.53");
+    uint32_t route_word, high, route, subrecord, record, metadata, entry = 0;
+    uint32_t base1, base2, pieces, start, link, direction;
+    int32_t i, count;
     if (!segment)
         return 0;
-    route_word = rrj_read32(position);
+    route_word = position[0];
     high = route_word >> 16;
     if (!high)
     {
-        route = material_half(rrj_host_context(), segment + 16) ? sub_80039C90(segment, route_word & 0xFFFF) : rrj_read32(segment + 44);
+        route = r_s16(segment + 16) ? sub_80039C90(segment, route_word & 0xFFFF) : r_u32(segment + 44);
         if (!route)
             return 0;
-        subrecord = rrj_read32(segment + 48) + 28 * material_half(rrj_host_context(), route + 20);
-        rrj_write32(output, segment);
-        rrj_write32(output + 4, route);
-        rrj_write32(output + 8, subrecord);
-        record = rrj_read32(segment + 52);
-        value = material_half(rrj_host_context(), subrecord + 8);
-        rrj_write32(output + 16, 0);
-        rrj_write32(output + 20, 0);
-        rrj_write32(output + 24, 0);
-        rrj_write32(output + 28, 0);
-        rrj_write32(output + 12, record + 52 * value);
-        (void)sub_80037524(output, rrj_read32(position + 8) - rrj_read32(route + 24));
+        subrecord = r_u32(segment + 48) + 28 * (uint32_t)r_s16(route + 20);
+        output[0] = segment;
+        output[1] = route;
+        output[2] = subrecord;
+        output[4] = 0;
+        output[5] = 0;
+        output[6] = 0;
+        output[7] = 0;
+        output[3] = r_u32(segment + 52) + 52 * (uint32_t)r_s16(subrecord + 8);
+        (void)sub_80037524(output, position[2] - r_u32(route + 24));
         return 1;
     }
-    if (material_half(rrj_host_context(), segment + 16) != high || rrj_read32(segment + 8) != (route_word & 0xFFFF) || rrj_read32(segment + 12))
+    if ((uint32_t)r_s16(segment + 16) != high || r_u32(segment + 8) != (route_word & 0xFFFF) || r_u32(segment + 12))
         return 0;
-    route = rrj_read32(segment + 44);
-    subrecord = rrj_read32(segment + 48);
-    record = sub_8003F3B4(rrj_read32(segment + 8));
+    route = r_u32(segment + 44);
+    subrecord = r_u32(segment + 48);
+    record = sub_8003F3B4(r_u32(segment + 8));
     if (!record)
         return 0;
-    if (rrj_s32(rrj_read32(record + 16)) > 0)
+    if (r_s32(record + 16) > 0)
     {
-        rrj_write32(output, segment);
-        rrj_write32(output + 4, route);
-        subrecord = track_link_match(rrj_host_context(), output, rrj_read32(record + 8), rrj_read32(record + 84), &value, &written);
+        output[0] = segment;
+        output[1] = route;
+        subrecord = sub_8003BE1C(output, r_u32(record + 8), r_u32(record + 84), &direction);
     }
     if (!subrecord)
         return 0;
-    rrj_write32(output, segment);
-    rrj_write32(output + 4, route);
-    rrj_write32(output + 8, subrecord);
-    rrj_write32(output + 12, rrj_read32(segment + 52) + 52 * material_half(rrj_host_context(), subrecord + 8));
-    metadata = sub_80039B60(rrj_read32(segment));
+    output[0] = segment;
+    output[1] = route;
+    output[2] = subrecord;
+    output[3] = r_u32(segment + 52) + 52 * (uint32_t)r_s16(subrecord + 8);
+    metadata = sub_80039B60(r_u32(segment));
     if (metadata)
     {
-        count = material_half(rrj_host_context(), metadata + 8);
-        if (rrj_s32(count) > 0)
+        count = r_s16(metadata + 8);
+        if (count > 0)
         {
-            start = material_half(rrj_host_context(), metadata + 6);
-            record = rrj_read32(0x8005B240);
-            pieces = rrj_read32(segment + 48);
-            base1 = rrj_read32(record + 52);
-            base2 = rrj_read32(record + 56);
-            for (i = 0; rrj_s32(i) < rrj_s32(count); ++i)
+            start = (uint32_t)r_s16(metadata + 6);
+            record = r_u32(0x8005B240);
+            pieces = r_u32(segment + 48);
+            base1 = r_u32(record + 52);
+            base2 = r_u32(record + 56);
+            for (i = 0; i < count; ++i)
             {
-                entry = base1 + 12 * (start + i);
-                link = base2 + 12 * material_half(rrj_host_context(), entry + 2);
-                if (material_half(rrj_host_context(), link + 6) && pieces + 28 * material_half(rrj_host_context(), link + 4) == subrecord)
+                entry = base1 + 12 * (start + (uint32_t)i);
+                link = base2 + 12 * (uint32_t)r_s16(entry + 2);
+                if (r_s16(link + 6) && pieces + 28 * (uint32_t)r_s16(link + 4) == subrecord)
                     break;
             }
         }
-        rrj_write32(output + 24, metadata);
-        rrj_write32(output + 28, entry);
+        output[6] = metadata;
+        output[7] = entry;
     }
     else
     {
-        rrj_write32(output + 24, 0);
-        rrj_write32(output + 28, 0);
+        output[6] = 0;
+        output[7] = 0;
     }
-    rrj_write32(output + 20, 0);
-    rrj_write32(output + 16, 0);
+    output[5] = 0;
+    output[4] = 0;
     return 1;
 }
 
 uint32_t sub_80039F68(uint32_t input)
 {
+    uint32_t scalar_value_33;
+
     FUNCTION_MARKER(0x80039F68u, "SLUS_010.53");
-    uint32_t segment = sub_80039DFC(input, input + 188), state = 0, aggregate = 0, tag, object, piece, i, count, minimum = 999;
+    uint32_t segment = sub_80039DFC(input, ((input + 188) ? (const uint32_t[3]){r_u32(input + 188), 0, (uint32_t)r_u16((input + 188) + 10) << 16} : NULL)), state = 0, aggregate = 0, tag, object, piece, i, count, minimum = 999;
     if (!segment)
         return 0;
-    state = material_half(rrj_host_context(), input + 148);
-    tag = rrj_u16(rrj_at(input, 2));
+    state = (uint32_t)r_s16((input + 148));
+    tag = r_u16(input);
     if ((tag >> 5) < 2 && !state)
     {
-        if (!sub_8003A700(segment, input + 188, input + 156))
+        uint32_t geometry_result = 0;
+        {
+            const uint32_t route_position[3] = {r_u32(input + 188), r_u32(input + 188 + 4), r_u32(input + 188 + 8)};
+            uint32_t route_geometry[8] = {r_u32(input + 156), r_u32(input + 156 + 4), r_u32(input + 156 + 8), r_u32(input + 156 + 12), r_u32(input + 156 + 16), r_u32(input + 156 + 20), r_u32(input + 156 + 24), r_u32(input + 156 + 28)};
+            geometry_result = sub_8003A700(segment, route_position, route_geometry);
+            w_u32(input + 156, route_geometry[0]);
+            w_u32(input + 156 + 4, route_geometry[1]);
+            w_u32(input + 156 + 8, route_geometry[2]);
+            w_u32(input + 156 + 12, route_geometry[3]);
+            w_u32(input + 156 + 16, route_geometry[4]);
+            w_u32(input + 156 + 20, route_geometry[5]);
+            w_u32(input + 156 + 24, route_geometry[6]);
+            w_u32(input + 156 + 28, route_geometry[7]);
+        }
+        if (!geometry_result)
             return 0;
-        piece = rrj_read32(input + 168);
-        (void)sub_8002EAD8(rrj_at(piece + 20, 12), rrj_at(piece + 14, 6), rrj_read32(input + 176), rrj_at(input + 12, 12));
-        (void)sub_8002EAD8(rrj_at(input + 12, 12), rrj_at(piece + 2, 6), rrj_read32(input + 172), rrj_at(input + 12, 12));
+        piece = r_u32(input + 168);
+        (void)sub_8002EAD8(xport_guest_ptr(piece + 20, 12), xport_guest_ptr(piece + 14, 6), r_u32(input + 176), xport_guest_ptr(input + 12, 12));
+        (void)sub_8002EAD8(xport_guest_ptr(input + 12, 12), xport_guest_ptr(piece + 2, 6), r_u32(input + 172), xport_guest_ptr(input + 12, 12));
     }
-    tag = rrj_u16(rrj_at(input, 2));
-    count = rrj_read32(rrj_read32(0x8005B2F8) + 48);
-    if ((tag >> 5) < 2 && rrj_s32(tag & 31) < rrj_s32(count))
+    tag = r_u16(input);
+    count = r_u32(r_u32(0x8005B2F8) + 48);
+    if ((tag >> 5) < 2 && ((int32_t)(uint32_t)(tag & 31)) < ((int32_t)(uint32_t)(count)))
     {
         if (tag >> 5)
             state = 1;
         else
         {
-            object = rrj_read32(0x8005B3A0) + 1096 * tag;
+            object = r_u32(0x8005B3A0) + 1096 * tag;
             if (object)
             {
-                if (!rrj_read32(object + 1088))
-                    object = rrj_read32(object + 856);
-                if (object && rrj_read32(rrj_read32(object + 852) + 604) < 3)
+                if (!r_u32(object + 1088))
+                    object = r_u32(object + 856);
+                if (object && r_u32(r_u32(object + 852) + 604) < 3)
                     state = 1;
             }
         }
@@ -2301,63 +2141,63 @@ uint32_t sub_80039F68(uint32_t input)
     i = 0;
     do
     {
-        uint32_t player = 0x800CD898 + 1132 * i, x = material_half(rrj_host_context(), player + 186) - material_half(rrj_host_context(), input + 14), y = material_half(rrj_host_context(), player + 194) - material_half(rrj_host_context(), input + 22), sign, t, d;
-        sign = pause_asr(x, 31);
+        uint32_t player = 0x800CD898 + 1132 * i, x = (uint32_t)r_s16((player + 186)) - (uint32_t)r_s16((input + 14)), y = (uint32_t)r_s16((player + 194)) - (uint32_t)r_s16((input + 22)), sign, t, d;
+        sign = ((uint32_t)((!((uint32_t)(31))) ? (((uint32_t)(x))) : ((((uint32_t)(x)) >> ((uint32_t)(31))) | ((((uint32_t)(x)) & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(31)))) : 0))));
         x = (x + sign) ^ sign;
-        sign = pause_asr(y, 31);
+        sign = ((uint32_t)((!((uint32_t)(31))) ? (((uint32_t)(y))) : ((((uint32_t)(y)) >> ((uint32_t)(31))) | ((((uint32_t)(y)) & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(31)))) : 0))));
         y = (y + sign) ^ sign;
-        if (rrj_s32(x) < rrj_s32(y))
+        if (((int32_t)(uint32_t)(x)) < ((int32_t)(uint32_t)(y)))
         {
             t = x;
             x = y;
             y = t;
         }
-        t = y + pause_asr(y, 1);
-        d = x - pause_asr(x, 5) - pause_asr(x, 7) + pause_asr(t, 2) + pause_asr(t, 6);
-        if (rrj_s32(d) < rrj_s32(minimum))
+        t = y + ((uint32_t)((!((uint32_t)(1))) ? (((uint32_t)(y))) : ((((uint32_t)(y)) >> ((uint32_t)(1))) | ((((uint32_t)(y)) & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(1)))) : 0))));
+        d = x - ((uint32_t)((!((uint32_t)(5))) ? (((uint32_t)(x))) : ((((uint32_t)(x)) >> ((uint32_t)(5))) | ((((uint32_t)(x)) & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(5)))) : 0)))) - ((uint32_t)((!((uint32_t)(7))) ? (((uint32_t)(x))) : ((((uint32_t)(x)) >> ((uint32_t)(7))) | ((((uint32_t)(x)) & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(7)))) : 0)))) + ((uint32_t)((!((uint32_t)(2))) ? (((uint32_t)(t))) : ((((uint32_t)(t)) >> ((uint32_t)(2))) | ((((uint32_t)(t)) & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(2)))) : 0)))) + ((uint32_t)((!((uint32_t)(6))) ? (((uint32_t)(t))) : ((((uint32_t)(t)) >> ((uint32_t)(6))) | ((((uint32_t)(t)) & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(6)))) : 0))));
+        if (((int32_t)(uint32_t)(d)) < ((int32_t)(uint32_t)(minimum)))
             minimum = d;
-        count = rrj_read32(rrj_read32(0x8005B2F8) + 48);
+        count = r_u32(r_u32(0x8005B2F8) + 48);
         ++i;
     } while (i < count);
     if (state)
     {
-        for (i = 0; rrj_s32(i) < rrj_s32(rrj_read32(rrj_read32(0x8005B2F8) + 48)); ++i)
-            aggregate |= sub_80013110(rrj_u16(rrj_at(input, 2)) >> 5, input + 12, i, 0x140000, 1);
+        for (i = 0; ((int32_t)(uint32_t)(i)) < ((int32_t)(uint32_t)(r_u32(r_u32(0x8005B2F8) + 48))); ++i)
+            aggregate |= sub_80013110(r_u16(input) >> 5, input + 12, i, 0x140000, 1);
         state = aggregate;
     }
-    if (!material_half(rrj_host_context(), input + 148))
+    if (!(uint32_t)r_s16((input + 148)))
     {
-        for (i = 0; rrj_s32(i) < rrj_s32(rrj_read32(rrj_read32(0x8005B2F8) + 48)); ++i)
-            aggregate |= sub_80013110(rrj_u16(rrj_at(input, 2)) >> 5, input + 12, i, 0, 0);
+        for (i = 0; ((int32_t)(uint32_t)(i)) < ((int32_t)(uint32_t)(r_u32(r_u32(0x8005B2F8) + 48))); ++i)
+            aggregate |= sub_80013110(r_u16(input) >> 5, input + 12, i, 0, 0);
         state = aggregate;
     }
     if (!state)
         return 0;
-    tag = rrj_u16(rrj_at(input, 2));
+    tag = r_u16(input);
     if (tag >> 5)
         return state;
-    segment = rrj_read32(0x8005B2F8);
-    count = rrj_read32(segment + 48);
-    object = rrj_read32(0x8005B3A0) + 1096 * tag;
-    if (rrj_u16(rrj_at(object + 172, 2)) < count || (material_byte(rrj_host_context(), rrj_read32(object + 1084) + 1) & 15) != 2)
+    segment = r_u32(0x8005B2F8);
+    count = r_u32(segment + 48);
+    object = r_u32(0x8005B3A0) + 1096 * tag;
+    if (r_u16(object + 172) < count || ((uint32_t)r_u8((r_u32(object + 1084) + 1)) & 15) != 2)
         return state;
     {
         uint32_t distances[2] = {0, 0};
-        for (i = 0; rrj_s32(i) < rrj_s32(rrj_read32(segment + 48)); ++i)
+        for (i = 0; ((int32_t)(uint32_t)(i)) < ((int32_t)(uint32_t)(r_u32(segment + 48))); ++i)
         {
-            uint32_t d = pause_asr(rrj_read32(object + 324) - rrj_read32(rrj_read32(0x8005B268 + 4 * i) + 324), 12);
+            uint32_t d = ((scalar_value_33 = (r_u32(object + 324) - r_u32(r_u32(0x8005B268 + 4 * i) + 324))), (((uint32_t)((!((uint32_t)(12))) ? (scalar_value_33) : ((scalar_value_33 >> ((uint32_t)(12))) | ((scalar_value_33 & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(12)))) : 0))))));
             /* Original has exactly two local words; >2 players corrupt its stack. */
             if (i >= 2)
                 abort();
-            if (rrj_s32(d) < 0)
+            if (((int32_t)(uint32_t)(d)) < 0)
                 d = 0u - d;
             distances[i] = d;
         }
-        if (rrj_read32(rrj_read32(0x8005B2F8) + 48) == 2 && rrj_s32(distances[0]) < 201)
+        if (r_u32(r_u32(0x8005B2F8) + 48) == 2 && ((int32_t)(uint32_t)(distances[0])) < 201)
             return state;
-        i = rrj_read32(rrj_read32(0x8005B2F8) + 48) == 2 ? 1u : 0u;
-        if (rrj_s32(distances[i]) >= 201)
-            w_u8(object + 928, (uint8_t)(material_byte(rrj_host_context(), object + 928) | 32));
+        i = r_u32(r_u32(0x8005B2F8) + 48) == 2 ? 1u : 0u;
+        if (((int32_t)(uint32_t)(distances[i])) >= 201)
+            w_u8(object + 928, (uint8_t)((uint32_t)r_u8((object + 928)) | 32));
     }
     return state;
 }
@@ -2365,31 +2205,31 @@ uint32_t sub_80039F68(uint32_t input)
 uint32_t sub_8009DAF8(uint32_t change)
 {
     FUNCTION_MARKER(0x8009DAF8u, "RASHCDG.BIN");
-    uint32_t value = rrj_read32(0x800D86F0) + (rrj_s32(change) > 0 ? 1u : 0xFFFFFFFF), limit;
-    rrj_write32(0x800D86F0, value);
-    limit = rrj_read32(0x800D86F4);
-    value = rrj_read32(0x800D86F0);
-    if (rrj_s32(value) >= rrj_s32(limit))
+    uint32_t value = r_u32(0x800D86F0) + (((int32_t)(uint32_t)(change)) > 0 ? 1u : 0xFFFFFFFF), limit;
+    w_u32(0x800D86F0, value);
+    limit = r_u32(0x800D86F4);
+    value = r_u32(0x800D86F0);
+    if (((int32_t)(uint32_t)(value)) >= ((int32_t)(uint32_t)(limit)))
         value = limit;
-    rrj_write32(0x800D86F0, value);
-    if (rrj_s32(value) < 0)
+    w_u32(0x800D86F0, value);
+    if (((int32_t)(uint32_t)(value)) < 0)
         value = 0;
-    rrj_write32(0x800D86F0, value);
+    w_u32(0x800D86F0, value);
     return value;
 }
 
 uint32_t sub_8002820C(uint32_t object)
 {
     FUNCTION_MARKER(0x8002820Cu, "SLUS_010.53");
-    uint32_t result = rrj_read32(object + 36) & 0xC7FFFFFF;
-    rrj_write32(object + 36, result);
+    uint32_t result = r_u32(object + 36) & 0xC7FFFFFF;
+    w_u32(object + 36, result);
     return result;
 }
 
 uint32_t sub_8002A738(uint32_t object, uint32_t previous, uint32_t entry, uint32_t next)
 {
     FUNCTION_MARKER(0x8002A738u, "SLUS_010.53");
-    uint32_t kind = (rrj_read32(entry) >> 6) & 15, value, shift = 0, mask = 0, result;
+    uint32_t kind = (r_u32(entry) >> 6) & 15, value, shift = 0, mask = 0, result;
     switch (kind)
     {
         case 1:
@@ -2398,7 +2238,7 @@ uint32_t sub_8002A738(uint32_t object, uint32_t previous, uint32_t entry, uint32
             mask = 3;
             break;
         case 2:
-            if (((rrj_read32(entry) >> 14) & 255) == 2)
+            if (((r_u32(entry) >> 14) & 255) == 2)
             {
                 shift = 23;
                 mask = 3;
@@ -2425,17 +2265,17 @@ uint32_t sub_8002A738(uint32_t object, uint32_t previous, uint32_t entry, uint32
     }
     if (mask)
     {
-        value = rrj_read32(object + 36);
-        rrj_write32(object + 36, (value & ~(mask << shift)) | (((((value >> shift) & mask) - 1) & mask) << shift));
+        value = r_u32(object + 36);
+        w_u32(object + 36, (value & ~(mask << shift)) | (((((value >> shift) & mask) - 1) & mask) << shift));
     }
-    value = rrj_read32(entry);
+    value = r_u32(entry);
     w_u8(entry + 60, 0);
     result = (value & 0xFFFFC000) | 63;
-    rrj_write32(entry, result);
+    w_u32(entry, result);
     if (previous)
     {
-        result = (rrj_read32(previous) & 0xFFFFFFC0) | (next & 63);
-        rrj_write32(previous, result);
+        result = (r_u32(previous) & 0xFFFFFFC0) | (next & 63);
+        w_u32(previous, result);
     }
     else
         w_u8(object + 73, (uint8_t)next);
@@ -2444,13 +2284,15 @@ uint32_t sub_8002A738(uint32_t object, uint32_t previous, uint32_t entry, uint32
 
 uint32_t sub_8002847C(uint32_t object)
 {
+    uint32_t scalar_value_34;
+
     FUNCTION_MARKER(0x8002847Cu, "SLUS_010.53");
-    uint32_t index = (material_byte(rrj_host_context(), object + 73) ^ 128) - 128, entry = 0x800D39B0 + 112 * index, result = 0xFFFFFFFF, next;
+    uint32_t index = ((uint32_t)r_u8((object + 73)) ^ 128) - 128, entry = 0x800D39B0 + 112 * index, result = 0xFFFFFFFF, next;
     if (index == 0xFFFFFFFF)
         return result;
     while (entry)
     {
-        next = pause_asr(rrj_read32(entry) << 26, 26);
+        next = ((scalar_value_34 = (r_u32(entry) << 26)), (((uint32_t)((!((uint32_t)(26))) ? (scalar_value_34) : ((scalar_value_34 >> ((uint32_t)(26))) | ((scalar_value_34 & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(26)))) : 0))))));
         (void)sub_8002A738(object, 0, entry, next);
         result = next << 3;
         if (next == 0xFFFFFFFF)
@@ -2466,26 +2308,32 @@ uint32_t sub_8002847C(uint32_t object)
 
 uint32_t sub_80010028(uint32_t numerator, uint32_t denominator)
 {
-    FUNCTION_MARKER_ARGS(0x80010028u, "SLUS_010.53", 1u, 2u, (uint64_t)numerator, (uint64_t)denominator);
+    FUNCTION_MARKER_ARGS(0x80010028u, "SLUS_010.53", 1u, 2u, XPORT_CALL_SCALAR(numerator), XPORT_CALL_SCALAR(denominator));
     uint32_t divisor = denominator >> 1, reciprocal = divisor ? 0x80000000u / divisor : 0xFFFFFFFF;
     return (uint32_t)(((uint64_t)numerator * reciprocal) >> 16);
 }
 
 uint32_t sub_8001FF3C(uint32_t input)
 {
+    uint32_t scalar_value_161;
+
+    uint32_t scalar_value_35;
+    uint32_t scalar_shift_35;
+    uint32_t scalar_shift_36;
+
     FUNCTION_MARKER(0x8001FF3Cu, "SLUS_010.53");
-    uint32_t negative = rrj_s32(input) < 0, magnitude = negative ? 0u - input : input, result = 1024, base, index = 0, shift, q, address, lo, hi, product;
-    if (rrj_s32(magnitude) <= 65535)
+    uint32_t negative = ((int32_t)(uint32_t)(input)) < 0, magnitude = negative ? 0u - input : input, result = 1024, base, index = 0, shift, q, address, lo, hi, product;
+    if (((int32_t)(uint32_t)(magnitude)) <= 65535)
     {
         base = 65528;
         shift = 0;
-        if (rrj_s32(magnitude) >= 65528)
+        if (((int32_t)(uint32_t)(magnitude)) >= 65528)
             index = 52;
         else
         {
             base = 32768;
             shift = 15;
-            while (rrj_s32(magnitude) >= rrj_s32(base))
+            while (((int32_t)(uint32_t)(magnitude)) >= ((int32_t)(uint32_t)(base)))
             {
                 --shift;
                 base += 1u << (shift & 31);
@@ -2494,33 +2342,35 @@ uint32_t sub_8001FF3C(uint32_t input)
             base -= 1u << (shift & 31);
             shift -= 2;
         }
-        q = pause_asr(magnitude - base, shift & 31);
+        q = ((scalar_value_35 = (magnitude - base)), (scalar_shift_35 = (shift & 31)), (((uint32_t)((!scalar_shift_35) ? (scalar_value_35) : ((scalar_value_35 >> scalar_shift_35) | ((scalar_value_35 & 0x80000000) ? (0xFFFFFFFFu << (32 - scalar_shift_35)) : 0))))));
         base += q << (shift & 31);
         index += q;
         address = 0x800527E0 + 2 * index;
-        lo = rrj_u16(rrj_at(address, 2));
-        hi = rrj_u16(rrj_at(address + 2, 2));
+        lo = r_u16(address);
+        hi = r_u16(address + 2);
         product = (magnitude - base) * (hi - lo);
-        result = pause_asr(pause_asr(product, shift & 31) + 8 + lo, 4);
+        result = ((scalar_value_161 = (((scalar_shift_36 = (shift & 31)), (((uint32_t)((!scalar_shift_36) ? (((uint32_t)(product))) : ((((uint32_t)(product)) >> scalar_shift_36) | ((((uint32_t)(product)) & 0x80000000) ? (0xFFFFFFFFu << (32 - scalar_shift_36)) : 0)))))) + 8 + lo)), (((uint32_t)((!((uint32_t)(4))) ? (scalar_value_161) : ((scalar_value_161 >> ((uint32_t)(4))) | ((scalar_value_161 & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(4)))) : 0))))));
     }
     return negative ? 0u - result : result;
 }
 
 uint32_t sub_80020018(uint32_t x, uint32_t y)
 {
+    uint32_t scalar_value_40;
+
     FUNCTION_MARKER(0x80020018u, "SLUS_010.53");
     uint32_t sign, octant, n, d, ratio, address, base, step, value;
     int64_t product;
     if (!x && !y)
         return 0;
-    sign = pause_asr(y, 31);
+    sign = ((uint32_t)((!((uint32_t)(31))) ? (((uint32_t)(y))) : ((((uint32_t)(y)) >> ((uint32_t)(31))) | ((((uint32_t)(y)) & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(31)))) : 0))));
     octant = sign & 2;
-    if (rrj_s32(x) < 0)
+    if (((int32_t)(uint32_t)(x)) < 0)
         octant |= 4;
     y = (y + sign) ^ sign;
-    sign = pause_asr(x, 31);
+    sign = ((uint32_t)((!((uint32_t)(31))) ? (((uint32_t)(x))) : ((((uint32_t)(x)) >> ((uint32_t)(31))) | ((((uint32_t)(x)) & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(31)))) : 0))));
     x = (x + sign) ^ sign;
-    if (rrj_s32(y) < rrj_s32(x))
+    if (((int32_t)(uint32_t)(y)) < ((int32_t)(uint32_t)(x)))
     {
         octant |= 1;
         n = y;
@@ -2531,14 +2381,14 @@ uint32_t sub_80020018(uint32_t x, uint32_t y)
         n = x;
         d = y;
     }
-    ratio = sub_80010028(rrj_s32(n) > 0 ? n : 0u - n, rrj_s32(d) > 0 ? d : 0u - d);
-    if ((rrj_s32(n) > 0) != (rrj_s32(d) > 0))
+    ratio = sub_80010028(((int32_t)(uint32_t)(n)) > 0 ? n : 0u - n, ((int32_t)(uint32_t)(d)) > 0 ? d : 0u - d);
+    if ((((int32_t)(uint32_t)(n)) > 0) != (((int32_t)(uint32_t)(d)) > 0))
         ratio = 0u - ratio;
-    address = 0x8005285C + 4 * pause_asr(ratio, 12);
-    base = rrj_read32(address);
-    step = ((rrj_read32(address + 4) - base) << 4) + 8;
-    product = (int64_t)(ratio & 4095) * (int64_t)rrj_s32(step);
-    value = pause_asr((uint32_t)((uint64_t)product >> 16) + base, 20);
+    address = 0x8005285C + 4 * ((uint32_t)((!((uint32_t)(12))) ? (((uint32_t)(ratio))) : ((((uint32_t)(ratio)) >> ((uint32_t)(12))) | ((((uint32_t)(ratio)) & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(12)))) : 0))));
+    base = r_u32(address);
+    step = ((r_u32(address + 4) - base) << 4) + 8;
+    product = (int64_t)(ratio & 4095) * (int64_t)((int32_t)(uint32_t)(step));
+    value = ((scalar_value_40 = ((uint32_t)((uint64_t)product >> 16) + base)), (((uint32_t)((!((uint32_t)(20))) ? (scalar_value_40) : ((scalar_value_40 >> ((uint32_t)(20))) | ((scalar_value_40 & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(20)))) : 0))))));
     switch (octant)
     {
         case 0:
@@ -2569,19 +2419,19 @@ uint32_t sub_8002E698(const uint16_t left[3], const uint16_t right[3])
     uint32_t second;
     uint32_t third;
     FUNCTION_MARKER(0x8002E698u, "SLUS_010.53");
-    first = (uint32_t)(int32_t)(int16_t)rrj_u16(left);
-    second = (uint32_t)(int32_t)(int16_t)rrj_u16(left + 1);
-    third = (uint32_t)(int32_t)(int16_t)rrj_u16(left + 2);
+    first = (uint32_t)(int32_t)(int16_t)xport_load_le16(left);
+    second = (uint32_t)(int32_t)(int16_t)xport_load_le16(left + 1);
+    third = (uint32_t)(int32_t)(int16_t)xport_load_le16(left + 2);
     xport_gte_write_data(9u, first);
     xport_gte_write_data(10u, second);
     xport_gte_write_data(11u, third);
-    first = rrj_u16(right);
-    second = rrj_u16(right + 1);
-    third = (uint32_t)(int32_t)(int16_t)rrj_u16(right + 2);
+    first = xport_load_le16(right);
+    second = xport_load_le16(right + 1);
+    third = (uint32_t)(int32_t)(int16_t)xport_load_le16(right + 2);
     xport_gte_write_control(16u, first | (second << 16));
     xport_gte_write_control(17u, third);
     xport_gte_execute(0x45E012u);
-    return (uint32_t)(rrj_s32(xport_gte_read_data(25u)) >> 8);
+    return (uint32_t)(((int32_t)(uint32_t)(xport_gte_read_data(25u))) >> 8);
 }
 
 int64_t sub_8002EE50(uint32_t scale, const uint16_t direction[3], uint32_t output[3])
@@ -2591,53 +2441,44 @@ int64_t sub_8002EE50(uint32_t scale, const uint16_t direction[3], uint32_t outpu
     FUNCTION_MARKER(0x8002EE50u, "SLUS_010.53");
     for (axis = 0; axis < 3; ++axis)
     {
-        int32_t component = (int32_t)(int16_t)rrj_u16(direction + axis) * 16;
-        result = ((int64_t)rrj_s32(scale) * component) >> 16;
-        rrj_put32(output + axis, (uint32_t)result);
+        int32_t component = (int32_t)(int16_t)xport_load_le16(direction + axis) * 16;
+        result = ((int64_t)((int32_t)(uint32_t)(scale)) * component) >> 16;
+        xport_store_le32(output + axis, (uint32_t)result);
     }
     return result;
 }
 
-static int64_t scale_long_vector(RRJMemory *m, uint32_t scale, uint32_t input, uint32_t output, uint32_t *local)
+
+
+int64_t sub_8002E810(uint32_t scale, const uint32_t input[3], uint32_t output[3])
 {
-    unsigned i;
+    uint32_t axis;
     int64_t result = 0;
-    for (i = 0; i < 3; ++i)
+    FUNCTION_MARKER(0x8002E810, "SLUS_010.53");
+    for (axis = 0; axis < 3; ++axis)
     {
-        result = sub_8001FC90(rrj_s32(scale), rrj_s32(local ? local[i] : rrj_read32(input + 4 * i)));
-        if (local)
-            local[i] = (uint32_t)result;
-        else
-            rrj_write32(output + 4 * i, (uint32_t)result);
+        result = sub_8001FC90((int32_t)scale, (int32_t)xport_load_le32(input + axis));
+        xport_store_le32(output + axis, (uint32_t)result);
     }
     return result;
 }
 
-int64_t sub_8002E810(uint32_t scale, uint32_t input, uint32_t output)
-{
-    FUNCTION_MARKER(0x8002E810u, "SLUS_010.53");
-    return scale_long_vector(rrj_host_context(), scale, input, output, NULL);
-}
 
-int64_t rrj_scale_long_local(RRJMemory *m, uint32_t scale, uint32_t values[3])
-{
-    return scale_long_vector(m, scale, 0, 0, values);
-}
 
 /* Collision target response; return contract is the caller-observed low word. */
 uint32_t sub_8002076C(uint32_t object)
 {
     FUNCTION_MARKER(0x8002076Cu, "SLUS_010.53");
-    uint32_t target = rrj_read32(object + 832), tag, kind, record, value, other, dot;
+    uint32_t target = r_u32(object + 832), tag, kind, record, value, other, dot;
     if (!target)
         return 3;
-    tag = rrj_u16(rrj_at(target, 2));
+    tag = r_u16(target);
     kind = tag >> 5;
     if (kind == 0)
     {
-        record = rrj_read32(0x8005B3A0) + 1096 * (tag & 31);
-        value = rrj_read32(record + 560) & 0xFDFFFFFF;
-        rrj_write32(record + 560, value);
+        record = r_u32(0x8005B3A0) + 1096 * (tag & 31);
+        value = r_u32(record + 560) & 0xFDFFFFFF;
+        w_u32(record + 560, value);
         return value;
     }
     if (kind < 3)
@@ -2646,81 +2487,83 @@ uint32_t sub_8002076C(uint32_t object)
         return 4;
     if (kind == 4)
     {
-        record = rrj_read32(0x800CD6D4) + 596 * (tag & 31);
-        value = (rrj_u16(rrj_at(rrj_read32(record) + 14, 2)) & 0xF80) >> 7;
+        record = r_u32(0x800CD6D4) + 596 * (tag & 31);
+        value = (r_u16(r_u32(record) + 14) & 0xF80) >> 7;
         if (value - 3 >= 3)
             return 0;
-        if (rrj_read32(record + 592) & 0x200)
-            rrj_write32(record + 556, 0x10000);
+        if (r_u32(record + 592) & 0x200)
+            w_u32(record + 556, 0x10000);
         return 0x10000;
     }
-    value = rrj_read32(object + 564) & 0x60000;
+    value = r_u32(object + 564) & 0x60000;
     if (value != 0x40000)
         return value;
     other = 0x800CF660 + 512 * (tag & 31);
-    dot = sub_8002E698(rrj_at(other + 450, 6), rrj_at(object + 450, 6));
-    value = rrj_read32(object + 576) + (uint32_t)sub_8001FC90(rrj_s32(rrj_read32(other + 480)), rrj_s32(dot));
-    rrj_write32(object + 576, value);
-    if (rrj_s32(value) < 146486)
+    dot = sub_8002E698(xport_guest_ptr(other + 450, 6), xport_guest_ptr(object + 450, 6));
+    value = r_u32(object + 576) + (uint32_t)sub_8001FC90(((int32_t)(uint32_t)(r_u32(other + 480))), ((int32_t)(uint32_t)(dot)));
+    w_u32(object + 576, value);
+    if (((int32_t)(uint32_t)(value)) < 146486)
         value = 146486;
-    rrj_write32(object + 576, value);
-    rrj_write32(object + 480, value);
-    return (uint32_t)sub_8002EE50(value, rrj_at(object + 450, 6), rrj_at(object + 456, 12));
+    w_u32(object + 576, value);
+    w_u32(object + 480, value);
+    return (uint32_t)sub_8002EE50(value, xport_guest_ptr(object + 450, 6), xport_guest_ptr(object + 456, 12));
 }
 
 uint32_t sub_8002090C(uint32_t object)
 {
+    uint32_t scalar_value_41;
+
     FUNCTION_MARKER(0x8002090Cu, "SLUS_010.53");
     static const uint16_t first[] = {780, 776, 772, 768, 764, 760, 756, 752, 748, 728, 724, 720, 716, 712, 704, 696, 700, 688, 676, 680, 684, 692, 656, 660, 672, 644, 636};
     static const uint16_t second[] = {640, 616, 620, 624, 584, 744, 488, 608, 604, 596, 588, 580, 576, 484};
     static const uint16_t halves[] = {846, 844, 842, 840, 838, 836, 826};
-    uint32_t config = rrj_read32(object + 556), value, n, d, positive_n, positive_d, angle, x, y, z, linked;
+    uint32_t config = r_u32(object + 556), value, n, d, positive_n, positive_d, angle, x, y, z, linked;
     unsigned i;
-    if (rrj_read32(object + 832))
+    if (r_u32(object + 832))
         (void)sub_8002076C(object);
-    value = rrj_read32(object + 560);
+    value = r_u32(object + 560);
     for (i = 0; i < sizeof(first) / sizeof(first[0]); ++i)
-        rrj_write32(object + first[i], 0);
-    rrj_write32(object + 560, value & 0xF8000000);
-    rrj_write32(object + 564, rrj_read32(object + 564) & 0xC0000000);
-    rrj_write32(object + 568, rrj_read32(object + 568) & 0xF7B00000);
+        w_u32(object + first[i], 0);
+    w_u32(object + 560, value & 0xF8000000);
+    w_u32(object + 564, r_u32(object + 564) & 0xC0000000);
+    w_u32(object + 568, r_u32(object + 568) & 0xF7B00000);
     for (i = 0; i < sizeof(second) / sizeof(second[0]); ++i)
-        rrj_write32(object + second[i], 0);
-    n = (uint32_t)sub_8001FC90(rrj_s32(rrj_read32(config + 12)), 643207);
-    positive_n = rrj_s32(n) > 0;
-    positive_d = rrj_s32(rrj_read32(config + 16)) > 0;
-    n = (uint32_t)sub_8001FC90(rrj_s32(rrj_read32(config + 12)), 643207);
-    d = rrj_read32(config + 16);
+        w_u32(object + second[i], 0);
+    n = (uint32_t)sub_8001FC90(((int32_t)(uint32_t)(r_u32(config + 12))), 643207);
+    positive_n = ((int32_t)(uint32_t)(n)) > 0;
+    positive_d = ((int32_t)(uint32_t)(r_u32(config + 16))) > 0;
+    n = (uint32_t)sub_8001FC90(((int32_t)(uint32_t)(r_u32(config + 12))), 643207);
+    d = r_u32(config + 16);
     value = sub_80010028(positive_n ? n : 0u - n, positive_d ? d : 0u - d);
     if (positive_n != positive_d)
         value = 0u - value;
-    rrj_write32(object + 600, value);
-    value = rrj_read32(config + 188);
-    angle = material_half(rrj_host_context(), object + 530);
+    w_u32(object + 600, value);
+    value = r_u32(config + 188);
+    angle = (uint32_t)r_s16((object + 530));
     w_u8(object + 849, 0);
-    rrj_write32(object + 828, 0);
-    rrj_write32(object + 932, 0);
-    rrj_write32(object + 708, 0);
+    w_u32(object + 828, 0);
+    w_u32(object + 932, 0);
+    w_u32(object + 708, 0);
     for (i = 0; i < sizeof(halves) / sizeof(halves[0]); ++i)
-        rrj_put16(rrj_at(object + halves[i], 2), 0);
-    rrj_write32(object + 592, value);
+        w_u16(object + halves[i], 0);
+    w_u32(object + 592, value);
     value = sub_8001FF3C(angle << 4);
-    x = material_half(rrj_host_context(), object + 518);
-    rrj_put16(rrj_at(object + 842, 2), value);
+    x = (uint32_t)r_s16((object + 518));
+    w_u16(object + 842, value);
     x *= 157;
-    y = material_half(rrj_host_context(), object + 524);
-    rrj_write32(object + 732, x);
+    y = (uint32_t)r_s16((object + 524));
+    w_u32(object + 732, x);
     y *= 157;
-    z = material_half(rrj_host_context(), object + 530);
-    rrj_write32(object + 736, y);
-    rrj_write32(object + 740, z * 157);
+    z = (uint32_t)r_s16((object + 530));
+    w_u32(object + 736, y);
+    w_u32(object + 740, z * 157);
     value = sub_80020018(x, y);
-    linked = rrj_read32(object + 856);
-    rrj_write32(object + 668, 0u - pause_asr(value * 25736, 8));
-    if (linked && rrj_read32(object + 1088))
-        rrj_write32(linked + 488, 0);
-    value = rrj_read32(object + 668) + rrj_read32(object + 636);
-    rrj_write32(object + 652, value);
+    linked = r_u32(object + 856);
+    w_u32(object + 668, 0u - ((scalar_value_41 = (value * 25736)), (((uint32_t)((!((uint32_t)(8))) ? (scalar_value_41) : ((scalar_value_41 >> ((uint32_t)(8))) | ((scalar_value_41 & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(8)))) : 0)))))));
+    if (linked && r_u32(object + 1088))
+        w_u32(linked + 488, 0);
+    value = r_u32(object + 668) + r_u32(object + 636);
+    w_u32(object + 652, value);
     return value;
 }
 
@@ -2729,28 +2572,28 @@ uint32_t sub_80012838(uint32_t object, uint32_t child, uint32_t kind, uint32_t i
     FUNCTION_MARKER(0x80012838u, "SLUS_010.53");
     uint32_t entry = object + (index << 3);
     w_u8(child + 72, 1);
-    rrj_write32(entry + 56, child);
-    rrj_write32(entry + 60, kind);
-    rrj_write32(child + 52, object);
+    w_u32(entry + 56, child);
+    w_u32(entry + 60, kind);
+    w_u32(child + 52, object);
     return 1;
 }
 
 uint32_t sub_80086AF8(uint32_t object)
 {
     FUNCTION_MARKER(0x80086AF8u, "RASHCDG.BIN");
-    uint32_t value = rrj_read32(rrj_read32(object + 568) + 480);
-    rrj_write32(object + 736, 0);
-    rrj_write32(object + 720, 0);
-    rrj_write32(object + 732, 0);
-    rrj_write32(object + 708, 0);
-    rrj_write32(object + 724, value);
+    uint32_t value = r_u32(r_u32(object + 568) + 480);
+    w_u32(object + 736, 0);
+    w_u32(object + 720, 0);
+    w_u32(object + 732, 0);
+    w_u32(object + 708, 0);
+    w_u32(object + 724, value);
     return value;
 }
 
 uint32_t sub_800235B0(uint32_t index, uint32_t object)
 {
     FUNCTION_MARKER(0x800235B0u, "SLUS_010.53");
-    rrj_write32(0x80053478 + (index << 7) + 4, object);
+    w_u32(0x80053478 + (index << 7) + 4, object);
     return 0x80053478;
 }
 
@@ -2760,7 +2603,7 @@ uint32_t sub_8001E100(uint32_t destination, uint32_t value, uint32_t length)
     uint32_t address = destination, word = value | (value << 8) | (value << 16) | (value << 24);
     while (length)
     {
-        rrj_write32(address, word);
+        w_u32(address, word);
         length -= 4;
         address += 4;
     }
@@ -2770,7 +2613,7 @@ uint32_t sub_8001E100(uint32_t destination, uint32_t value, uint32_t length)
 uint32_t sub_800BCD10(uint32_t object)
 {
     FUNCTION_MARKER(0x800BCD10u, "RASHCDG.BIN");
-    uint32_t length = ((material_byte(rrj_host_context(), object + 946) ^ 128) - 128) << 3;
+    uint32_t length = (((uint32_t)r_u8((object + 946)) ^ 128) - 128) << 3;
     uint32_t result = sub_8001E100(object + 956, 0, length);
     w_u8(object + 946, 0);
     return result;
@@ -2779,13 +2622,13 @@ uint32_t sub_800BCD10(uint32_t object)
 uint32_t sub_80068D20(uint32_t object, uint32_t expected, uint32_t index)
 {
     FUNCTION_MARKER(0x80068D20u, "RASHCDG.BIN");
-    uint32_t entry = object + (index << 3), child = rrj_read32(entry + 56);
+    uint32_t entry = object + (index << 3), child = r_u32(entry + 56);
     if (child == expected)
     {
         w_u8(child + 72, 0);
-        rrj_write32(entry + 56, 0);
-        rrj_write32(entry + 60, 0);
-        rrj_write32(child + 52, 0);
+        w_u32(entry + 56, 0);
+        w_u32(entry + 60, 0);
+        w_u32(child + 52, 0);
     }
     return child;
 }
@@ -2793,25 +2636,25 @@ uint32_t sub_80068D20(uint32_t object, uint32_t expected, uint32_t index)
 uint32_t sub_80095AEC(uint32_t object)
 {
     FUNCTION_MARKER(0x80095AECu, "RASHCDG.BIN");
-    uint32_t slot = (material_byte(rrj_host_context(), object + 571) ^ 128) - 128, bit = 1u << (slot & 31), flags = rrj_read32(0x8005AD50), attachment;
+    uint32_t slot = ((uint32_t)r_u8((object + 571)) ^ 128) - 128, bit = 1u << (slot & 31), flags = r_u32(0x8005AD50), attachment;
     if (!(flags & bit))
         return ~bit;
-    rrj_write32(0x8005AD50, flags & ~bit);
-    slot = (material_byte(rrj_host_context(), object + 571) ^ 128) - 128;
+    w_u32(0x8005AD50, flags & ~bit);
+    slot = ((uint32_t)r_u8((object + 571)) ^ 128) - 128;
     (void)sub_80068D20(object, 0x800CF018 + 172 * slot, 0);
-    attachment = rrj_read32(object + 556);
+    attachment = r_u32(object + 556);
     if (attachment)
     {
-        rrj_write32(attachment + 36, 0);
-        rrj_write32(0x800CE178, rrj_read32(0x800CE178) - 1);
+        w_u32(attachment + 36, 0);
+        w_u32(0x800CE178, r_u32(0x800CE178) - 1);
     }
-    if (material_byte(rrj_host_context(), object + 572) & 128)
+    if ((uint32_t)r_u8((object + 572)) & 128)
     {
-        slot = (material_byte(rrj_host_context(), object + 571) ^ 128) - 128;
+        slot = ((uint32_t)r_u8((object + 571)) ^ 128) - 128;
         (void)sub_8002847C(0x800CF018 + 172 * slot);
-        w_u8(object + 572, (uint8_t)(material_byte(rrj_host_context(), object + 572) & 127));
+        w_u8(object + 572, (uint8_t)((uint32_t)r_u8((object + 572)) & 127));
     }
-    rrj_write32(object + 556, 0);
+    w_u32(object + 556, 0);
     w_u8(object + 571, 255);
     return 0xFFFFFFFF;
 }
@@ -2819,72 +2662,66 @@ uint32_t sub_80095AEC(uint32_t object)
 uint32_t sub_80018440(uint32_t index, uint32_t pending)
 {
     FUNCTION_MARKER(0x80018440u, "SLUS_010.53");
-    uint32_t offset = index * 132, base = rrj_read32(0x8005B42C), slot = base + offset;
+    uint32_t offset = index * 132, base = r_u32(0x8005B42C), slot = base + offset;
     if (!base)
         return offset;
     if (pending)
     {
-        rrj_write32(slot + 124, 7);
+        w_u32(slot + 124, 7);
         return 7;
     }
-    (void)sub_8001F7EC(rrj_read32(slot + 36));
-    (void)sub_8001F7EC(rrj_read32(slot + 40));
-    rrj_write32(slot + 84, 0xFFFFFFFF);
-    rrj_write32(slot + 88, 0xFFFFFFFF);
-    rrj_write32(slot + 124, 0);
+    (void)sub_8001F7EC(r_u32(slot + 36));
+    (void)sub_8001F7EC(r_u32(slot + 40));
+    w_u32(slot + 84, 0xFFFFFFFF);
+    w_u32(slot + 88, 0xFFFFFFFF);
+    w_u32(slot + 124, 0);
     return 0xFFFFFFFF;
 }
 
-static void direction_op(RRJMemory *m, uint32_t diagonal_address, uint32_t direction_address, uint32_t output)
-{
-    int32_t diagonal[3], direction[3];
-    int64_t cross[3];
-    uint32_t i;
-    for (i = 0; i < 3; ++i)
-    {
-        diagonal[i] = rrj_s32(material_half(m, diagonal_address + 2 * i));
-        direction[i] = rrj_s32(material_half(m, direction_address + 2 * i));
-    }
-    cross[0] = (int64_t)direction[2] * diagonal[1] - (int64_t)direction[1] * diagonal[2];
-    cross[1] = (int64_t)direction[0] * diagonal[2] - (int64_t)direction[2] * diagonal[0];
-    cross[2] = (int64_t)direction[1] * diagonal[0] - (int64_t)direction[0] * diagonal[1];
-    for (i = 0; i < 3; ++i)
-    {
-        int64_t v = cross[i] / 4096 - (cross[i] < 0 && cross[i] % 4096 != 0);
-        if (v > 32767)
-            v = 32767;
-        if (v < -32768)
-            v = -32768;
-        rrj_put16(rrj_at(output + 2 * i, 2), (uint32_t)v);
-    }
-}
-
-/* OP(sf=1,lm=0) RAM/return effects; transient GTE registers are not exposed. */
 uint32_t sub_8007EC30(uint32_t object)
 {
     FUNCTION_MARKER(0x8007EC30u, "RASHCDG.BIN");
-    uint32_t piece = rrj_read32(object + 340), linked, values[9], i;
+    uint32_t piece = r_u32(object + 340), linked, values[9], i;
+    uint32_t diagonal[3], direction[3], product[3];
     for (i = 0; i < 3; ++i)
-        values[i] = rrj_u16(rrj_at(object + 450 + 2 * i, 2));
+        values[i] = r_u16(object + 450 + 2 * i);
     for (i = 0; i < 3; ++i)
-        rrj_put16(rrj_at(object + 528 + 2 * i, 2), values[i]);
+        w_u16(object + 528 + 2 * i, values[i]);
     for (i = 0; i < 3; ++i)
-        rrj_put16(rrj_at(object + 522 + 2 * i, 2), 0u - rrj_u16(rrj_at(piece + 8 + 2 * i, 2)));
-    direction_op(rrj_host_context(), object + 522, object + 528, object + 516);
+        w_u16(object + 522 + 2 * i, 0u - r_u16(piece + 8 + 2 * i));
+    diagonal[0] = (uint32_t)(int32_t)r_s16(object + 522);
+    diagonal[1] = (uint32_t)(int32_t)r_s16(object + 522 + 2);
+    xport_gte_write_control(0, diagonal[0]);
+    diagonal[2] = (uint32_t)(int32_t)r_s16(object + 522 + 4);
+    xport_gte_write_control(2, diagonal[1]);
+    xport_gte_write_control(4, diagonal[2]);
+    direction[0] = (uint32_t)(int32_t)r_s16(object + 528);
+    direction[1] = (uint32_t)(int32_t)r_s16(object + 528 + 2);
+    direction[2] = (uint32_t)(int32_t)r_s16(object + 528 + 4);
+    xport_gte_write_data(9, direction[0]);
+    xport_gte_write_data(10, direction[1]);
+    xport_gte_write_data(11, direction[2]);
+    xport_gte_execute(0x178000C);
+    product[0] = xport_gte_read_data(9);
+    product[1] = xport_gte_read_data(10);
+    product[2] = xport_gte_read_data(11);
+    w_u16(object + 516, (uint16_t)product[0]);
+    w_u16(object + 516 + 2, (uint16_t)product[1]);
+    w_u16(object + 516 + 4, (uint16_t)product[2]);
     for (i = 0; i < 9; ++i)
-        values[i] = rrj_u16(rrj_at(object + 516 + 2 * i, 2));
-    linked = rrj_read32(object + 856);
-    rrj_write32(object + 676, 0);
-    rrj_write32(object + 616, 0);
-    rrj_write32(object + 636, 0);
-    rrj_write32(object + 672, 0);
-    rrj_write32(object + 488, 0);
+        values[i] = r_u16(object + 516 + 2 * i);
+    linked = r_u32(object + 856);
+    w_u32(object + 676, 0);
+    w_u32(object + 616, 0);
+    w_u32(object + 636, 0);
+    w_u32(object + 672, 0);
+    w_u32(object + 488, 0);
     for (i = 0; i < 9; ++i)
-        rrj_put16(rrj_at(object + 432 + 2 * i, 2), values[i]);
+        w_u16(object + 432 + 2 * i, values[i]);
     for (i = 0; i < 3; ++i)
-        rrj_put16(rrj_at(object + 814 + 2 * i, 2), values[i]);
+        w_u16(object + 814 + 2 * i, values[i]);
     if (linked)
-        rrj_write32(linked + 488, 0);
+        w_u32(linked + 488, 0);
     return values[0];
 }
 
@@ -2892,13 +2729,13 @@ uint32_t sub_8003B4B0(uint32_t table, uint32_t id)
 {
     FUNCTION_MARKER(0x8003B4B0u, "SLUS_010.53");
     uint32_t count, i, address;
-    if (material_half(rrj_host_context(), 0x800D6182) == 0xFFFFFFFF || !table)
+    if ((uint32_t)r_s16(0x800D6182) == 0xFFFFFFFF || !table)
         return 0;
-    count = rrj_read32(table + 12);
-    if (rrj_s32(count) <= 0)
+    count = r_u32(table + 12);
+    if (((int32_t)(uint32_t)(count)) <= 0)
         return 0;
     for (i = 0, address = table + 20; i < count; ++i, address += 16)
-        if (rrj_read32(address) == id)
+        if (r_u32(address) == id)
             return address;
     return 0;
 }
@@ -2909,12 +2746,12 @@ uint32_t sub_8003B8F4(uint32_t record)
     uint32_t table, id;
     if (!record)
         return 0;
-    table = rrj_read32(record + 256);
+    table = r_u32(record + 256);
     if (!table)
         return 0;
-    id = rrj_read32(record + 188);
+    id = r_u32(record + 188);
     if ((id >> 16) == 1)
-        return (id & 65535) == rrj_read32(table);
+        return (id & 65535) == r_u32(table);
     return sub_8003B4B0(table, id & 65535) != 0;
 }
 
@@ -2922,13 +2759,13 @@ uint32_t sub_80039AFC(uint32_t index)
 {
     FUNCTION_MARKER(0x80039AFCu, "SLUS_010.53");
     uint32_t header, record;
-    if (rrj_s32(index) < 0)
+    if (((int32_t)(uint32_t)(index)) < 0)
         return 0;
-    header = rrj_read32(0x8005B240);
-    if (rrj_s32(index) >= rrj_s32(material_half(rrj_host_context(), header + 44)))
+    header = r_u32(0x8005B240);
+    if (((int32_t)(uint32_t)(index)) >= ((int32_t)(uint32_t)((uint32_t)r_s16((header + 44)))))
         return 0;
-    record = rrj_read32(header + 36) + 104 * index;
-    return material_half(rrj_host_context(), record) == index ? record : 0;
+    record = r_u32(header + 36) + 104 * index;
+    return (uint32_t)r_s16(record) == index ? record : 0;
 }
 
 uint32_t sub_8003A37C(uint32_t record, uint32_t id)
@@ -2937,97 +2774,112 @@ uint32_t sub_8003A37C(uint32_t record, uint32_t id)
     uint32_t count, i, address;
     if (!record)
         return 0;
-    count = material_half(rrj_host_context(), record + 2);
-    if (rrj_s32(count) <= 0 || rrj_s32(count) >= 5)
+    count = (uint32_t)r_s16((record + 2));
+    if (((int32_t)(uint32_t)(count)) <= 0 || ((int32_t)(uint32_t)(count)) >= 5)
         return 0;
     for (i = 0, address = record + 8; i < count; ++i, address += 24)
-        if (material_half(rrj_host_context(), address + 4) == id)
+        if ((uint32_t)r_s16((address + 4)) == id)
             return address;
     return 0;
 }
 
-static uint32_t direction_leading_sign(uint32_t value)
+uint32_t sub_8002E14C(uint32_t output[3])
 {
-    uint32_t count = 0;
-    if (value & 0x80000000)
-        value = ~value;
-    while (count < 32 && !(value & 0x80000000))
+    uint32_t vector[3], magnitude[3], maximum, sign, bit, shift, sum = 0u;
+    uint32_t table, entry, expanded, scale, axis;
+    int64_t product;
+    FUNCTION_MARKER(0x8002E14Cu, "SLUS_010.53");
+    for (axis = 0; axis < 3; ++axis)
+        vector[axis] = xport_load_le32((const uint8_t *)output + 4u * axis);
+    for (axis = 0; axis < 3; ++axis)
     {
-        ++count;
-        value <<= 1;
+        sign = (uint32_t)((int32_t)vector[axis] >> 31);
+        magnitude[axis] = (sign + vector[axis]) ^ sign;
     }
-    return count;
-}
-
-uint32_t rrj_normalize_vector32(RRJMemory *m, uint32_t vector[3])
-{
-    uint32_t scaled[3], magnitude[3], maximum, bit, shift, sum = 0, entry, expanded, scale, i;
-    for (i = 0; i < 3; ++i)
-    {
-        uint32_t sign = pause_asr(vector[i], 31);
-        magnitude[i] = (vector[i] + sign) ^ sign;
-    }
-    maximum = rrj_s32(magnitude[1]) < rrj_s32(magnitude[0]) ? magnitude[0] : magnitude[1];
-    if (rrj_s32(magnitude[2]) >= rrj_s32(maximum))
+    maximum = (int32_t)magnitude[1] < (int32_t)magnitude[0] ? magnitude[0] : magnitude[1];
+    if ((int32_t)magnitude[2] >= (int32_t)maximum)
         maximum = magnitude[2];
-    bit = maximum ? 31 - direction_leading_sign(maximum) : 0;
-    for (i = 0; i < 3; ++i)
+    bit = 0u;
+    if (maximum)
     {
-        scaled[i] = rrj_s32(bit) < 21 ? vector[i] << ((20 - bit) & 31) : pause_asr(vector[i], (bit - 20) & 31);
-        sum += (uint32_t)(((uint64_t)((int64_t)rrj_s32(scaled[i]) * rrj_s32(scaled[i]))) >> 16);
+        xport_gte_write_data(30u, maximum);
+        bit = 31u - xport_gte_read_data(31u);
     }
-    if (rrj_s32(sum) <= 0)
+    if ((int32_t)bit < 21)
+    {
+        shift = (20u - bit) & 31u;
+        for (axis = 0; axis < 3; ++axis)
+            vector[axis] <<= shift;
+    }
+    else
+    {
+        shift = (bit - 20u) & 31u;
+        for (axis = 0; axis < 3; ++axis)
+            vector[axis] = (uint32_t)((int32_t)vector[axis] >> shift);
+    }
+    for (axis = 0; axis < 3; ++axis)
+    {
+        product = (int64_t)(int32_t)vector[axis] * (int32_t)vector[axis];
+        sum += (uint32_t)((uint64_t)product >> 16);
+    }
+    if ((int32_t)sum <= 0)
         return sum;
-    shift = 22 - (direction_leading_sign(sum) & ~1u);
-    if (rrj_s32(shift) <= 0)
-        shift = 0;
-    entry = rrj_u16(rrj_at(rrj_read32(0x8005B560) + 2 * pause_asr(sum, shift), 2));
-    expanded = (entry >> 5) << (entry & 31);
-    scale = pause_asr(expanded, shift >> 1);
-    for (i = 0; i < 3; ++i)
-        vector[i] = (uint32_t)((uint64_t)((int64_t)rrj_s32(scaled[i]) * rrj_s32(scale)) >> 16);
+    xport_gte_write_data(30u, sum);
+    shift = xport_gte_read_data(31u);
+    table = r_u32(0x8005B560u);
+    shift = 22u - (shift & ~1u);
+    if ((int32_t)shift <= 0)
+        shift = 0u;
+    entry = r_u16(table + 2u * (sum >> (shift & 31u)));
+    expanded = (entry >> 5) << (entry & 31u);
+    scale = (uint32_t)((int32_t)expanded >> ((shift >> 1) & 31u));
+    for (axis = 0; axis < 3; ++axis)
+    {
+        product = (int64_t)(int32_t)vector[axis] * (int32_t)scale;
+        xport_store_le32((uint8_t *)output + 4u * axis, (uint32_t)((uint64_t)product >> 16));
+    }
     return expanded;
 }
 
-uint32_t sub_8002E14C(uint32_t address)
+uint32_t sub_8002E468(uint16_t output[3])
 {
-    FUNCTION_MARKER(0x8002E14Cu, "SLUS_010.53");
-    uint32_t vector[3], result, i;
-    for (i = 0; i < 3; ++i)
-        vector[i] = rrj_read32(address + 4 * i);
-    result = rrj_normalize_vector32(rrj_host_context(), vector);
-    for (i = 0; i < 3; ++i)
-        rrj_write32(address + 4 * i, vector[i]);
-    return result;
-}
-
-uint32_t sub_8002E468(uint32_t address)
-{
-    FUNCTION_MARKER(0x8002E468u, "SLUS_010.53");
-    uint32_t vector[3], i, sum, shift, entry, scale;
+    int32_t vector[3];
+    uint32_t sum, shift, entry, expanded, scale, axis;
     uint64_t squared = 0;
-    for (i = 0; i < 3; ++i)
+    FUNCTION_MARKER(0x8002E468u, "SLUS_010.53");
+    for (axis = 0; axis < 3; ++axis)
     {
-        vector[i] = material_half(rrj_host_context(), address + 2 * i);
-        squared += (uint64_t)((int64_t)rrj_s32(vector[i]) * rrj_s32(vector[i]));
+        vector[axis] = (int16_t)xport_load_le16((const uint8_t *)output + 2u * axis);
+        xport_gte_write_data(9u + axis, (uint32_t)vector[axis]);
     }
-    /* Original ADD traps above INT_MAX. CPU exception delivery is not ported. */
-    if (squared > 0x7FFFFFFF)
+    xport_gte_execute(0xA00428u);
+    for (axis = 0; axis < 3; ++axis)
+        squared += xport_gte_read_data(25u + axis);
+    /* Preserve the original signed ADD overflow boundary */
+    if (squared > 0x7FFFFFFFu)
         abort();
     sum = (uint32_t)squared;
-    shift = 22 - (direction_leading_sign(sum) & ~1u);
-    if (rrj_s32(shift) <= 0)
+    xport_gte_write_data(30u, sum);
+    shift = 22u - (xport_gte_read_data(31u) & ~1u);
+    if ((int32_t)shift <= 0)
         shift = 0;
-    entry = rrj_u16(rrj_at(rrj_read32(0x8005B560) + 2 * pause_asr(sum, shift), 2));
-    scale = pause_asr((entry >> 5) << (entry & 31), shift >> 1);
-    for (i = 0; i < 3; ++i)
-        rrj_put16(rrj_at(address + 2 * i, 2), pause_asr(vector[i] * scale, 12));
+    entry = r_u16(r_u32(0x8005B560u) + 2u * (sum >> shift));
+    expanded = (entry >> 5) << (entry & 31u);
+    scale = (uint32_t)((int32_t)expanded >> (shift >> 1));
+    for (axis = 0; axis < 3; ++axis)
+    {
+        uint32_t product = (uint32_t)vector[axis] * scale;
+        xport_store_le16((uint8_t *)output + 2u * axis, (uint16_t)((int32_t)product >> 12));
+    }
     return sum;
 }
 
 /* 8004CF74: PsyQ table square root; signed LZCS and signed table loads. */
 uint32_t sub_8004CF74(uint32_t input)
 {
+    uint32_t scalar_value_49;
+    uint32_t scalar_shift_50;
+
     FUNCTION_MARKER(0x8004CF74u, "SLUS_010.53");
     uint32_t leading, even, shift, normalized, value;
 
@@ -3036,242 +2888,219 @@ uint32_t sub_8004CF74(uint32_t input)
     if (leading == 32)
         return 0;
     even = leading & ~1u;
-    shift = pause_asr(19 - even, 1);
-    normalized = even >= 24 ? input << ((even - 24) & 31) : pause_asr(input, 24 - even);
-    value = material_half(rrj_host_context(), 0x800560CC + 2 * (normalized - 64));
-    return rrj_s32(shift) < 0 ? value >> ((0u - shift) & 31) : value << (shift & 31);
+    shift = ((scalar_value_49 = (19 - even)), (((uint32_t)((!((uint32_t)(1))) ? (scalar_value_49) : ((scalar_value_49 >> ((uint32_t)(1))) | ((scalar_value_49 & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(1)))) : 0))))));
+    normalized = even >= 24 ? input << ((even - 24) & 31) : ((scalar_shift_50 = (24 - even)), (((uint32_t)((!scalar_shift_50) ? (((uint32_t)(input))) : ((((uint32_t)(input)) >> scalar_shift_50) | ((((uint32_t)(input)) & 0x80000000) ? (0xFFFFFFFFu << (32 - scalar_shift_50)) : 0))))));
+    value = (uint32_t)r_s16((0x800560CC + 2 * (normalized - 64)));
+    return ((int32_t)(uint32_t)(shift)) < 0 ? value >> ((0u - shift) & 31) : value << (shift & 31);
 }
 
 uint32_t sub_80039AA0(uint32_t index)
 {
     FUNCTION_MARKER(0x80039AA0u, "SLUS_010.53");
-    uint32_t header = rrj_read32(0x8005B240), relative = index - material_half(rrj_host_context(), header + 44), address;
-    if (rrj_s32(index) < 0 || rrj_s32(relative) >= rrj_s32(material_half(rrj_host_context(), header + 42)))
+    uint32_t header = r_u32(0x8005B240), relative = index - (uint32_t)r_s16((header + 44)), address;
+    if (((int32_t)(uint32_t)(index)) < 0 || ((int32_t)(uint32_t)(relative)) >= ((int32_t)(uint32_t)((uint32_t)r_s16((header + 42)))))
         return 0;
-    address = rrj_read32(header + 32) + (relative << 3);
-    return material_half(rrj_host_context(), address) == index ? address : 0;
-}
-
-/* References to track words may point to PSX RAM or native local records. */
-typedef struct RRJTrackWords
-{
-    uint32_t address;
-    uint32_t *local;
-} RRJTrackWords;
-
-static RRJTrackWords track_ram(uint32_t address)
-{
-    RRJTrackWords ref;
-    ref.address = address;
-    ref.local = NULL;
-    return ref;
-}
-
-static RRJTrackWords track_local(uint32_t *words)
-{
-    RRJTrackWords ref;
-    ref.address = 0;
-    ref.local = words;
-    return ref;
-}
-
-static RRJTrackWords track_offset(RRJTrackWords ref, uint32_t bytes)
-{
-    if (ref.local)
-        ref.local += bytes / 4;
-    else
-        ref.address += bytes;
-    return ref;
-}
-
-static uint32_t track_read(RRJMemory *m, RRJTrackWords ref, uint32_t offset)
-{
-    return ref.local ? ref.local[offset / 4] : rrj_read32(ref.address + offset);
-}
-
-static void track_write(RRJMemory *m, RRJTrackWords ref, uint32_t offset, uint32_t value)
-{
-    if (ref.local)
-        ref.local[offset / 4] = value;
-    else
-        rrj_write32(ref.address + offset, value);
-}
-
-static uint32_t track_exit_ref(RRJMemory *m, RRJTrackWords track, uint32_t direction)
-{
-    uint32_t root, segment, lookup, point, target;
-    if (!track_read(m, track, 0))
-        return 1;
-    if (material_half(m, track_read(m, track, 4) + 2) == 1)
-        return 0;
-    segment = material_half(m, track_read(m, track, 12));
-    if (segment || rrj_s32(direction) >= 0)
-    {
-        if (rrj_s32(segment) < rrj_s32(material_half(m, track_read(m, track, 8) + 10) - 1) || rrj_s32(direction) <= 0)
-            return 0;
-    }
-    root = track_read(m, track, 0);
-    if (!material_half(m, root + 16))
-    {
-        lookup = sub_80039AA0(rrj_read32(root));
-        if (!lookup)
-            return 1;
-        target = material_half(m, lookup + 4);
-        if (rrj_s32(direction) > 0)
-            target = material_half(m, lookup + 2);
-    }
-    else
-    {
-        lookup = sub_80039AFC(rrj_read32(root));
-        if (!lookup)
-            return 1;
-        point = sub_8003A37C(lookup, rrj_read32(track_read(m, track, 4) + 12));
-        if (!point)
-            return 1;
-        if (rrj_read32(root + 12) == 1)
-        {
-            if (rrj_s32(direction) > 0)
-                target = rrj_s32(material_half(m, point + 2)) > 0 ? material_half(m, point) : material_half(m, lookup + 6);
-            else
-                target = rrj_s32(material_half(m, point + 2)) <= 0 ? material_half(m, point) : material_half(m, lookup + 6);
-        }
-        else
-        {
-            if (rrj_s32(direction ^ material_half(m, point + 2)) < 0)
-                return 0;
-            target = material_half(m, lookup + 6);
-        }
-    }
-    if (target == 0xFFFFFFFF)
-        return 1;
-    lookup = sub_80039A08(target);
-    if (!lookup)
-        return 1;
-    return rrj_read32(lookup + 12) == 0;
+    address = r_u32(header + 32) + (relative << 3);
+    return (uint32_t)r_s16(address) == index ? address : 0;
 }
 
 uint32_t sub_800394F0(uint32_t track[8], uint32_t direction)
 {
-    FUNCTION_MARKER(0x800394F0u, "SLUS_010.53");
-    return track_exit_ref(rrj_host_context(), track_local(track), direction);
-}
-
-uint32_t rrj_track_exit_local(RRJMemory *m, uint32_t track[8], uint32_t direction)
-{
-    return track_exit_ref(m, track_local(track), direction);
-}
-
-static uint32_t update_track_direction_ref(RRJMemory *m, uint32_t direction, const uint16_t *local_direction, RRJTrackWords track, RRJTrackWords output)
-{
-    uint32_t record = track_read(m, track, 4), dot, prior, sign, magnitude, value, progress, root, segment, last, limit;
-    value = ((uint32_t)rrj_u16(rrj_at(record + 2, 2)) << 16) | rrj_u16(rrj_at(record + 12, 2));
-    track_write(m, output, 0, value);
-    dot = sub_8002E698((local_direction) ? (local_direction) : rrj_at(direction, 6), rrj_at(track_read(m, track, 12) + 14, 6));
-    prior = track_read(m, output, 4);
-    sign = pause_asr(prior, 31);
-    magnitude = (prior + sign) ^ sign;
-    if (rrj_s32(dot) >= 0)
-        value = (magnitude == 5 ? 3u : 1u) + (rrj_s32(prior) < 1);
-    else
-        value = (magnitude == 5 ? 0xFFFFFFFDu : 0xFFFFFFFFu) - (rrj_s32(prior) >= 0);
-    track_write(m, output, 4, value);
-    progress = rrj_read32(track_read(m, track, 12) + 40) + track_read(m, track, 20);
-    track_write(m, output, 8, progress);
-    if (material_half(m, track_read(m, track, 4) + 2))
+    uint32_t root, lookup, point, target;
+    int32_t segment;
+    FUNCTION_MARKER(0x800394F0, "SLUS_010.53");
+    if (!track[0])
         return 1;
-    root = track_read(m, track, 0);
-    if (material_half(m, root + 16) == 1 && !rrj_read32(root + 12))
+    if (r_s16(track[1] + 2) == 1)
+        return 0;
+    segment = r_s16(track[3]);
+    if (segment || (int32_t)direction >= 0)
     {
-        value = rrj_s32(progress) < 0 ? 0 : progress;
-        track_write(m, output, 8, value);
-        record = track_read(m, track, 4);
-        if (rrj_read32(record + 24))
+        if (segment < r_s16(track[2] + 10) - 1 || (int32_t)direction <= 0)
+            return 0;
+    }
+    root = track[0];
+    if (!r_s16(root + 16))
+    {
+        lookup = sub_80039AA0(r_u32(root));
+        if (!lookup)
+            return 1;
+        target = (uint32_t)(int32_t)r_s16(lookup + 4);
+        if ((int32_t)direction > 0)
+            target = (uint32_t)(int32_t)r_s16(lookup + 2);
+    }
+    else
+    {
+        lookup = sub_80039AFC(r_u32(root));
+        if (!lookup)
+            return 1;
+        point = sub_8003A37C(lookup, r_u32(track[1] + 12));
+        if (!point)
+            return 1;
+        if (r_u32(root + 12) == 1)
         {
-            limit = rrj_read32(record + 28);
-            if (rrj_s32(limit) < rrj_s32(value))
-                track_write(m, output, 8, limit);
+            if ((int32_t)direction > 0)
+                target = (uint32_t)(int32_t)(r_s16(point + 2) > 0 ? r_s16(point) : r_s16(lookup + 6));
+            else
+                target = (uint32_t)(int32_t)(r_s16(point + 2) <= 0 ? r_s16(point) : r_s16(lookup + 6));
+        }
+        else
+        {
+            if ((int32_t)(direction ^ (uint32_t)(int32_t)r_s16(point + 2)) < 0)
+                return 0;
+            target = (uint32_t)(int32_t)r_s16(lookup + 6);
         }
     }
-    segment = material_half(m, track_read(m, track, 12));
+    if (target == UINT32_MAX)
+        return 1;
+    lookup = sub_80039A08(target);
+    if (!lookup)
+        return 1;
+    return r_u32(lookup + 12) == 0;
+}
+
+uint32_t sub_8003662C(const uint16_t direction[3], const uint32_t track[8], uint32_t output[3])
+{
+    uint32_t record, dot, prior, sign, magnitude, value, progress, root, segment, last, limit;
+    uint16_t tangent[3];
+    uint32_t i;
+    FUNCTION_MARKER(0x8003662C, "SLUS_010.53");
+    record = track[1];
+    output[0] = ((uint32_t)r_u16(record + 2) << 16) | r_u16(record + 12);
+    for (i = 0; i < 3; ++i)
+        tangent[i] = r_u16(track[3] + 14 + 2 * i);
+    dot = sub_8002E698(direction, tangent);
+    prior = output[1];
+    sign = (uint32_t)((int32_t)prior >> 31);
+    magnitude = (prior + sign) ^ sign;
+    if ((int32_t)dot >= 0)
+        value = (magnitude == 5 ? 3 : 1) + ((int32_t)prior < 1);
+    else
+        value = (magnitude == 5 ? 0xFFFFFFFD : 0xFFFFFFFF) - ((int32_t)prior >= 0);
+    output[1] = value;
+    progress = r_u32(track[3] + 40) + track[5];
+    output[2] = progress;
+    if (r_s16(track[1] + 2))
+        return 1;
+    root = track[0];
+    if (r_s16(root + 16) == 1 && !r_u32(root + 12))
+    {
+        value = (int32_t)progress < 0 ? 0 : progress;
+        output[2] = value;
+        record = track[1];
+        if (r_u32(record + 24))
+        {
+            limit = r_u32(record + 28);
+            if ((int32_t)limit < (int32_t)value)
+                output[2] = limit;
+        }
+    }
+    segment = (uint32_t)r_s16(track[3]);
     if (segment)
     {
-        last = material_half(m, track_read(m, track, 8) + 10) - 1;
+        last = (uint32_t)r_s16(track[2] + 10) - 1;
         if (segment != last)
             return last;
     }
-    value = track_exit_ref(m, track, track_read(m, output, 4));
+    value = sub_800394F0((uint32_t *)track, output[1]);
     if (!value)
         return 0;
-    record = track_read(m, track, 4);
-    value = track_read(m, output, 8);
-    limit = rrj_read32(record + 28);
-    if (rrj_s32(limit) < rrj_s32(value))
+    record = track[1];
+    value = output[2];
+    limit = r_u32(record + 28);
+    if ((int32_t)limit < (int32_t)value)
         value = limit;
-    track_write(m, output, 8, value);
-    if (rrj_s32(value) < 0)
+    output[2] = value;
+    if ((int32_t)value < 0)
         value = 0;
-    track_write(m, output, 8, value);
+    output[2] = value;
     return value;
-}
-
-uint32_t sub_8003662C(uint32_t direction, uint32_t track, uint32_t output)
-{
-    FUNCTION_MARKER(0x8003662Cu, "SLUS_010.53");
-    return update_track_direction_ref(rrj_host_context(), direction, NULL, track_ram(track), track_ram(output));
-}
-
-uint32_t rrj_update_track_direction_local(RRJMemory *m, const uint16_t direction[3], uint32_t track[8], uint32_t output[3])
-{
-    return update_track_direction_ref(m, 0, direction, track_local(track), track_local(output));
 }
 
 uint32_t sub_80096564(uint32_t object)
 {
     FUNCTION_MARKER(0x80096564u, "RASHCDG.BIN");
     uint32_t flip = 0, selected, secondary, id, dot, record, route, lookup, point, vector[3], i;
+    uint32_t diagonal[3], direction[3], product[3];
     if (sub_8003B8F4(object + 172))
     {
-        secondary = rrj_read32(object + 852);
-        selected = rrj_read32(secondary + 604) >= 3 ? secondary : object;
-        id = rrj_read32(selected + 360);
+        secondary = r_u32(object + 852);
+        selected = r_u32(secondary + 604) >= 3 ? secondary : object;
+        id = r_u32(selected + 360);
         if (!(id >> 16))
         {
-            dot = sub_8002E698(rrj_at(rrj_read32(selected + 340) + 14, 6), rrj_at(object + 528, 6));
-            record = sub_8003B4B0(rrj_read32(selected + 428), rrj_u16(rrj_at(selected + 360, 2)));
-            if (record && rrj_s32(rrj_read32(record + 4)) < 0 && rrj_s32(dot) > 0)
+            dot = sub_8002E698(xport_guest_ptr(r_u32(selected + 340) + 14, 6), xport_guest_ptr(object + 528, 6));
+            record = sub_8003B4B0(r_u32(selected + 428), r_u16(selected + 360));
+            if (record && ((int32_t)(uint32_t)(r_u32(record + 4))) < 0 && ((int32_t)(uint32_t)(dot)) > 0)
                 flip = 1;
         }
         else
         {
             route = sub_8003F3B4(id & 65535);
-            lookup = sub_80039AFC(rrj_read32(rrj_read32(selected + 328)));
+            lookup = sub_80039AFC(r_u32(r_u32(selected + 328)));
             if (route && lookup)
             {
-                point = sub_8003A37C(lookup, rrj_read32(route + 84));
+                point = sub_8003A37C(lookup, r_u32(route + 84));
                 if (point)
                 {
                     for (i = 0; i < 3; ++i)
-                        vector[i] = rrj_read32(point + 12 + 4 * i) - rrj_read32(selected + 184 + 4 * i);
-                    (void)rrj_normalize_vector32(rrj_host_context(), vector);
+                        vector[i] = r_u32(point + 12 + 4 * i) - r_u32(selected + 184 + 4 * i);
+                    (void)sub_8002E14C(vector);
                     for (i = 0; i < 3; ++i)
-                        rrj_put16(rrj_at(object + 528 + 2 * i, 2), pause_asr(vector[i], 4));
-                    direction_op(rrj_host_context(), object + 522, object + 528, object + 516);
-                    (void)sub_8002E468(object + 516);
-                    direction_op(rrj_host_context(), object + 516, object + 522, object + 528);
+                        w_u16(object + 528 + 2 * i, (uint16_t)((int32_t)vector[i] >> 4));
+                    diagonal[0] = (uint32_t)(int32_t)r_s16(object + 522);
+                    diagonal[1] = (uint32_t)(int32_t)r_s16(object + 522 + 2);
+                    xport_gte_write_control(0, diagonal[0]);
+                    diagonal[2] = (uint32_t)(int32_t)r_s16(object + 522 + 4);
+                    xport_gte_write_control(2, diagonal[1]);
+                    xport_gte_write_control(4, diagonal[2]);
+                    direction[0] = (uint32_t)(int32_t)r_s16(object + 528);
+                    direction[1] = (uint32_t)(int32_t)r_s16(object + 528 + 2);
+                    direction[2] = (uint32_t)(int32_t)r_s16(object + 528 + 4);
+                    xport_gte_write_data(9, direction[0]);
+                    xport_gte_write_data(10, direction[1]);
+                    xport_gte_write_data(11, direction[2]);
+                    xport_gte_execute(0x178000C);
+                    product[0] = xport_gte_read_data(9);
+                    product[1] = xport_gte_read_data(10);
+                    product[2] = xport_gte_read_data(11);
+                    w_u16(object + 516, (uint16_t)product[0]);
+                    w_u16(object + 516 + 2, (uint16_t)product[1]);
+                    w_u16(object + 516 + 4, (uint16_t)product[2]);
+                    (void)sub_8002E468(xport_guest_ptr(object + 516, 6));
+                    diagonal[0] = (uint32_t)(int32_t)r_s16(object + 516);
+                    diagonal[1] = (uint32_t)(int32_t)r_s16(object + 516 + 2);
+                    xport_gte_write_control(0, diagonal[0]);
+                    diagonal[2] = (uint32_t)(int32_t)r_s16(object + 516 + 4);
+                    xport_gte_write_control(2, diagonal[1]);
+                    xport_gte_write_control(4, diagonal[2]);
+                    direction[0] = (uint32_t)(int32_t)r_s16(object + 522);
+                    direction[1] = (uint32_t)(int32_t)r_s16(object + 522 + 2);
+                    direction[2] = (uint32_t)(int32_t)r_s16(object + 522 + 4);
+                    xport_gte_write_data(9, direction[0]);
+                    xport_gte_write_data(10, direction[1]);
+                    xport_gte_write_data(11, direction[2]);
+                    xport_gte_execute(0x178000C);
+                    product[0] = xport_gte_read_data(9);
+                    product[1] = xport_gte_read_data(10);
+                    product[2] = xport_gte_read_data(11);
+                    w_u16(object + 528, (uint16_t)product[0]);
+                    w_u16(object + 528 + 2, (uint16_t)product[1]);
+                    w_u16(object + 528 + 4, (uint16_t)product[2]);
                 }
             }
         }
     }
-    else if (rrj_read32(object + 568) & 0x400000)
+    else if (r_u32(object + 568) & 0x400000)
         flip = 1;
     if (flip)
     {
         for (i = 0; i < 3; ++i)
-            rrj_put16(rrj_at(object + 528 + 2 * i, 2), 0u - rrj_u16(rrj_at(object + 528 + 2 * i, 2)));
+            w_u16(object + 528 + 2 * i, 0u - r_u16(object + 528 + 2 * i));
         for (i = 0; i < 3; ++i)
-            rrj_put16(rrj_at(object + 516 + 2 * i, 2), 0u - rrj_u16(rrj_at(object + 516 + 2 * i, 2)));
+            w_u16(object + 516 + 2 * i, 0u - r_u16(object + 516 + 2 * i));
     }
-    return sub_8003662C(object + 528, object + 328, object + 360);
+    return sub_8003662C(xport_guest_cptr(object + 528, 6), xport_guest_cptr(object + 328, 32), xport_guest_ptr(object + 360, 12));
 }
 
 /* Overlay800C2FF4: commit state class, frame stamp and animation flags. */
@@ -3279,28 +3108,28 @@ uint32_t sub_800C2FF4(uint32_t type, uint32_t object, uint32_t flags)
 {
     FUNCTION_MARKER(0x800C2FF4u, "RASHCDG.BIN");
     uint32_t kind, state, global, value, stamp;
-    if ((rrj_u16(rrj_at(object + 172, 2)) >> 5) != 1)
+    if ((r_u16(object + 172) >> 5) != 1)
     {
-        value = rrj_read32(object + 552);
-        rrj_put16(rrj_at(object + 544, 2), type);
-        rrj_write32(object + 552, ((value | 0x20000000u) & 0xffff00ffu) | 0x300u);
+        value = r_u32(object + 552);
+        w_u16(object + 544, type);
+        w_u32(object + 552, ((value | 0x20000000u) & 0xffff00ffu) | 0x300u);
         return 0xffff00ffu;
     }
-    kind = rrj_u16(rrj_at(0x800541D4 + 8 * (type & 65535u) + 2, 2));
+    kind = r_u16(0x800541D4 + 8 * (type & 65535u) + 2);
     state = kind == 0 ? 0u : kind < 5 ? 1u : kind == 5 ? 2u : kind == 6 ? 3u : 4u;
-    global = rrj_read32(0x8005B2F8);
-    value = rrj_read32(object + 552);
-    rrj_write32(object + 604, state);
-    rrj_put16(rrj_at(object + 544, 2), type);
-    stamp = rrj_read32(global + 16);
+    global = r_u32(0x8005B2F8);
+    value = r_u32(object + 552);
+    w_u32(object + 604, state);
+    w_u16(object + 544, type);
+    stamp = r_u32(global + 16);
     value |= 0x02000000u;
-    rrj_write32(object + 552, value);
-    rrj_write32(object + 548, stamp);
+    w_u32(object + 552, value);
+    w_u32(object + 548, stamp);
     value = (state - 2u) < 2u ? value | 0x20000000u : value & 0xdfffffffu;
-    rrj_write32(object + 552, value);
-    value = rrj_read32(object + 552);
+    w_u32(object + 552, value);
+    value = r_u32(object + 552);
     value = (flags & 0x100u) ? value | 0x08000000u : value & 0xf7ffffffu;
-    rrj_write32(object + 552, value);
+    w_u32(object + 552, value);
     w_u8(object + 546, 0);
     return value;
 }
@@ -3309,8 +3138,8 @@ uint32_t sub_800C2FF4(uint32_t type, uint32_t object, uint32_t flags)
 uint32_t sub_8005BE0C(uint32_t animation)
 {
     FUNCTION_MARKER(0x8005BE0Cu, "RASHCDG.BIN");
-    uint32_t value = rrj_read32(animation + 36) & 0xfffffffdu;
-    rrj_write32(animation + 36, value);
+    uint32_t value = r_u32(animation + 36) & 0xfffffffdu;
+    w_u32(animation + 36, value);
     return value;
 }
 
@@ -3318,11 +3147,11 @@ uint32_t sub_8005BE0C(uint32_t animation)
 uint32_t sub_80012858(uint32_t object, uint32_t set)
 {
     FUNCTION_MARKER(0x80012858u, "SLUS_010.53");
-    uint32_t header = rrj_read32(object), animation;
-    rrj_write32(object + 40, set);
-    rrj_put16(rrj_at(object + 48, 2), 0);
+    uint32_t header = r_u32(object), animation;
+    w_u32(object + 40, set);
+    w_u16(object + 48, 0);
     xport_update_u8(header + 9, XPORT_MEMORY_UPDATE_OR, 4);
-    animation = rrj_read32(object + 4);
+    animation = r_u32(object + 4);
     w_u8(animation + 1, 5);
     return 5;
 }
@@ -3331,16 +3160,16 @@ uint32_t sub_80012858(uint32_t object, uint32_t set)
 uint32_t sub_8005BEF4(uint32_t object)
 {
     FUNCTION_MARKER(0x8005BEF4u, "RASHCDG.BIN");
-    uint32_t animation = rrj_read32(object + 4);
+    uint32_t animation = r_u32(object + 4);
     if (r_u8(animation + 1) == 5)
         return 1;
-    if (rrj_read32(object + 12) == 1 && r_u8(animation + 13) == 5)
+    if (r_u32(object + 12) == 1 && r_u8(animation + 13) == 5)
         return 1;
     if (r_u8(animation + 1) >= 2)
         return 0;
     if (r_u8(animation + 13) == 3)
         return 0;
-    return rrj_read32(object + 12) == 0;
+    return r_u32(object + 12) == 0;
 }
 
 /* Overlay8005BE58: animation completion, signed frame comparison. */
@@ -3348,10 +3177,10 @@ uint32_t sub_8005BE58(uint32_t object)
 {
     FUNCTION_MARKER(0x8005BE58u, "RASHCDG.BIN");
     uint32_t animation, record, type;
-    if (!(rrj_read32(object + 36) & 2u))
+    if (!(r_u32(object + 36) & 2u))
         return 1;
-    record = 12u * rrj_read32(object + 12);
-    animation = rrj_read32(object + 4);
+    record = 12u * r_u32(object + 12);
+    animation = r_u32(object + 4);
     record += animation;
     type = r_u8(record + 1);
     if (type == 5)
@@ -3362,15 +3191,15 @@ uint32_t sub_8005BE58(uint32_t object)
         return 0;
     if (r_u8(animation + 13) == 3)
         return 0;
-    return rrj_s32(rrj_read32(object + 16)) >= ((int32_t)(rrj_u16(rrj_at(record + 6, 2)) ^ 32768u) - 32768);
+    return ((int32_t)(uint32_t)(r_u32(object + 16))) >= ((int32_t)(r_u16(record + 6) ^ 32768u) - 32768);
 }
 
 /* Overlay8005C418: resolve jump/advance animation records with original bound. */
 uint32_t sub_8005C418(uint32_t object)
 {
     FUNCTION_MARKER(0x8005C418u, "RASHCDG.BIN");
-    uint32_t animation = rrj_read32(object + 4), index = rrj_read32(object + 12);
-    uint32_t count = rrj_read32(object + 8), attempt = index, done = 0;
+    uint32_t animation = r_u32(object + 4), index = r_u32(object + 12);
+    uint32_t count = r_u32(object + 8), attempt = index, done = 0;
     for (;;)
     {
         uint32_t record = animation + 12u * index;
@@ -3383,7 +3212,7 @@ uint32_t sub_8005C418(uint32_t object)
                 done = 1;
                 break;
             case 2:
-                index = (uint32_t)((int32_t)(rrj_u16(rrj_at(record + 4, 2)) ^ 32768u) - 32768);
+                index = (uint32_t)((int32_t)(r_u16(record + 4) ^ 32768u) - 32768);
                 break;
             case 4:
                 ++index;
@@ -3392,15 +3221,15 @@ uint32_t sub_8005C418(uint32_t object)
                 break;
             case 5:
                 done = 1;
-                rrj_write32(object + 36, rrj_read32(object + 36) & 0xfffffffdu);
+                w_u32(object + 36, r_u32(object + 36) & 0xfffffffdu);
                 break;
             default:
                 break;
         }
         prior = attempt++;
-        if (rrj_s32(count) < rrj_s32(prior))
+        if (((int32_t)(uint32_t)(count)) < ((int32_t)(uint32_t)(prior)))
         {
-            rrj_write32(object + 36, rrj_read32(object + 36) & 0xfffffffdu);
+            w_u32(object + 36, r_u32(object + 36) & 0xfffffffdu);
             return index;
         }
         if (done)
@@ -3411,14 +3240,16 @@ uint32_t sub_8005C418(uint32_t object)
 /* Overlay8005E2BC: initialize raw/compressed animation channel caches. */
 uint32_t sub_8005E2BC(uint32_t object, uint32_t output)
 {
+    uint32_t scalar_value_54;
+
     FUNCTION_MARKER(0x8005E2BCu, "RASHCDG.BIN");
-    uint32_t dest = output + 4, source = rrj_read32(object + 44), data = source + 24;
+    uint32_t dest = output + 4, source = r_u32(object + 44), data = source + 24;
     uint32_t remaining, stride, channels, i, p, value, result;
-    rrj_put16(rrj_at(output + 2, 2), 4u * r_u8(source + 15) + 3);
-    remaining = rrj_read32(source + 4);
-    stride = 2u * rrj_u16(rrj_at(source + 16, 2));
+    w_u16(output + 2, 4u * r_u8(source + 15) + 3);
+    remaining = r_u32(source + 4);
+    stride = 2u * r_u16(source + 16);
     channels = 4u * r_u8(source + 15);
-    rrj_put16(rrj_at(output, 2), 0xffff);
+    w_u16(output, 0xffff);
     remaining -= 24;
     if (r_u8(source + 13) & 1)
     {
@@ -3427,12 +3258,12 @@ uint32_t sub_8005E2BC(uint32_t object, uint32_t output)
         {
             remaining -= stride;
             xport_update_u8(p + 14, XPORT_MEMORY_UPDATE_AND, 0xfd);
-            rrj_write32(dest, data);
-            value = rrj_u16(rrj_at(data, 2));
+            w_u32(dest, data);
+            value = r_u16(data);
             dest += 24;
-            rrj_put16(rrj_at(p - 2, 2), value);
-            rrj_put16(rrj_at(p, 2), value);
-            data += 2u * rrj_u16(rrj_at(source + 16, 2));
+            w_u16(p - 2, value);
+            w_u16(p, value);
+            data += 2u * r_u16(source + 16);
             p += 24;
         }
     }
@@ -3443,13 +3274,13 @@ uint32_t sub_8005E2BC(uint32_t object, uint32_t output)
         {
             dest += 24;
             value = r_u8(p + 16);
-            rrj_put16(rrj_at(p + 2, 2), 0);
-            rrj_put16(rrj_at(p, 2), 0);
+            w_u16(p + 2, 0);
+            w_u16(p, 0);
             w_u8(p + 16, (uint8_t)((value & 0xfc) | 2));
             p += 24;
         }
     }
-    result = rrj_s32(remaining) < 3;
+    result = ((int32_t)(uint32_t)(remaining)) < 3;
     if (r_u8(source + 13) & 2)
     {
         if (result)
@@ -3459,46 +3290,46 @@ uint32_t sub_8005E2BC(uint32_t object, uint32_t output)
         {
             value = r_u8(p + 14) | 2;
             w_u8(p + 14, (uint8_t)value);
-            value = (value & 0xfe) | (rrj_u16(rrj_at(data + 2, 2)) >> 15);
+            value = (value & 0xfe) | (r_u16(data + 2) >> 15);
             w_u8(p + 14, (uint8_t)value);
-            value = rrj_u16(rrj_at(data + 2, 2)) & 0x7fff;
-            rrj_write32(p + 2, value);
+            value = r_u16(data + 2) & 0x7fff;
+            w_u32(p + 2, value);
             if (value & 0x4000)
-                rrj_write32(p + 2, value | 0xffff8000);
+                w_u32(p + 2, value | 0xffff8000);
             if (r_u8(p + 14) & 1)
             {
                 uint32_t product, bits, table;
-                value = rrj_u16(rrj_at(data + 4, 2)) & 0x7fff;
-                rrj_put16(rrj_at(p + 10, 2), value);
-                product = rrj_read32(p + 2) * value;
-                bits = (rrj_u16(rrj_at(data + 6, 2)) & 0x7fff) >> 8;
+                value = r_u16(data + 4) & 0x7fff;
+                w_u16(p + 10, value);
+                product = r_u32(p + 2) * value;
+                bits = (r_u16(data + 6) & 0x7fff) >> 8;
                 w_u8(p + 16, (uint8_t)bits);
-                rrj_put16(rrj_at(p - 2, 2), pause_asr(product, 9));
-                rrj_write32(dest, data + 6);
+                w_u16(p - 2, ((uint32_t)((!((uint32_t)(9))) ? (((uint32_t)(product))) : ((((uint32_t)(product)) >> ((uint32_t)(9))) | ((((uint32_t)(product)) & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(9)))) : 0)))));
+                w_u32(dest, data + 6);
                 w_u8(p + 17, 8);
                 value = r_u8(p + 14);
                 bits = r_u8(p + 16);
-                rrj_write32(p + 6, 0);
+                w_u32(p + 6, 0);
                 w_u8(p + 12, 0);
                 w_u8(p + 14, (uint8_t)(value & 0xfb));
-                table = rrj_read32(0x800CC654 + 4 * bits);
+                table = r_u32(0x800CC654 + 4 * bits);
                 value = r_u8(table);
                 w_u8(p + 13, (uint8_t)((value - 1) & ((1u << (bits & 31)) - 1)));
             }
             else
             {
-                value = rrj_read32(p + 2) << 6;
-                rrj_put16(rrj_at(p - 2, 2), value);
-                rrj_put16(rrj_at(p, 2), value);
+                value = r_u32(p + 2) << 6;
+                w_u16(p - 2, value);
+                w_u16(p, value);
             }
-            value = rrj_u16(rrj_at(p - 2, 2));
+            value = r_u16(p - 2);
             dest += 24;
-            rrj_put16(rrj_at(p, 2), value);
-            value = pause_asr(rrj_u16(rrj_at(data, 2)) << 16, 16);
+            w_u16(p, value);
+            value = ((scalar_value_54 = (r_u16(data) << 16)), (((uint32_t)((!((uint32_t)(16))) ? (scalar_value_54) : ((scalar_value_54 >> ((uint32_t)(16))) | ((scalar_value_54 & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(16)))) : 0))))));
             p += 24;
             remaining -= 2u * (value + 1);
             data += 2u * (value + 1);
-            result = rrj_s32(remaining) < 3;
+            result = ((int32_t)(uint32_t)(remaining)) < 3;
         } while (!result);
     }
     else if (channels)
@@ -3507,12 +3338,12 @@ uint32_t sub_8005E2BC(uint32_t object, uint32_t output)
         for (i = 0; i < channels; ++i)
         {
             xport_update_u8(p + 14, XPORT_MEMORY_UPDATE_AND, 0xfd);
-            rrj_write32(dest, data);
-            value = rrj_u16(rrj_at(data, 2));
+            w_u32(dest, data);
+            value = r_u16(data);
             dest += 24;
-            rrj_put16(rrj_at(p - 2, 2), value);
-            rrj_put16(rrj_at(p, 2), value);
-            data += 2u * rrj_u16(rrj_at(source + 16, 2));
+            w_u16(p - 2, value);
+            w_u16(p, value);
+            data += 2u * r_u16(source + 16);
             p += 24;
         }
         result = 0;
@@ -3523,32 +3354,36 @@ uint32_t sub_8005E2BC(uint32_t object, uint32_t output)
 uint32_t sub_8005C39C(uint32_t object, uint32_t id)
 {
     FUNCTION_MARKER(0x8005C39Cu, "RASHCDG.BIN");
-    uint32_t cached = rrj_read32(object + 44);
+    uint32_t cached = r_u32(object + 44);
     id &= 255;
-    if (!cached || r_u8(cached + 14) != id || rrj_u16(rrj_at(object + 48, 2)) != 65535)
+    if (!cached || r_u8(cached + 14) != id || r_u16(object + 48) != 65535)
     {
-        uint32_t table = rrj_read32(rrj_read32(object + 40) + 4);
-        rrj_write32(object + 44, rrj_read32(table + 4 * id));
+        uint32_t table = r_u32(r_u32(object + 40) + 4);
+        w_u32(object + 44, r_u32(table + 4 * id));
         (void)sub_8005E2BC(object, object + 48);
     }
-    return rrj_read32(object + 44);
+    return r_u32(object + 44);
 }
 
 /* Overlay800714FC: Q14 quaternion product, wrapped32 sums before ASR14. */
 uint32_t rrj_pose_quaternion_product(const uint16_t left[4], const uint16_t right[4], uint16_t output[4])
 {
+    uint32_t scalar_value_55;
+    uint32_t scalar_value_56;
+    uint32_t scalar_value_57;
+
     uint32_t a[4], b[4], r[4], i;
     for (i = 0; i < 4; ++i)
     {
-        a[i] = pause_asr((uint32_t)left[i] << 16, 16);
-        b[i] = pause_asr((uint32_t)right[i] << 16, 16);
+        a[i] = ((scalar_value_55 = ((uint32_t)left[i] << 16)), (((uint32_t)((!((uint32_t)(16))) ? (scalar_value_55) : ((scalar_value_55 >> ((uint32_t)(16))) | ((scalar_value_55 & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(16)))) : 0))))));
+        b[i] = ((scalar_value_56 = ((uint32_t)right[i] << 16)), (((uint32_t)((!((uint32_t)(16))) ? (scalar_value_56) : ((scalar_value_56 >> ((uint32_t)(16))) | ((scalar_value_56 & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(16)))) : 0))))));
     }
     r[3] = a[3] * b[3] - a[0] * b[0] - a[1] * b[1] - a[2] * b[2];
     r[0] = a[3] * b[0] + a[0] * b[3] + a[1] * b[2] - a[2] * b[1];
     r[1] = a[3] * b[1] + a[1] * b[3] + a[2] * b[0] - a[0] * b[2];
     r[2] = a[3] * b[2] + a[2] * b[3] + a[0] * b[1] - a[1] * b[0];
     for (i = 0; i < 4; ++i)
-        output[i] = (uint16_t)pause_asr(r[i], 14);
+        output[i] = (uint16_t)((scalar_value_57 = (r[i])), (((uint32_t)((!((uint32_t)(14))) ? (scalar_value_57) : ((scalar_value_57 >> ((uint32_t)(14))) | ((scalar_value_57 & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(14)))) : 0))))));
     return output[3];
 }
 
@@ -3559,16 +3394,16 @@ uint32_t sub_800714FC(uint32_t left, uint32_t right, uint32_t output)
     uint32_t i, value;
     for (i = 0; i < 4; ++i)
     {
-        a[i] = rrj_u16(rrj_at(left + 2 * i, 2));
-        b[i] = rrj_u16(rrj_at(right + 2 * i, 2));
+        a[i] = r_u16(left + 2 * i);
+        b[i] = r_u16(right + 2 * i);
     }
     value = rrj_pose_quaternion_product(a, b, result);
     for (i = 0; i < 4; ++i)
-        rrj_put16(rrj_at(output + 2 * i, 2), result[i]);
+        w_u16(output + 2 * i, result[i]);
     return value;
 }
 
-static uint32_t pose_joint_block(RRJMemory *m, uint32_t object, uint32_t source, uint32_t output, uint32_t mirror, uint32_t correction)
+static uint32_t pose_joint_block(uint32_t object, uint32_t source, uint32_t output, uint32_t mirror, uint32_t correction)
 {
     uint32_t i = 0, mask = 0;
     if (!r_u8(source + 15))
@@ -3576,16 +3411,16 @@ static uint32_t pose_joint_block(RRJMemory *m, uint32_t object, uint32_t source,
     do
     {
         uint32_t joint = mirror ? r_u8(0x800CC1B0 + i) : i;
-        uint32_t kind = (rrj_u16(rrj_at(rrj_read32(rrj_read32(object)) + 14, 2)) & 0x78) >> 3;
+        uint32_t kind = (r_u16(r_u32(r_u32(object)) + 14) & 0x78) >> 3;
         uint16_t q[4], rotation[4], v[4];
         uint32_t k, dest = output + 16 * joint;
         mask |= 1u << (joint & 31);
         for (k = 0; k < 4; ++k)
-            q[k] = rrj_u16(rrj_at(object + 128 + 96 * i + 24 * k, 2));
-        if ((kind == 1 || kind == 4) && correction == 1 && ((rrj_read32(0x800CC1C4) >> (joint & 31)) & 1))
+            q[k] = r_u16(object + 128 + 96 * i + 24 * k);
+        if ((kind == 1 || kind == 4) && correction == 1 && ((r_u32(0x800CC1C4) >> (joint & 31)) & 1))
         {
             for (k = 0; k < 4; ++k)
-                rotation[k] = rrj_u16(rrj_at(0x800CC1CE + 8 * joint + 2 * k, 2));
+                rotation[k] = r_u16(0x800CC1CE + 8 * joint + 2 * k);
             (void)rrj_pose_quaternion_product(rotation, q, q);
         }
         for (k = 0; k < 4; ++k)
@@ -3611,7 +3446,7 @@ static uint32_t pose_joint_block(RRJMemory *m, uint32_t object, uint32_t source,
             }
         }
         for (k = 0; k < 4; ++k)
-            rrj_put16(rrj_at(dest + 2 * k, 2), v[k]);
+            w_u16(dest + 2 * k, v[k]);
         ++i;
     } while (i < r_u8(source + 15));
     return mask;
@@ -3623,56 +3458,60 @@ uint32_t sub_8005CB70(uint32_t object, uint32_t record, uint32_t output)
     FUNCTION_MARKER(0x8005CB70u, "RASHCDG.BIN");
     uint32_t parent, flags, id, correction = 0, xoffset = 0, yoffset = 0, source = 0, mirror, masks[2], part, k;
     uint16_t translation[3];
-    rrj_write32(output + 4, 10);
-    parent = rrj_read32(object);
-    flags = rrj_read32(parent + 36);
+    w_u32(output + 4, 10);
+    parent = r_u32(object);
+    flags = r_u32(parent + 36);
     id = r_u8(record + 28);
-    if ((flags & 0x40000) && rrj_read32(parent + 52))
+    if ((flags & 0x40000) && r_u32(parent + 52))
     {
         xoffset = 1148;
-        yoffset = rrj_s32(rrj_read32(parent + 76)) > 65535 ? 10u : 140u;
+        yoffset = ((int32_t)(uint32_t)(r_u32(parent + 76))) > 65535 ? 10u : 140u;
     }
     else
     {
-        parent = rrj_read32(object);
-        if (((rrj_u16(rrj_at(rrj_read32(parent) + 14, 2)) & 0x78) >> 3) == 1)
+        parent = r_u32(object);
+        if (((r_u16(r_u32(parent) + 14) & 0x78) >> 3) == 1)
         {
-            uint32_t linked = rrj_read32(parent + 52);
+            uint32_t linked = r_u32(parent + 52);
             if (linked)
-                correction = (rrj_u16(rrj_at(rrj_read32(linked) + 14, 2)) & 0xf80) >> 7;
+                correction = (r_u16(r_u32(linked) + 14) & 0xf80) >> 7;
         }
     }
     for (part = 0; part < 2; ++part)
     {
         if (part)
             source = sub_8005C39C(object, id);
-        translation[0] = rrj_u16(rrj_at(object + 56, 2));
+        translation[0] = r_u16(object + 56);
         if (!part)
-            source = rrj_read32(object + 44);
+            source = r_u32(object + 44);
         mirror = r_u8(record + (part ? 26 : 14)) & 1;
-        translation[1] = rrj_u16(rrj_at(object + 80, 2));
-        translation[2] = rrj_u16(rrj_at(object + 104, 2));
+        translation[1] = r_u16(object + 80);
+        translation[2] = r_u16(object + 104);
         if (correction == 1)
             for (k = 0; k < 3; ++k)
-                translation[k] = (uint16_t)(translation[k] + rrj_u16(rrj_at(0x800CC1C8 + 2 * k, 2)));
-        rrj_put16(rrj_at(output + 12 + 6 * part, 2), mirror ? xoffset - translation[0] : translation[0]);
-        rrj_put16(rrj_at(output + 14 + 6 * part, 2), translation[1] + yoffset);
-        rrj_put16(rrj_at(output + 16 + 6 * part, 2), translation[2]);
+                translation[k] = (uint16_t)(translation[k] + r_u16(0x800CC1C8 + 2 * k));
+        w_u16(output + 12 + 6 * part, mirror ? xoffset - translation[0] : translation[0]);
+        w_u16(output + 14 + 6 * part, translation[1] + yoffset);
+        w_u16(output + 16 + 6 * part, translation[2]);
         if (part)
             w_u8(output, 20);
-        masks[part] = pose_joint_block(rrj_host_context(), object, source, output + 24 + 8 * part, mirror, correction);
+        masks[part] = pose_joint_block(object, source, output + 24 + 8 * part, mirror, correction);
     }
-    flags = masks[0] & masks[1] & rrj_read32(object + 1760);
-    rrj_write32(output + 8, flags);
+    flags = masks[0] & masks[1] & r_u32(object + 1760);
+    w_u32(output + 8, flags);
     return flags;
 }
 
 /* Overlay8005C8F4: initialize the selected animation record. */
 uint32_t sub_8005C8F4(uint32_t object)
 {
+    uint32_t scalar_value_58;
+    uint32_t scalar_value_59;
+    uint32_t scalar_value_60;
+
     FUNCTION_MARKER(0x8005C8F4u, "RASHCDG.BIN");
-    uint32_t index = rrj_read32(object + 12);
-    uint32_t animation = rrj_read32(object + 4);
+    uint32_t index = r_u32(object + 12);
+    uint32_t animation = r_u32(object + 4);
     uint32_t record = animation + 12u * index;
     uint32_t type = r_u8(record + 1), value, source, limit_frame;
     if (type == 3)
@@ -3683,38 +3522,38 @@ uint32_t sub_8005C8F4(uint32_t object)
             (void)sub_8005CB70(object, record, object + 1764);
             xport_update_u8(record + 2, XPORT_MEMORY_UPDATE_OR, 2);
         }
-        rrj_write32(object + 16, 0);
-        rrj_write32(object + 1756, rrj_read32(record + 8));
-        value = (r_u8(record + 2) & 8) ? r_u8(record + 3) : rrj_read32(object + 1768);
+        w_u32(object + 16, 0);
+        w_u32(object + 1756, r_u32(record + 8));
+        value = (r_u8(record + 2) & 8) ? r_u8(record + 3) : r_u32(object + 1768);
         if (!value)
             value = 10;
-        rrj_write32(object + 24, value);
+        w_u32(object + 24, value);
         return value;
     }
     if (type != 0 && type != 1)
         return 3;
     source = sub_8005C39C(object, r_u8(record));
     if (type == 0)
-        rrj_write32(object + 16, 0);
-    value = (r_u8(record + 2) & 8) ? r_u8(record + 3) : rrj_u16(rrj_at(source + 18, 2));
+        w_u32(object + 16, 0);
+    value = (r_u8(record + 2) & 8) ? r_u8(record + 3) : r_u16(source + 18);
     if (!value)
         value = 10;
-    rrj_write32(object + 24, value);
-    rrj_write32(object + 28, 0);
+    w_u32(object + 24, value);
+    w_u32(object + 28, 0);
     if (type == 0)
     {
-        rrj_write32(object + 20, pause_asr(rrj_u16(rrj_at(record + 4, 2)) << 16, 16));
-        value = rrj_read32(record + 8);
-        rrj_write32(object + 1756, value);
+        w_u32(object + 20, ((scalar_value_58 = (r_u16(record + 4) << 16)), (((uint32_t)((!((uint32_t)(16))) ? (scalar_value_58) : ((scalar_value_58 >> ((uint32_t)(16))) | ((scalar_value_58 & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(16)))) : 0)))))));
+        value = r_u32(record + 8);
+        w_u32(object + 1756, value);
         return value;
     }
-    rrj_write32(object + 1756, rrj_read32(record + 8));
-    limit_frame = pause_asr(rrj_u16(rrj_at(record + 6, 2)) << 16, 16);
-    value = rrj_u16(rrj_at(source + 16, 2));
-    if (rrj_s32(limit_frame) >= (int32_t)value)
-        rrj_put16(rrj_at(record + 6, 2), value - 1);
-    value = pause_asr(rrj_u16(rrj_at(record + 4, 2)) << 16, 16);
-    rrj_write32(object + 16, value);
+    w_u32(object + 1756, r_u32(record + 8));
+    limit_frame = ((scalar_value_59 = (r_u16(record + 6) << 16)), (((uint32_t)((!((uint32_t)(16))) ? (scalar_value_59) : ((scalar_value_59 >> ((uint32_t)(16))) | ((scalar_value_59 & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(16)))) : 0))))));
+    value = r_u16(source + 16);
+    if (((int32_t)(uint32_t)(limit_frame)) >= (int32_t)value)
+        w_u16(record + 6, value - 1);
+    value = ((scalar_value_60 = (r_u16(record + 4) << 16)), (((uint32_t)((!((uint32_t)(16))) ? (scalar_value_60) : ((scalar_value_60 >> ((uint32_t)(16))) | ((scalar_value_60 & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(16)))) : 0))))));
+    w_u32(object + 16, value);
     return value;
 }
 
@@ -3722,39 +3561,39 @@ uint32_t sub_8005C8F4(uint32_t object)
 uint32_t sub_8005BD74(uint32_t object)
 {
     FUNCTION_MARKER(0x8005BD74u, "RASHCDG.BIN");
-    uint32_t value = rrj_read32(object + 36), i;
+    uint32_t value = r_u32(object + 36), i;
     static const uint32_t offsets[] = {12, 16, 20, 28, 32, 1756};
     for (i = 0; i < 6; ++i)
-        rrj_write32(object + offsets[i], 0);
-    rrj_write32(object + 24, 10);
-    rrj_write32(object + 36, value & 0xe5);
+        w_u32(object + offsets[i], 0);
+    w_u32(object + 24, 10);
+    w_u32(object + 36, value & 0xe5);
     value = sub_8005C418(object);
-    rrj_write32(object + 12, value);
+    w_u32(object + 12, value);
     (void)sub_8005C8F4(object);
-    value = rrj_read32(object + 4);
+    value = r_u32(object + 4);
     if (!value)
         return value;
-    value = rrj_read32(object + 8);
+    value = r_u32(object + 8);
     if (!value)
         return value;
-    value = (rrj_read32(object + 36) & 0xfffffffdu) | 2u;
-    rrj_write32(object + 36, value);
+    value = (r_u32(object + 36) & 0xfffffffdu) | 2u;
+    w_u32(object + 36, value);
     return value;
 }
 
-static void animation_command_tail(RRJMemory *m, uint32_t animation, uint32_t kind)
+static void animation_command_tail(uint32_t animation, uint32_t kind)
 {
-    uint32_t flags = r_u8(animation + 2), payload = rrj_read32(animation + 8);
+    uint32_t flags = r_u8(animation + 2), payload = r_u32(animation + 8);
     uint32_t id = r_u8(animation), speed = r_u8(animation + 3);
     if (kind == 2)
     {
-        rrj_put16(rrj_at(animation + 4, 2), 0xffff);
-        rrj_put16(rrj_at(animation + 6, 2), 0);
+        w_u16(animation + 4, 0xffff);
+        w_u16(animation + 6, 0);
     }
     w_u8(animation + 13, (uint8_t)kind);
-    rrj_put16(rrj_at(animation + 16, 2), 0);
-    rrj_put16(rrj_at(animation + 18, 2), 0);
-    rrj_write32(animation + 20, payload);
+    w_u16(animation + 16, 0);
+    w_u16(animation + 18, 0);
+    w_u32(animation + 20, payload);
     w_u8(animation + 14, (uint8_t)flags);
     w_u8(animation + 12, (uint8_t)id);
     w_u8(animation + 15, (uint8_t)speed);
@@ -3764,8 +3603,8 @@ static void animation_command_tail(RRJMemory *m, uint32_t animation, uint32_t ki
 uint32_t sub_8005BF6C(uint32_t object, uint32_t id, uint32_t flags, uint32_t speed, uint32_t payload)
 {
     FUNCTION_MARKER(0x8005BF6Cu, "RASHCDG.BIN");
-    uint32_t set = rrj_read32(object + 40), animation = rrj_read32(object + 4);
-    uint32_t table = rrj_read32(set + 4);
+    uint32_t set = r_u32(object + 40), animation = r_u32(object + 4);
+    uint32_t table = r_u32(set + 4);
     uint32_t physical = table & 0x1FFFFFFFu;
     uint32_t entry;
 
@@ -3776,16 +3615,16 @@ uint32_t sub_8005BF6C(uint32_t object, uint32_t id, uint32_t flags, uint32_t spe
         rrj_wip_handoff(rrj_host_context(), 0x8005BF6Cu, "animation", __func__, __FILE__, __LINE__, "invalid_animation_table", args, 8);
         exit(20);
     }
-    entry = rrj_read32(table + 4u * id);
-    uint32_t length = rrj_u16(rrj_at(entry + 16, 2));
+    entry = r_u32(table + 4u * id);
+    uint32_t length = r_u16(entry + 16);
     w_u8(animation + 2, (uint8_t)flags);
     w_u8(animation + 1, 1);
     w_u8(animation, (uint8_t)id);
-    rrj_put16(rrj_at(animation + 4, 2), 0);
-    rrj_write32(animation + 8, payload);
-    rrj_put16(rrj_at(animation + 6, 2), length - 1);
+    w_u16(animation + 4, 0);
+    w_u32(animation + 8, payload);
+    w_u16(animation + 6, length - 1);
     w_u8(animation + 3, (uint8_t)((flags & 8) ? speed : 0));
-    animation_command_tail(rrj_host_context(), animation, 5);
+    animation_command_tail(animation, 5);
     return sub_8005BD74(object);
 }
 
@@ -3793,13 +3632,13 @@ uint32_t sub_8005BF6C(uint32_t object, uint32_t id, uint32_t flags, uint32_t spe
 uint32_t sub_8005C0B0(uint32_t object, uint32_t id, uint32_t flags, uint32_t speed, uint32_t payload)
 {
     FUNCTION_MARKER(0x8005C0B0u, "RASHCDG.BIN");
-    uint32_t animation = rrj_read32(object + 4);
+    uint32_t animation = r_u32(object + 4);
     w_u8(animation + 2, (uint8_t)flags);
-    rrj_write32(animation + 8, payload);
+    w_u32(animation + 8, payload);
     w_u8(animation, (uint8_t)id);
     w_u8(animation + 1, 0);
     w_u8(animation + 3, (uint8_t)((flags & 8) ? speed : 0));
-    animation_command_tail(rrj_host_context(), animation, 2);
+    animation_command_tail(animation, 2);
     return sub_8005BD74(object);
 }
 
@@ -3807,23 +3646,25 @@ uint32_t sub_8005C0B0(uint32_t object, uint32_t id, uint32_t flags, uint32_t spe
 uint32_t sub_8005C018(uint32_t object, uint32_t id, uint32_t flags, uint32_t start, uint32_t end, uint32_t speed, uint32_t payload)
 {
     FUNCTION_MARKER(0x8005C018u, "RASHCDG.BIN");
-    uint32_t animation = rrj_read32(object + 4);
+    uint32_t animation = r_u32(object + 4);
     w_u8(animation + 2, (uint8_t)flags);
     w_u8(animation, (uint8_t)id);
     w_u8(animation + 1, 1);
-    rrj_put16(rrj_at(animation + 4, 2), start);
-    rrj_put16(rrj_at(animation + 6, 2), end);
-    rrj_write32(animation + 8, payload);
+    w_u16(animation + 4, start);
+    w_u16(animation + 6, end);
+    w_u32(animation + 8, payload);
     w_u8(animation + 3, (uint8_t)((flags & 8) ? speed : 0));
-    animation_command_tail(rrj_host_context(), animation, 5);
+    animation_command_tail(animation, 5);
     return sub_8005BD74(object);
 }
 
 /* Overlay8005C140: queue or immediately activate a pose transition. */
 uint32_t sub_8005C140(uint32_t object, uint32_t target, uint32_t mode, uint32_t flags, uint32_t first_id, uint32_t extra, uint32_t speed, uint32_t payload)
 {
+    uint32_t scalar_value_61;
+
     FUNCTION_MARKER(0x8005C140u, "RASHCDG.BIN");
-    uint32_t animation = rrj_read32(object + 4), new_bit = flags & 1;
+    uint32_t animation = r_u32(object + 4), new_bit = flags & 1;
     uint32_t old_bit = r_u8(animation + 2) & 1;
     uint32_t old_id = r_u8(animation), frame, value, captured_speed;
     first_id &= 255;
@@ -3835,11 +3676,11 @@ uint32_t sub_8005C140(uint32_t object, uint32_t target, uint32_t mode, uint32_t 
             w_u8(animation + 1, 1);
     }
     if (!mode)
-        frame = rrj_read32(object + 16);
+        frame = r_u32(object + 16);
     else if (mode == 1)
     {
-        uint32_t source = rrj_read32(rrj_read32(rrj_read32(object + 40) + 4) + 4 * old_id);
-        frame = pause_asr((rrj_u16(rrj_at(source + 16, 2)) - 1) << 16, 16);
+        uint32_t source = r_u32(r_u32(r_u32(object + 40) + 4) + 4 * old_id);
+        frame = ((scalar_value_61 = ((r_u16(source + 16) - 1) << 16)), (((uint32_t)((!((uint32_t)(16))) ? (scalar_value_61) : ((scalar_value_61 >> ((uint32_t)(16))) | ((scalar_value_61 & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(16)))) : 0))))));
         animation += 12;
     }
     else
@@ -3858,15 +3699,15 @@ uint32_t sub_8005C140(uint32_t object, uint32_t target, uint32_t mode, uint32_t 
     value = r_u8(animation + 2);
     w_u8(animation, (uint8_t)first_id);
     w_u8(animation + 1, 3);
-    rrj_put16(rrj_at(animation + 4, 2), 5);
-    rrj_put16(rrj_at(animation + 6, 2), 0);
-    rrj_write32(animation + 8, 0);
+    w_u16(animation + 4, 5);
+    w_u16(animation + 6, 0);
+    w_u32(animation + 8, 0);
     w_u8(animation + 12, 0);
     w_u8(animation + 14, (uint8_t)flags);
     w_u8(animation + 13, 4);
-    rrj_put16(rrj_at(animation + 16, 2), old_id);
-    rrj_put16(rrj_at(animation + 18, 2), frame);
-    rrj_write32(animation + 20, 0);
+    w_u16(animation + 16, old_id);
+    w_u16(animation + 18, frame);
+    w_u32(animation + 20, 0);
     w_u8(animation + 26, 0);
     w_u8(animation + 24, 0);
     w_u8(animation + 2, (uint8_t)((extra << 5) | (value & 0xdf) | 0x84));
@@ -3876,11 +3717,11 @@ uint32_t sub_8005C140(uint32_t object, uint32_t target, uint32_t mode, uint32_t 
     captured_speed = r_u8(animation + 3);
     value = r_u8(animation + 26);
     w_u8(animation + 25, 4);
-    rrj_put16(rrj_at(animation + 28, 2), target);
-    rrj_put16(rrj_at(animation + 30, 2), 0);
+    w_u16(animation + 28, target);
+    w_u16(animation + 30, 0);
     w_u8(animation + 36, 0);
     w_u8(animation + 37, 5);
-    rrj_write32(animation + 32, payload);
+    w_u32(animation + 32, payload);
     w_u8(animation + 27, (uint8_t)captured_speed);
     w_u8(animation + 26, (uint8_t)((value & 0xfe) | new_bit));
     return mode ? payload : sub_8005BD74(object);
@@ -3891,14 +3732,14 @@ uint32_t sub_800C37B0(uint32_t object, uint32_t target)
 {
     FUNCTION_MARKER(0x800C37B0u, "RASHCDG.BIN");
     uint32_t pair = 0x800CCBAC, current = r_u8(pair);
-    uint32_t state = rrj_u16(rrj_at(object + 544, 2)), offset, entry, count, i;
+    uint32_t state = r_u16(object + 544), offset, entry, count, i;
     uint16_t sequence[257];
     while (current < state)
     {
         pair += 2;
         current = r_u8(pair);
     }
-    if (r_u8(pair) != rrj_u16(rrj_at(object + 544, 2)))
+    if (r_u8(pair) != r_u16(object + 544))
         return 224;
     offset = r_u8(pair + 1);
     entry = 0x800CCBBC + offset + 2;
@@ -3915,25 +3756,26 @@ uint32_t sub_800C37B0(uint32_t object, uint32_t target)
         sequence[i] = r_u8(0x800CCBBC + offset + i);
     }
     count = r_u8(0x800CCBBC + offset);
-    sequence[count + 1] = rrj_u16(rrj_at(object + 544, 2));
+    sequence[count + 1] = r_u16(object + 544);
     count = r_u8(0x800CCBBC + offset);
     for (i = 0; i < count; ++i)
-        rrj_put16(rrj_at(object + 610 + 2 * i, 2), sequence[i]);
-    rrj_put16(rrj_at(object + 608, 2), count);
+        w_u16(object + 610 + 2 * i, sequence[i]);
+    w_u16(object + 608, count);
     return sequence[count];
 }
 
-static uint32_t prepare_state_transition(RRJMemory *m, uint32_t type, uint32_t object, uint32_t flags_address, uint32_t *local_flags)
+uint32_t sub_800C3E9C(uint32_t type, uint32_t object, uint32_t *flags_out)
 {
-    uint32_t flags = local_flags ? *local_flags : rrj_read32(flags_address), mode = flags & 6, anim_flags = flags >> 8;
+    uint32_t flags = *flags_out, mode = flags & 6, anim_flags = flags >> 8;
     uint32_t first = flags & 1, speed = (flags >> 16) & 255;
-    uint32_t identity = rrj_u16(rrj_at(object + 172, 2));
-    uint32_t old = rrj_u16(rrj_at(object + 544, 2));
-    uint32_t animation = rrj_read32(object + 540), actor = (identity >> 5) == 1 ? object : 0;
+    uint32_t identity = r_u16(object + 172);
+    uint32_t old = r_u16(object + 544);
+    uint32_t animation = r_u32(object + 540), actor = (identity >> 5) == 1 ? object : 0;
     uint32_t gate = flags & 24, route = 224, allowed = 0, old_entry, new_entry, value, payload, anim_id;
     uint32_t old_group, new_group;
+    FUNCTION_MARKER(0x800C3E9C, "RASHCDG.BIN");
     type &= 65535;
-    if (!rrj_u16(rrj_at(object + 320, 2)))
+    if (!r_u16(object + 320))
         return 0;
     if (type == 11 || type == 77 || type == 13 || type == 78 || type == 4)
     {
@@ -3941,7 +3783,7 @@ static uint32_t prepare_state_transition(RRJMemory *m, uint32_t type, uint32_t o
         anim_flags |= 64;
     }
     old_entry = 0x800541D4 + 8 * old;
-    if (rrj_u16(rrj_at(old_entry + 2, 2)) == 2 && mode == 4)
+    if (r_u16(old_entry + 2) == 2 && mode == 4)
         mode = 2;
     if (old == type && (type == 11 || type == 77 || type == 13 || type == 78 || type == 4))
         return 0;
@@ -3949,8 +3791,8 @@ static uint32_t prepare_state_transition(RRJMemory *m, uint32_t type, uint32_t o
         allowed = 1;
     else if (gate == 8 || gate == 0)
     {
-        value = rrj_u16(rrj_at(0x800541D4 + 8 * type + 2, 2));
-        if (rrj_read32(old_entry + 4) & (1u << (value & 31)))
+        value = r_u16(0x800541D4 + 8 * type + 2);
+        if (r_u32(old_entry + 4) & (1u << (value & 31)))
             allowed = 1;
         else if (!gate && !(flags & 32))
         {
@@ -3963,63 +3805,63 @@ static uint32_t prepare_state_transition(RRJMemory *m, uint32_t type, uint32_t o
         return 0;
     if (route != 224)
         type = route;
-    else if (actor && !(flags & 32) && rrj_u16(rrj_at(actor + 608, 2)))
-        rrj_put16(rrj_at(actor + 608, 2), 0);
+    else if (actor && !(flags & 32) && r_u16(actor + 608))
+        w_u16(actor + 608, 0);
     if (!old && type != 4)
         return 0;
-    value = ((flags & 64) << 7) | (rrj_read32(animation + 36) & 0xffffff7f);
-    rrj_write32(animation + 36, value);
+    value = ((flags & 64) << 7) | (r_u32(animation + 36) & 0xffffff7f);
+    w_u32(animation + 36, value);
     old_entry = 0x800541D4 + 8 * old;
     new_entry = 0x800541D4 + 8 * type;
-    old_group = rrj_read32(old_entry) & 15;
-    new_group = rrj_read32(new_entry) & 15;
+    old_group = r_u32(old_entry) & 15;
+    new_group = r_u32(new_entry) & 15;
     if (old_group != new_group)
     {
-        (void)sub_80012858(animation, rrj_read32(0x800CE190 + 4 * new_group));
-        if (rrj_u16(rrj_at(old_entry + 2, 2)) == 5 && rrj_u16(rrj_at(new_entry + 2, 2)) == 6)
+        (void)sub_80012858(animation, r_u32(0x800CE190 + 4 * new_group));
+        if (r_u16(old_entry + 2) == 5 && r_u16(new_entry + 2) == 6)
         {
             uint32_t parent, slot = 0;
             if (r_u8(actor + 572) & 32)
             {
-                parent = rrj_read32(rrj_read32(actor + 596) + 856);
+                parent = r_u32(r_u32(actor + 596) + 856);
                 slot = 1;
             }
             else
-                parent = rrj_read32(actor + 596);
+                parent = r_u32(actor + 596);
             (void)sub_80068D20(parent, actor, slot);
             w_u8(actor + 72, 3);
         }
     }
-    value = rrj_read32(object + 552) & 0xefffffff;
-    rrj_write32(object + 552, value);
+    value = r_u32(object + 552) & 0xefffffff;
+    w_u32(object + 552, value);
     if (mode)
     {
         uint32_t queue_mode = 1;
         if (mode == 2)
         {
-            rrj_write32(object + 552, value | 0x10000000);
+            w_u32(object + 552, value | 0x10000000);
             queue_mode = 0;
         }
         else if (!sub_8005BEF4(animation))
         {
             if (route != 224)
             {
-                value = rrj_u16(rrj_at(actor + 608, 2));
-                rrj_put16(rrj_at(actor + 608, 2), value + 1);
-                rrj_put16(rrj_at(actor + 610 + (value << 1), 2), type);
+                value = r_u16(actor + 608);
+                w_u16(actor + 608, value + 1);
+                w_u16(actor + 610 + (value << 1), type);
             }
             return 0;
         }
-        anim_id = (rrj_read32(new_entry) >> 4) & 4095;
-        value = rrj_read32(0x8005B3E4);
-        payload = value ? rrj_read32(value + 4 * type) : 0;
+        anim_id = (r_u32(new_entry) >> 4) & 4095;
+        value = r_u32(0x8005B3E4);
+        payload = value ? r_u32(value + 4 * type) : 0;
         (void)sub_8005C140(animation, anim_id, queue_mode, anim_flags & 255, first == 0, (flags >> 7) & 1, speed, payload);
     }
     else
     {
-        anim_id = (rrj_read32(new_entry) >> 4) & 4095;
-        value = rrj_read32(0x8005B3E4);
-        payload = value ? rrj_read32(value + 4 * type) : 0;
+        anim_id = (r_u32(new_entry) >> 4) & 4095;
+        value = r_u32(0x8005B3E4);
+        payload = value ? r_u32(value + 4 * type) : 0;
         if (first)
             (void)sub_8005C0B0(animation, anim_id, anim_flags & 255, speed, payload);
         else if (flags & 0x8000)
@@ -4027,29 +3869,10 @@ static uint32_t prepare_state_transition(RRJMemory *m, uint32_t type, uint32_t o
         else
             (void)sub_8005BF6C(animation, anim_id, anim_flags & 255, speed, payload);
     }
-    if (local_flags)
-        *local_flags = flags;
-    else
-        rrj_write32(flags_address, flags);
+    *flags_out = flags;
     if (route != 224)
-    {
-        if (local_flags)
-            *local_flags = flags | 32;
-        else
-            rrj_write32(flags_address, flags | 32);
-    }
+        *flags_out = flags | 32;
     return 1;
-}
-
-uint32_t sub_800C3E9C(uint32_t type, uint32_t object, uint32_t flags_address)
-{
-    FUNCTION_MARKER(0x800C3E9Cu, "RASHCDG.BIN");
-    return prepare_state_transition(rrj_host_context(), type, object, flags_address, NULL);
-}
-
-uint32_t rrj_prepare_state_transition_local(RRJMemory *m, uint32_t type, uint32_t object, uint32_t *flags)
-{
-    return prepare_state_transition(m, type, object, 0, flags);
 }
 
 /* Overlay 800C2F84: select/restart the auxiliary rider animation.
@@ -4057,16 +3880,16 @@ uint32_t rrj_prepare_state_transition_local(RRJMemory *m, uint32_t type, uint32_
 void sub_800C2F84(uint32_t type, uint32_t object, uint32_t flags, uint32_t speed)
 {
     FUNCTION_MARKER(0x800C2F84u, "RASHCDG.BIN");
-    uint32_t animation = rrj_read32(object + 556);
+    uint32_t animation = r_u32(object + 556);
     if (!animation)
         return;
-    if (rrj_u16(rrj_at(object + 544, 2)) == (type & 65535))
+    if (r_u16(object + 544) == (type & 65535))
     {
         (void)sub_8005BD74(animation);
     }
     else if (((type - 145) & 65535) < 41)
     {
-        (void)sub_8005BF6C(rrj_read32(object + 556), (type & 65535) - 145, flags & 255, speed, 0);
+        (void)sub_8005BF6C(r_u32(object + 556), (type & 65535) - 145, flags & 255, speed, 0);
     }
 }
 
@@ -4074,36 +3897,36 @@ void sub_800C2F84(uint32_t type, uint32_t object, uint32_t flags, uint32_t speed
 uint32_t sub_80012884(uint32_t pool, uint32_t object)
 {
     FUNCTION_MARKER(0x80012884u, "SLUS_010.53");
-    uint32_t count = rrj_read32(pool + 8), capacity = rrj_read32(pool + 12), index = 0, slot, flags, kind, value;
+    uint32_t count = r_u32(pool + 8), capacity = r_u32(pool + 12), index = 0, slot, flags, kind, value;
     if (count == capacity)
         return 0;
-    if (rrj_s32(capacity) > 0)
+    if (((int32_t)(uint32_t)(capacity)) > 0)
     {
-        slot = rrj_read32(pool);
-        while (rrj_read32(slot + 36))
+        slot = r_u32(pool);
+        while (r_u32(slot + 36))
         {
             ++index;
             slot += 2108;
-            if (rrj_s32(index) >= rrj_s32(capacity))
+            if (((int32_t)(uint32_t)(index)) >= ((int32_t)(uint32_t)(capacity)))
                 break;
         }
     }
-    slot = rrj_read32(pool) + 2108 * index;
-    flags = rrj_read32(slot + 36);
-    rrj_write32(slot, object);
-    rrj_write32(slot + 1760, 0xffffffff);
-    rrj_write32(slot + 36, flags | 5);
-    kind = (rrj_u16(rrj_at(rrj_read32(object) + 14, 2)) & 120) >> 3;
+    slot = r_u32(pool) + 2108 * index;
+    flags = r_u32(slot + 36);
+    w_u32(slot, object);
+    w_u32(slot + 1760, 0xffffffff);
+    w_u32(slot + 36, flags | 5);
+    kind = (r_u16(r_u32(object) + 14) & 120) >> 3;
     if (kind == 1 || kind == 4)
     {
-        value = rrj_read32(0x80052390 + 4 * (kind == 4));
-        flags = rrj_read32(slot + 36);
-        rrj_write32(slot + 1760, value);
-        rrj_write32(slot + 36, (flags & 0xfffffffb) | 4);
+        value = r_u32(0x80052390 + 4 * (kind == 4));
+        flags = r_u32(slot + 36);
+        w_u32(slot + 1760, value);
+        w_u32(slot + 36, (flags & 0xfffffffb) | 4);
     }
-    w_u8(rrj_read32(slot + 4) + 1, 5);
-    count = rrj_read32(pool + 8);
-    rrj_write32(pool + 8, count + 1);
+    w_u8(r_u32(slot + 4) + 1, 5);
+    count = r_u32(pool + 8);
+    w_u32(pool + 8, count + 1);
     return slot;
 }
 
@@ -4111,39 +3934,39 @@ uint32_t sub_80012884(uint32_t pool, uint32_t object)
 uint32_t sub_8001298C(uint32_t object, uint32_t id)
 {
     FUNCTION_MARKER(0x8001298Cu, "SLUS_010.53");
-    uint32_t old = (uint32_t)(int32_t)(int8_t)r_u8(object + 8), set, offset, model, value, count, i, source, destination;
+    uint32_t old = (uint32_t)(int32_t)r_s8(object + 8), set, offset, model, value, count, i, source, destination;
     static const uint32_t zero_offsets[6] = {6, 8, 10, 14, 16, 18};
     static const uint32_t diagonal_offsets[3] = {4, 12, 20};
     if (id == old)
         return old;
-    set = rrj_read32(object + 96);
-    if (rrj_s32(id) >= r_u8(set + 4))
+    set = r_u32(object + 96);
+    if (((int32_t)(uint32_t)(id)) >= r_u8(set + 4))
         return old;
-    set = rrj_read32(object + 96);
+    set = r_u32(object + 96);
     offset = 12 * id;
     w_u8(object + 8, (uint8_t)id);
-    model = rrj_read32(rrj_read32(set + 8) + offset);
-    rrj_write32(object, model);
-    value = rrj_read32(model + 16);
-    model = rrj_read32(object);
-    rrj_write32(object + 40, value);
-    count = rrj_u16(rrj_at(model + 24, 2));
+    model = r_u32(r_u32(set + 8) + offset);
+    w_u32(object, model);
+    value = r_u32(model + 16);
+    model = r_u32(object);
+    w_u32(object + 40, value);
+    count = r_u16(model + 24);
     for (i = 0; i < count; ++i)
     {
-        set = rrj_read32(object + 96);
-        source = rrj_read32(set + 8);
-        destination = rrj_read32(object + 4) + 24 * i;
-        source = rrj_read32(source + offset + 4);
-        value = rrj_read32(source + 4 * i);
-        rrj_write32(destination, value);
+        set = r_u32(object + 96);
+        source = r_u32(set + 8);
+        destination = r_u32(object + 4) + 24 * i;
+        source = r_u32(source + offset + 4);
+        value = r_u32(source + 4 * i);
+        w_u32(destination, value);
     }
-    model = rrj_read32(object);
-    if (((rrj_u16(rrj_at(model + 14, 2)) & 120) >> 3) == 5 && (old == 0 || old == 4))
+    model = r_u32(object);
+    if (((r_u16(model + 14) & 120) >> 3) == 5 && (old == 0 || old == 4))
     {
         for (i = 0; i < 6; ++i)
-            rrj_put16(rrj_at(rrj_read32(object + 4) + zero_offsets[i], 2), 0);
+            w_u16(r_u32(object + 4) + zero_offsets[i], 0);
         for (i = 0; i < 3; ++i)
-            rrj_put16(rrj_at(rrj_read32(object + 4) + diagonal_offsets[i], 2), 4096);
+            w_u16(r_u32(object + 4) + diagonal_offsets[i], 4096);
     }
     return old;
 }
@@ -4155,35 +3978,35 @@ uint32_t sub_80043F00(uint32_t id)
     id &= 65535;
     if (id >= 3)
         return 0;
-    return rrj_u16(rrj_at(rrj_read32(0x800549B8) + 16 * id, 2));
+    return r_u16(r_u32(0x800549B8) + 16 * id);
 }
 
 uint32_t sub_8002705C(uint32_t object, uint32_t mode)
 {
     FUNCTION_MARKER(0x8002705Cu, "SLUS_010.53");
     uint32_t value = sub_80043F00(0xf2000002) & 255;
-    rrj_put16(rrj_at(object + 56, 2), value << 4);
+    w_u16(object + 56, value << 4);
     if (!mode)
     {
-        rrj_put16(rrj_at(object + 58, 2), 50);
+        w_u16(object + 58, 50);
         return 50;
     }
-    if (rrj_s32(mode) < 18)
+    if (((int32_t)(uint32_t)(mode)) < 18)
     {
-        rrj_put16(rrj_at(object + 58, 2), 120);
+        w_u16(object + 58, 120);
         return 120;
     }
     value = sub_80043F00(0xf2000002) & 255;
-    rrj_put16(rrj_at(object + 58, 2), (uint32_t)(int32_t)(int8_t)(((255 * value) >> 8) - 127));
+    w_u16(object + 58, (uint32_t)(int32_t)(int8_t)(((255 * value) >> 8) - 127));
     return value;
 }
 
 uint32_t sub_80027178(void)
 {
     FUNCTION_MARKER(0x80027178u, "SLUS_010.53");
-    uint32_t slot = rrj_read32(0x800D8068), i;
+    uint32_t slot = r_u32(0x800D8068), i;
     for (i = 0; i < 20; ++i, slot += 112)
-        if (!((rrj_read32(slot) >> 6) & 15))
+        if (!((r_u32(slot) >> 6) & 15))
             return i;
     return 0xffffffff;
 }
@@ -4191,24 +4014,24 @@ uint32_t sub_80027178(void)
 uint32_t sub_800271CC(uint32_t object, uint32_t id)
 {
     FUNCTION_MARKER(0x800271CCu, "SLUS_010.53");
-    uint32_t current = (uint32_t)(int32_t)(int8_t)r_u8(object + 73), slot, value, next;
+    uint32_t current = (uint32_t)(int32_t)r_s8(object + 73), slot, value, next;
     if (current == 0xffffffff)
     {
         w_u8(object + 73, (uint8_t)id);
         return 0xfffffff8;
     }
     slot = 0x800D39B0 + 112 * current;
-    value = rrj_read32(slot);
+    value = r_u32(slot);
     while ((value & 63) != 63)
     {
         next = value & 63;
         if (next & 32)
             next |= 0xffffffc0;
         slot = 0x800D39B0 + 112 * next;
-        value = rrj_read32(slot);
+        value = r_u32(slot);
     }
-    value = (rrj_read32(slot) & 0xffffffc0) | (id & 63);
-    rrj_write32(slot, value);
+    value = (r_u32(slot) & 0xffffffc0) | (id & 63);
+    w_u32(slot, value);
     return value;
 }
 
@@ -4218,9 +4041,9 @@ uint32_t sub_800273EC(uint32_t object, uint32_t subtype, uint32_t duration, uint
     uint32_t identity, global, excluded, index, slot, value, stamp;
     if (flags & 2)
     {
-        identity = rrj_u16(rrj_at(object + 172, 2));
-        global = rrj_read32(0x8005B2F8);
-        excluded = rrj_s32(identity & 31) >= rrj_s32(rrj_read32(global + 48));
+        identity = r_u16(object + 172);
+        global = r_u32(0x8005B2F8);
+        excluded = ((int32_t)(uint32_t)(identity & 31)) >= ((int32_t)(uint32_t)(r_u32(global + 48)));
         if ((identity >> 5) >= 2 || excluded)
             return excluded;
     }
@@ -4228,52 +4051,52 @@ uint32_t sub_800273EC(uint32_t object, uint32_t subtype, uint32_t duration, uint
     if (index == 0xffffffff)
         return index;
     slot = 0x800D39B0 + 112 * index;
-    value = rrj_read32(slot);
+    value = r_u32(slot);
     w_u8(slot + 60, (uint8_t)flags);
     value = (value & 0xfffffc3f) | ((kind & 15) << 6);
-    rrj_write32(slot, value);
+    w_u32(slot, value);
     value = (((value & 0xffc03fff) | ((subtype & 255) << 14)) & 0xffffc3ff) | 0x400;
-    global = rrj_read32(0x8005B2F8);
-    rrj_write32(slot, value);
-    stamp = rrj_read32(global + 16);
-    rrj_write32(slot + 52, duration);
-    rrj_write32(slot + 48, stamp);
+    global = r_u32(0x8005B2F8);
+    w_u32(slot, value);
+    stamp = r_u32(global + 16);
+    w_u32(slot + 52, duration);
+    w_u32(slot + 48, stamp);
     (void)sub_8002705C(slot, 120);
-    rrj_write32(slot + 36, 0);
-    rrj_write32(slot + 44, 0);
-    rrj_write32(slot + 40, 0);
+    w_u32(slot + 36, 0);
+    w_u32(slot + 44, 0);
+    w_u32(slot + 40, 0);
     w_u8(slot + 61, 0);
-    rrj_put16(rrj_at(slot + 62, 2), 30);
+    w_u16(slot + 62, 30);
     return sub_800271CC(object, index);
 }
 
 uint32_t sub_800CB84C(uint32_t object)
 {
     FUNCTION_MARKER(0x800CB84Cu, "RASHCDG.BIN");
-    uint32_t id = (material_byte(rrj_host_context(), object + 567) ^ 128) - 128, mask, value;
+    uint32_t id = ((uint32_t)r_u8((object + 567)) ^ 128) - 128, mask, value;
     if (id == 0xffffffff)
         return id;
     mask = 1u << (id & 31);
-    value = rrj_read32(0x8005AD50);
+    value = r_u32(0x8005AD50);
     if (!(value & mask))
         return ~mask;
-    rrj_write32(0x8005AD50, value & ~mask);
-    id = (material_byte(rrj_host_context(), object + 567) ^ 128) - 128;
+    w_u32(0x8005AD50, value & ~mask);
+    id = ((uint32_t)r_u8((object + 567)) ^ 128) - 128;
     return sub_80068D20(object, 0x800CF018 + 172 * id, 0);
 }
 
 uint32_t sub_800CC0B0(uint32_t object)
 {
     FUNCTION_MARKER(0x800CC0B0u, "RASHCDG.BIN");
-    uint32_t animation = rrj_read32(object + 540), value;
+    uint32_t animation = r_u32(object + 540), value;
     if (animation)
     {
-        rrj_write32(animation + 36, 0);
-        value = rrj_read32(0x800CE178);
-        rrj_write32(0x800CE178, value - 1);
-        rrj_write32(object + 540, 0);
+        w_u32(animation + 36, 0);
+        value = r_u32(0x800CE178);
+        w_u32(0x800CE178, value - 1);
+        w_u32(object + 540, 0);
     }
-    value = material_byte(rrj_host_context(), object + 566);
+    value = (uint32_t)r_u8((object + 566));
     return value ? value : sub_800CB84C(object);
 }
 
@@ -4281,25 +4104,25 @@ uint32_t sub_800CC0B0(uint32_t object)
 uint32_t sub_8008C000(uint32_t identity, uint32_t kind)
 {
     FUNCTION_MARKER(0x8008C000u, "RASHCDG.BIN");
-    uint32_t index = rrj_u16(rrj_at(identity, 2)) & 31, pool, stride, base_offset, active_offset, increment = 0;
+    uint32_t index = r_u16(identity) & 31, pool, stride, base_offset, active_offset, increment = 0;
     uint32_t value, last, account, base, result, cell;
     if (kind < 2 || kind > 6)
         return 0x80060000;
     switch (kind)
     {
         case 2:
-            value = rrj_u16(rrj_at(identity, 2)) & 31;
-            (void)sub_800CC0B0(rrj_read32(0x800D4B80) + 572 * value);
+            value = r_u16(identity) & 31;
+            (void)sub_800CC0B0(r_u32(0x800D4B80) + 572 * value);
             pool = 0x800D4B70;
             stride = 572;
             base_offset = 16;
             active_offset = 172;
             break;
         case 3:
-            if (!rrj_read32(identity + 8))
+            if (!r_u32(identity + 8))
             {
-                value = 0x800CF660 + 512 * (rrj_u16(rrj_at(identity, 2)) & 31);
-                if (rrj_read32(value + 36) & 0x08000000)
+                value = 0x800CF660 + 512 * (r_u16(identity) & 31);
+                if (r_u32(value + 36) & 0x08000000)
                 {
                     (void)sub_8002847C(value);
                     (void)sub_8002820C(value);
@@ -4331,68 +4154,68 @@ uint32_t sub_8008C000(uint32_t identity, uint32_t kind)
             active_offset = 0;
             break;
     }
-    value = rrj_read32(pool);
-    if (rrj_s32(value) > 0)
-        rrj_write32(pool, value - 1);
-    if (rrj_read32(pool + 8) == index)
+    value = r_u32(pool);
+    if (((int32_t)(uint32_t)(value)) > 0)
+        w_u32(pool, value - 1);
+    if (r_u32(pool + 8) == index)
     {
         do
         {
-            last = rrj_read32(pool + 8);
-            account = rrj_read32(0x800D1814) + increment;
+            last = r_u32(pool + 8);
+            account = r_u32(0x800D1814) + increment;
             --last;
-            rrj_write32(pool + 8, last);
-            rrj_write32(0x800D1814, account);
-            if (rrj_s32(last) < 0)
+            w_u32(pool + 8, last);
+            w_u32(0x800D1814, account);
+            if (((int32_t)(uint32_t)(last)) < 0)
                 break;
-            base = kind == 3 ? pool + 16 : rrj_read32(pool + base_offset);
-        } while (!rrj_u16(rrj_at(base + stride * last + active_offset, 2)));
+            base = kind == 3 ? pool + 16 : r_u32(pool + base_offset);
+        } while (!r_u16(base + stride * last + active_offset));
     }
-    result = rrj_s32(index) < rrj_s32(rrj_read32(pool + 4));
+    result = ((int32_t)(uint32_t)(index)) < ((int32_t)(uint32_t)(r_u32(pool + 4)));
     if (result)
-        rrj_write32(pool + 4, index);
+        w_u32(pool + 4, index);
     if (kind == 4 || kind == 5)
     {
-        base = rrj_read32(pool + 12);
-        cell = rrj_read32(base + stride * index + 4);
-        rrj_write32(cell, 0);
+        base = r_u32(pool + 12);
+        cell = r_u32(base + stride * index + 4);
+        w_u32(cell, 0);
         result = (cell - 0x800D1664) * 0xaaaaaaab;
-        value = pause_asr(result, 3);
-        if (rrj_s32(value) < rrj_s32(rrj_read32(0x800D1660)))
-            rrj_write32(0x800D1660, value);
+        value = ((uint32_t)((!((uint32_t)(3))) ? (((uint32_t)(result))) : ((((uint32_t)(result)) >> ((uint32_t)(3))) | ((((uint32_t)(result)) & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(3)))) : 0))));
+        if (((int32_t)(uint32_t)(value)) < ((int32_t)(uint32_t)(r_u32(0x800D1660))))
+            w_u32(0x800D1660, value);
     }
-    rrj_put16(rrj_at(identity, 2), 0);
+    w_u16(identity, 0);
     return result;
 }
 
 uint32_t sub_8008CC94(void)
 {
     FUNCTION_MARKER(0x8008CC94u, "RASHCDG.BIN");
-    uint32_t best = 0, distance = 0, count = rrj_read32(rrj_read32(0x800CE4FC)), object = rrj_read32(0x800CE4F0), player, value, sign, animation;
-    if (rrj_s32(count) >= 0)
+    uint32_t best = 0, distance = 0, count = r_u32(r_u32(0x800CE4FC)), object = r_u32(0x800CE4F0), player, value, sign, animation;
+    if (((int32_t)(uint32_t)(count)) >= 0)
     {
-        player = rrj_read32(0x8005B38C);
+        player = r_u32(0x8005B38C);
         do
         {
-            if (rrj_u16(rrj_at(object + 172, 2)))
+            if (r_u16(object + 172))
             {
-                value = rrj_read32(player + 324) - rrj_read32(object + 324);
-                sign = pause_asr(value, 31);
+                value = r_u32(player + 324) - r_u32(object + 324);
+                sign = ((uint32_t)((!((uint32_t)(31))) ? (((uint32_t)(value))) : ((((uint32_t)(value)) >> ((uint32_t)(31))) | ((((uint32_t)(value)) & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(31)))) : 0))));
                 value = (value + sign) ^ sign;
-                if (rrj_s32(distance) < rrj_s32(value))
+                if (((int32_t)(uint32_t)(distance)) < ((int32_t)(uint32_t)(value)))
                 {
                     distance = value;
                     best = object;
                 }
             }
-            value = rrj_read32(0x800CE4F4);
+            value = r_u32(0x800CE4F4);
             --count;
             object += value;
-        } while (rrj_s32(count) >= 0);
+        } while (((int32_t)(uint32_t)(count)) >= 0);
     }
     if (!best)
         return 0;
-    animation = rrj_read32(best + 540);
+    animation = r_u32(best + 540);
     (void)sub_8008C000(best + 172, 2);
     return animation;
 }
@@ -4401,45 +4224,45 @@ uint32_t sub_800958F0(uint32_t object, uint32_t mode)
 {
     FUNCTION_MARKER(0x800958F0u, "RASHCDG.BIN");
     uint32_t i, slot = 0x800CF018, mask, value, parent, descriptor, kind, animation;
-    if (rrj_read32(0x8005AD50) == 255)
+    if (r_u32(0x8005AD50) == 255)
         return 0;
     for (i = 0; i < 8; ++i, slot += 172)
     {
-        value = rrj_read32(0x8005AD50);
+        value = r_u32(0x8005AD50);
         mask = 1u << i;
         if (value & mask)
             continue;
-        parent = rrj_read32(object + 596);
-        rrj_write32(0x8005AD50, value | mask);
+        parent = r_u32(object + 596);
+        w_u32(0x8005AD50, value | mask);
         w_u8(object + 571, (uint8_t)i);
-        descriptor = rrj_read32(parent + 1084);
-        kind = material_byte(rrj_host_context(), descriptor + 46);
+        descriptor = r_u32(parent + 1084);
+        kind = (uint32_t)r_u8((descriptor + 46));
         if (!kind || kind == 4)
         {
-            if (rrj_read32(0x8005B254) && rrj_u16(rrj_at(parent + 172, 2)) < rrj_read32(rrj_read32(0x8005B2F8) + 48) && rrj_read32(0x800CE178) == rrj_read32(0x800CE17C))
+            if (r_u32(0x8005B254) && r_u16(parent + 172) < r_u32(r_u32(0x8005B2F8) + 48) && r_u32(0x800CE178) == r_u32(0x800CE17C))
                 (void)sub_8008CC94();
             animation = sub_80012884(0x800CE170, slot);
-            rrj_write32(object + 556, animation);
+            w_u32(object + 556, animation);
             if (!animation)
             {
-                value = (material_byte(rrj_host_context(), object + 571) ^ 128) - 128;
+                value = ((uint32_t)r_u8((object + 571)) ^ 128) - 128;
                 mask = 1u << (value & 31);
-                rrj_write32(0x8005AD50, rrj_read32(0x8005AD50) & ~mask);
+                w_u32(0x8005AD50, r_u32(0x8005AD50) & ~mask);
                 w_u8(object + 571, 255);
                 return 0;
             }
-            (void)sub_80012858(animation, rrj_read32(0x800CE19C));
+            (void)sub_80012858(animation, r_u32(0x800CE19C));
         }
-        descriptor = rrj_read32(rrj_read32(object + 596) + 1084);
-        kind = material_byte(rrj_host_context(), descriptor + 46);
-        if (kind != ((material_byte(rrj_host_context(), slot + 8) ^ 128) - 128))
+        descriptor = r_u32(r_u32(object + 596) + 1084);
+        kind = (uint32_t)r_u8((descriptor + 46));
+        if (kind != (((uint32_t)r_u8((slot + 8)) ^ 128) - 128))
             (void)sub_8001298C(slot, kind);
         (void)sub_80012838(object, slot, mode ? 7 : 10, 0);
-        descriptor = rrj_read32(rrj_read32(object + 596) + 1084);
-        if (material_byte(rrj_host_context(), descriptor + 47))
+        descriptor = r_u32(r_u32(object + 596) + 1084);
+        if ((uint32_t)r_u8((descriptor + 47)))
         {
             (void)sub_800273EC(slot, 0, 1500, 6, 0);
-            w_u8(object + 572, (uint8_t)(material_byte(rrj_host_context(), object + 572) | 128));
+            w_u8(object + 572, (uint8_t)((uint32_t)r_u8((object + 572)) | 128));
         }
         return 1;
     }
@@ -4449,13 +4272,13 @@ uint32_t sub_800958F0(uint32_t object, uint32_t mode)
 void sub_800BFC5C(uint32_t object, uint32_t previous, uint32_t type, uint32_t flags)
 {
     FUNCTION_MARKER(0x800BFC5Cu, "RASHCDG.BIN");
-    if (rrj_u16(rrj_at(0x800541D4 + 8 * (previous & 65535) + 2, 2)) != 3)
+    if (r_u16(0x800541D4 + 8 * (previous & 65535) + 2) != 3)
     {
-        if (!(material_byte(rrj_host_context(), rrj_read32(rrj_read32(object + 596) + 1084) + 60) & 128))
+        if (!((uint32_t)r_u8((r_u32(r_u32(object + 596) + 1084) + 60)) & 128))
             return;
         (void)sub_800958F0(object, flags & 256);
     }
-    if (material_byte(rrj_host_context(), rrj_read32(rrj_read32(object + 596) + 1084) + 60) & 128)
+    if ((uint32_t)r_u8((r_u32(r_u32(object + 596) + 1084) + 60)) & 128)
         sub_800C2F84(type & 65535, object, (flags >> 8) & 255, (flags >> 16) & 255);
 }
 
@@ -4472,8 +4295,8 @@ void sub_800C4454(uint32_t type, uint32_t object, uint32_t flags)
         rrj_wip_handoff(rrj_host_context(), 0x800C4454u, "race_state", __func__, __FILE__, __LINE__, "invalid_object", args, 3);
         exit(20);
     }
-    kind = rrj_u16(rrj_at(0x800541D4 + 8 * type + 2, 2));
-    old = rrj_u16(rrj_at(object + 544, 2));
+    kind = r_u16(0x800541D4 + 8 * type + 2);
+    old = r_u16(object + 544);
     if (kind == 3)
     {
         sub_800BFC5C(object, old, type, flags);
@@ -4481,7 +4304,7 @@ void sub_800C4454(uint32_t type, uint32_t object, uint32_t flags)
     }
     if (type)
         return;
-    parent = rrj_read32(object + 596);
+    parent = r_u32(object + 596);
     physical = parent & 0x1FFFFFFFu;
     if (physical > PSX_DRAM_SIZE - 544u)
     {
@@ -4490,7 +4313,7 @@ void sub_800C4454(uint32_t type, uint32_t object, uint32_t flags)
         rrj_wip_handoff(rrj_host_context(), 0x800C4454u, "race_state", __func__, __FILE__, __LINE__, "invalid_parent", args, 4);
         exit(20);
     }
-    animation = rrj_read32(parent + 540);
+    animation = r_u32(parent + 540);
     if (flags & 0x8000)
         (void)sub_8005C018(animation, 0, (flags >> 8) & 255, 6, 11, 0, 0);
     else
@@ -4500,42 +4323,42 @@ void sub_800C4454(uint32_t type, uint32_t object, uint32_t flags)
 void sub_800BC8DC(uint32_t object)
 {
     FUNCTION_MARKER(0x800BC8DCu, "RASHCDG.BIN");
-    uint32_t count = (material_byte(rrj_host_context(), object + 946) ^ 128) - 128, last, kind, descriptor, linked, target, global, index, mask, value;
+    uint32_t count = ((uint32_t)r_u8((object + 946)) ^ 128) - 128, last, kind, descriptor, linked, target, global, index, mask, value;
     if (!count)
         return;
     last = object + 956 + 8 * (count - 1);
-    kind = rrj_u16(rrj_at(last, 2));
+    kind = r_u16(last);
     if (kind - 10 < 7)
     {
-        descriptor = rrj_read32(object + 1084);
-        w_u8(descriptor + 61, (uint8_t)(material_byte(rrj_host_context(), descriptor + 61) & 240));
+        descriptor = r_u32(object + 1084);
+        w_u8(descriptor + 61, (uint8_t)((uint32_t)r_u8((descriptor + 61)) & 240));
     }
-    if (rrj_read32(object + 560) & 0x08000000)
+    if (r_u32(object + 560) & 0x08000000)
     {
-        linked = rrj_read32(object + 852);
-        rrj_write32(object + 704, 0);
-        kind = rrj_u16(rrj_at(linked + 544, 2));
-        if (rrj_u16(rrj_at(0x800541D4 + 8 * kind + 2, 2)) == 3)
+        linked = r_u32(object + 852);
+        w_u32(object + 704, 0);
+        kind = r_u16(linked + 544);
+        if (r_u16(0x800541D4 + 8 * kind + 2) == 3)
         {
-            index = material_byte(rrj_host_context(), linked + 569);
-            target = rrj_u16(rrj_at(rrj_read32(0x8005AD4C) + 12 * index, 2));
+            index = (uint32_t)r_u8((linked + 569));
+            target = r_u16(r_u32(0x8005AD4C) + 12 * index);
             (void)sub_800C4550(target, linked, 2);
         }
     }
     (void)sub_8001E100(last, 0, 8);
-    count = material_byte(rrj_host_context(), object + 946) - 1;
+    count = (uint32_t)r_u8((object + 946)) - 1;
     last = object + 956 + 8 * ((((count & 255) ^ 128) - 128) - 1);
     w_u8(object + 946, (uint8_t)count);
-    if (rrj_u16(rrj_at(last, 2)) != 16)
+    if (r_u16(last) != 16)
         return;
-    global = rrj_read32(0x8005B2F8);
-    index = rrj_u16(rrj_at(last + 2, 2));
-    if (index >= rrj_read32(global + 48))
+    global = r_u32(0x8005B2F8);
+    index = r_u16(last + 2);
+    if (index >= r_u32(global + 48))
         return;
-    value = material_byte(rrj_host_context(), global + 4);
+    value = (uint32_t)r_u8((global + 4));
     if (value == 36 || value == 44)
         return;
-    mask = rrj_u16(rrj_at(0x800CCAC0 + 2 * index, 2));
+    mask = r_u16(0x800CCAC0 + 2 * index);
     if (mask && (mask & (0u - mask)) != mask)
         sub_800BC8DC(object);
 }
@@ -4543,31 +4366,31 @@ void sub_800BC8DC(uint32_t object)
 uint32_t sub_800C1014(uint32_t object)
 {
     FUNCTION_MARKER(0x800C1014u, "RASHCDG.BIN");
-    uint32_t parent = rrj_read32(object + 596), count, last, global, index, value, animation;
+    uint32_t parent = r_u32(object + 596), count, last, global, index, value, animation;
     w_u8(object + 569, 41);
     w_u8(object + 570, 0);
-    if (!(rrj_read32(parent + 560) & 0x08000000) && !(material_byte(rrj_host_context(), object + 572) & 64))
+    if (!(r_u32(parent + 560) & 0x08000000) && !((uint32_t)r_u8((object + 572)) & 64))
     {
-        count = (material_byte(rrj_host_context(), parent + 946) ^ 128) - 128;
+        count = ((uint32_t)r_u8((parent + 946)) ^ 128) - 128;
         last = parent + 956 + 8 * (count - 1);
-        if (rrj_u16(rrj_at(last, 2)) == 16)
+        if (r_u16(last) == 16)
         {
-            global = rrj_read32(0x8005B2F8);
-            index = rrj_u16(rrj_at(parent + 172, 2));
-            if (index < rrj_read32(global + 48))
+            global = r_u32(0x8005B2F8);
+            index = r_u16(parent + 172);
+            if (index < r_u32(global + 48))
             {
-                value = rrj_u16(rrj_at(last + 2, 2));
-                rrj_put16(rrj_at(0x800CCB6C + 2 * index, 2), value);
-                index = rrj_u16(rrj_at(parent + 172, 2));
-                value = rrj_read32(global + 16);
-                rrj_write32(0x800CCB70 + 4 * index, value);
+                value = r_u16(last + 2);
+                w_u16(0x800CCB6C + 2 * index, value);
+                index = r_u16(parent + 172);
+                value = r_u32(global + 16);
+                w_u32(0x800CCB70 + 4 * index, value);
             }
             sub_800BC8DC(parent);
         }
     }
-    animation = rrj_read32(object + 540);
-    rrj_write32(animation + 36, rrj_read32(animation + 36) & 0xffffff7f);
-    value = material_byte(rrj_host_context(), object + 572) & 253;
+    animation = r_u32(object + 540);
+    w_u32(animation + 36, r_u32(animation + 36) & 0xffffff7f);
+    value = (uint32_t)r_u8((object + 572)) & 253;
     w_u8(object + 572, (uint8_t)value);
     return value;
 }
@@ -4575,7 +4398,7 @@ uint32_t sub_800C1014(uint32_t object)
 uint32_t sub_800BFD24(uint32_t object, uint32_t previous, uint32_t type)
 {
     FUNCTION_MARKER(0x800BFD24u, "RASHCDG.BIN");
-    if (rrj_u16(rrj_at(0x800541D4 + 8 * (type & 65535) + 2, 2)) == 3)
+    if (r_u16(0x800541D4 + 8 * (type & 65535) + 2) == 3)
         return 3;
     (void)sub_80095AEC(object);
     return sub_800C1014(object);
@@ -4584,8 +4407,8 @@ uint32_t sub_800BFD24(uint32_t object, uint32_t previous, uint32_t type)
 uint32_t sub_800C4500(uint32_t type, uint32_t object, uint32_t flags)
 {
     FUNCTION_MARKER(0x800C4500u, "RASHCDG.BIN");
-    uint32_t previous = rrj_u16(rrj_at(object + 544, 2));
-    if (rrj_u16(rrj_at(0x800541D4 + 8 * previous + 2, 2)) != 3)
+    uint32_t previous = r_u16(object + 544);
+    if (r_u16(0x800541D4 + 8 * previous + 2) != 3)
         return 3;
     return sub_800BFD24(object, previous, type & 65535);
 }
@@ -4596,7 +4419,7 @@ uint32_t sub_800C4550(uint32_t type, uint32_t object, uint32_t flags)
     uint32_t result;
     type &= 65535;
     rrj_trace_dispatch_target(0x800C3E9Cu);
-    result = rrj_prepare_state_transition_local(rrj_host_context(), type, object, &flags);
+    result = sub_800C3E9C(type, object, &flags);
     rrj_trace_dispatch_target(0x800C4550u);
     if (result == 1)
     {
@@ -4611,27 +4434,22 @@ uint32_t sub_800C4550(uint32_t type, uint32_t object, uint32_t flags)
     return result;
 }
 
-static uint8_t *queued_event_at(RRJMemory *m, uint32_t address, uint8_t *local, uint32_t offset, uint32_t bytes)
-{
-    return local ? local + offset : (uint8_t *)rrj_at(address + offset, bytes);
-}
-
-static uint32_t enqueue_actor_event(RRJMemory *m, uint32_t address, uint8_t *local, uint32_t mode, uint32_t object)
+static uint32_t enqueue_actor_event(uint8_t *event, uint32_t mode, uint32_t object)
 {
     uint32_t count, search, destination, first, second, global, value, linked, type;
-    count = (material_byte(m, object + 946) ^ 128) - 128;
-    if (rrj_s32(count) >= 16)
+    count = ((uint32_t)r_u8((object + 946)) ^ 128) - 128;
+    if (((int32_t)(uint32_t)(count)) >= 16)
     {
         w_u8(object + 946, 1);
         (void)sub_8001E100(object + 964, 0, 120);
     }
-    count = (material_byte(m, object + 946) ^ 128) - 128;
-    search = material_byte(m, object + 946);
+    count = ((uint32_t)r_u8((object + 946)) ^ 128) - 128;
+    search = (uint32_t)r_u8((object + 946));
     destination = object + 956 + 8 * count;
     if (count && mode == 1)
     {
         value = destination - 8;
-        if (rrj_u16(rrj_at(value, 2)) == rrj_u16(queued_event_at(m, address, local, 0, 2)) && rrj_u16(rrj_at(value + 2, 2)) == rrj_u16(queued_event_at(m, address, local, 2, 2)))
+        if (r_u16(value) == xport_load_le16((event + 0)) && r_u16(value + 2) == xport_load_le16((event + 2)))
             return 1;
     }
     else if (count && mode == 2)
@@ -4639,103 +4457,98 @@ static uint32_t enqueue_actor_event(RRJMemory *m, uint32_t address, uint8_t *loc
         value = object + 956 + 8 * (count - 1);
         for (;;)
         {
-            if (rrj_u16(rrj_at(value, 2)) == rrj_u16(queued_event_at(m, address, local, 0, 2)) && rrj_u16(rrj_at(value + 2, 2)) == rrj_u16(queued_event_at(m, address, local, 2, 2)))
+            if (r_u16(value) == xport_load_le16((event + 0)) && r_u16(value + 2) == xport_load_le16((event + 2)))
                 break;
             --search;
             count = ((search & 255) ^ 128) - 128;
-            if (rrj_s32(count) <= 0)
+            if (((int32_t)(uint32_t)(count)) <= 0)
                 break;
             value = object + 956 + 8 * (count - 1);
         }
         count = ((search & 255) ^ 128) - 128;
-        if (rrj_s32(count) > 0)
+        if (((int32_t)(uint32_t)(count)) > 0)
         {
-            if (count == ((material_byte(m, object + 946) ^ 128) - 128))
+            if (count == (((uint32_t)r_u8((object + 946)) ^ 128) - 128))
                 return 1;
-            rrj_put16(queued_event_at(m, address, local, 6, 2), rrj_u16(rrj_at(value + 6, 2)));
+            xport_store_le16((event + 6), r_u16(value + 6));
             do
             {
                 ++search;
-                first = rrj_read32(value + 8);
-                second = rrj_read32(value + 12);
-                rrj_write32(value, first);
-                rrj_write32(value + 4, second);
-                count = (material_byte(m, object + 946) ^ 128) - 128;
+                first = r_u32(value + 8);
+                second = r_u32(value + 12);
+                w_u32(value, first);
+                w_u32(value + 4, second);
+                count = ((uint32_t)r_u8((object + 946)) ^ 128) - 128;
                 value += 8;
-            } while (rrj_s32(((search & 255) ^ 128) - 128) < rrj_s32(count));
-            first = rrj_u32(queued_event_at(m, address, local, 0, 4));
-            second = rrj_u32(queued_event_at(m, address, local, 4, 4));
-            rrj_write32(value, first);
-            rrj_write32(value + 4, second);
+            } while (((int32_t)(uint32_t)(((search & 255) ^ 128) - 128)) < ((int32_t)(uint32_t)(count)));
+            first = xport_load_le32((event + 0));
+            second = xport_load_le32((event + 4));
+            w_u32(value, first);
+            w_u32(value + 4, second);
             return 1;
         }
-        count = (material_byte(m, object + 946) ^ 128) - 128;
+        count = ((uint32_t)r_u8((object + 946)) ^ 128) - 128;
         destination = object + 956 + 8 * count;
     }
-    w_u8(object + 946, (uint8_t)(material_byte(m, object + 946) + 1));
-    global = rrj_read32(0x8005B2F8);
-    first = rrj_u32(queued_event_at(m, address, local, 0, 4));
-    second = rrj_u32(queued_event_at(m, address, local, 4, 4));
-    rrj_write32(destination, first);
-    rrj_write32(destination + 4, second);
-    rrj_put16(rrj_at(destination + 4, 2), 0);
-    rrj_put16(rrj_at(destination + 6, 2), 0);
-    value = ((2180 * rrj_read32(global + 16) + 0x8000) >> 16) | 0xc000;
-    rrj_put16(rrj_at(destination + 6, 2), value);
-    if (rrj_read32(object + 560) & 0x08000000)
+    w_u8(object + 946, (uint8_t)((uint32_t)r_u8((object + 946)) + 1));
+    global = r_u32(0x8005B2F8);
+    first = xport_load_le32((event + 0));
+    second = xport_load_le32((event + 4));
+    w_u32(destination, first);
+    w_u32(destination + 4, second);
+    w_u16(destination + 4, 0);
+    w_u16(destination + 6, 0);
+    value = ((2180 * r_u32(global + 16) + 0x8000) >> 16) | 0xc000;
+    w_u16(destination + 6, value);
+    if (r_u32(object + 560) & 0x08000000)
     {
-        linked = rrj_read32(object + 852);
-        type = rrj_u16(rrj_at(linked + 544, 2));
-        if (rrj_u16(rrj_at(0x800541D4 + 8 * type + 2, 2)) == 3)
+        linked = r_u32(object + 852);
+        type = r_u16(linked + 544);
+        if (r_u16(0x800541D4 + 8 * type + 2) == 3)
         {
-            value = material_byte(m, linked + 569);
-            type = rrj_u16(rrj_at(rrj_read32(0x8005AD4C) + 12 * value, 2));
+            value = (uint32_t)r_u8((linked + 569));
+            type = r_u16(r_u32(0x8005AD4C) + 12 * value);
             (void)sub_800C4550(type, linked, 2);
         }
     }
     return 1;
 }
 
-uint32_t sub_800BCA68(uint32_t event, uint32_t mode, uint32_t object)
+uint32_t sub_800BCA68(uint8_t event[8], uint32_t mode, uint32_t object)
 {
     FUNCTION_MARKER(0x800BCA68u, "RASHCDG.BIN");
-    return enqueue_actor_event(rrj_host_context(), event, NULL, mode, object);
-}
-
-uint32_t rrj_enqueue_actor_event_local(RRJMemory *m, uint8_t event[8], uint32_t mode, uint32_t object)
-{
-    return enqueue_actor_event(m, 0, event, mode, object);
+    return enqueue_actor_event(event, mode, object);
 }
 
 uint32_t sub_800C3104(uint32_t object, uint32_t inactive)
 {
     FUNCTION_MARKER(0x800C3104u, "RASHCDG.BIN");
-    uint32_t active = rrj_u16(rrj_at(object + 320, 2)), type, animation;
-    rrj_write32(object + 604, 0);
-    rrj_put16(rrj_at(object + 608, 2), 0);
+    uint32_t active = r_u16(object + 320), type, animation;
+    w_u32(object + 604, 0);
+    w_u16(object + 608, 0);
     if (active)
     {
-        type = rrj_u16(rrj_at(object + 544, 2));
+        type = r_u16(object + 544);
         if (type == 6 || type == 77)
             return 77;
-        return sub_800C4550((material_byte(rrj_host_context(), object + 572) & 32) ? 77 : 6, object, 16);
+        return sub_800C4550(((uint32_t)r_u8((object + 572)) & 32) ? 77 : 6, object, 16);
     }
     (void)sub_800C4500(224, object, 0);
-    animation = rrj_read32(object + 540);
+    animation = r_u32(object + 540);
     if (animation)
         (void)sub_8005BE0C(animation);
     if (inactive)
     {
-        rrj_put16(rrj_at(object + 544, 2), 224);
+        w_u16(object + 544, 224);
         return 224;
     }
-    rrj_put16(rrj_at(object + 544, 2), 73);
-    rrj_write32(object + 604, 4);
+    w_u16(object + 544, 73);
+    w_u32(object + 604, 4);
     return 4;
 }
 
 /* Overlay800903F4: restore actor physics, attachments and player state. */
-uint32_t sub_800903F4(uint32_t object, uint32_t reset, RRJReverbCall reverb)
+uint32_t sub_800903F4(uint32_t object, uint32_t reset)
 {
     FUNCTION_MARKER(0x800903F4u, "RASHCDG.BIN");
     uint32_t piece, x, y, z, secondary, sibling, other, value, flags, global, descriptor, player, index, i;
@@ -4743,204 +4556,204 @@ uint32_t sub_800903F4(uint32_t object, uint32_t reset, RRJReverbCall reverb)
     uint8_t event[8] = {0};
     if (reset)
     {
-        if (rrj_u16(rrj_at(object + 320, 2)))
+        if (r_u16(object + 320))
         {
-            piece = rrj_read32(object + 340);
-            (void)sub_8002EAD8(rrj_at(piece + 20, 12), rrj_at(piece + 14, 6), rrj_read32(object + 348), rrj_at(object + 504, 12));
-            x = rrj_read32(object + 504);
-            y = rrj_read32(object + 508);
-            z = rrj_read32(object + 512);
-            piece = rrj_read32(object + 340);
-            rrj_write32(object + 184, x);
-            rrj_write32(object + 188, y);
-            rrj_write32(object + 192, z);
+            piece = r_u32(object + 340);
+            (void)sub_8002EAD8(xport_guest_ptr(piece + 20, 12), xport_guest_ptr(piece + 14, 6), r_u32(object + 348), xport_guest_ptr(object + 504, 12));
+            x = r_u32(object + 504);
+            y = r_u32(object + 508);
+            z = r_u32(object + 512);
+            piece = r_u32(object + 340);
+            w_u32(object + 184, x);
+            w_u32(object + 188, y);
+            w_u32(object + 192, z);
             for (i = 0; i < 3; ++i)
-                rrj_put16(rrj_at(object + 450 + 2 * i, 2), rrj_u16(rrj_at(piece + 14 + 2 * i, 2)));
-            if (rrj_read32(object + 568) & 0x00400000)
+                w_u16(object + 450 + 2 * i, r_u16(piece + 14 + 2 * i));
+            if (r_u32(object + 568) & 0x00400000)
             {
-                x = rrj_u16(rrj_at(object + 450, 2));
-                rrj_write32(object + 364, 0xfffffffe);
-                z = rrj_u16(rrj_at(object + 454, 2));
-                rrj_put16(rrj_at(object + 450, 2), 0u - x);
-                y = rrj_u16(rrj_at(object + 452, 2));
-                rrj_put16(rrj_at(object + 454, 2), 0u - z);
-                rrj_put16(rrj_at(object + 452, 2), 0u - y);
+                x = r_u16(object + 450);
+                w_u32(object + 364, 0xfffffffe);
+                z = r_u16(object + 454);
+                w_u16(object + 450, 0u - x);
+                y = r_u16(object + 452);
+                w_u16(object + 454, 0u - z);
+                w_u16(object + 452, 0u - y);
             }
             else
-                rrj_write32(object + 364, 2);
+                w_u32(object + 364, 2);
             (void)sub_8007EC30(object);
         }
-        rrj_write32(object + 344, 0);
+        w_u32(object + 344, 0);
     }
     (void)sub_8002090C(object);
-    flags = rrj_read32(object + 568);
-    secondary = rrj_read32(object + 852);
-    rrj_write32(object + 568, flags | 0x08000000);
-    rrj_write32(secondary + 552, rrj_read32(secondary + 552) & 0xbfe67fc7);
-    secondary = rrj_read32(object + 852);
-    rrj_put16(rrj_at(secondary + 320, 2), rrj_u16(rrj_at(object + 320, 2)));
-    secondary = rrj_read32(object + 852);
-    if (rrj_read32(secondary + 556))
+    flags = r_u32(object + 568);
+    secondary = r_u32(object + 852);
+    w_u32(object + 568, flags | 0x08000000);
+    w_u32(secondary + 552, r_u32(secondary + 552) & 0xbfe67fc7);
+    secondary = r_u32(object + 852);
+    w_u16(secondary + 320, r_u16(object + 320));
+    secondary = r_u32(object + 852);
+    if (r_u32(secondary + 556))
     {
         (void)sub_80095AEC(secondary);
-        rrj_write32(rrj_read32(object + 852) + 556, 0);
+        w_u32(r_u32(object + 852) + 556, 0);
     }
-    (void)sub_80012838(object, rrj_read32(object + 852), 2, 0);
-    secondary = rrj_read32(object + 852);
+    (void)sub_80012838(object, r_u32(object + 852), 2, 0);
+    secondary = r_u32(object + 852);
     w_u8(object + 72, 0);
     (void)sub_800C3104(secondary, 1);
-    secondary = rrj_read32(object + 852);
-    if ((material_byte(rrj_host_context(), secondary + 572) & 16) && material_byte(rrj_host_context(), rrj_read32(0x8005B2F8) + 57) != 1)
+    secondary = r_u32(object + 852);
+    if (((uint32_t)r_u8((secondary + 572)) & 16) && (uint32_t)r_u8((r_u32(0x8005B2F8) + 57)) != 1)
     {
-        sibling = rrj_read32(object + 856);
-        other = rrj_read32(sibling + 852);
-        value = rrj_u16(rrj_at(object + 320, 2));
-        flags = rrj_read32(other + 552);
-        rrj_put16(rrj_at(other + 320, 2), value);
-        rrj_write32(other + 552, flags & 0xbfe67fc7);
+        sibling = r_u32(object + 856);
+        other = r_u32(sibling + 852);
+        value = r_u16(object + 320);
+        flags = r_u32(other + 552);
+        w_u16(other + 320, value);
+        w_u32(other + 552, flags & 0xbfe67fc7);
         (void)sub_80012838(object, other, 2, 1);
         (void)sub_800C3104(other, 1);
-        rrj_write32(other + 604, 1);
-        rrj_write32(rrj_read32(object + 856) + 720, 0);
+        w_u32(other + 604, 1);
+        w_u32(r_u32(object + 856) + 720, 0);
     }
     (void)sub_800BCD10(object);
-    descriptor = rrj_read32(object + 1084);
-    value = (rrj_read32(descriptor + 40) || material_byte(rrj_host_context(), descriptor + 39) >= 248) ? 2 : 4;
-    rrj_put16(event, value);
-    rrj_put16(event + 2, 224);
-    (void)rrj_enqueue_actor_event_local(rrj_host_context(), event, 1, object);
-    if (rrj_u16(rrj_at(object + 320, 2)))
+    descriptor = r_u32(object + 1084);
+    value = (r_u32(descriptor + 40) || (uint32_t)r_u8((descriptor + 39)) >= 248) ? 2 : 4;
+    xport_store_le16(event, value);
+    xport_store_le16(event + 2, 224);
+    (void)sub_800BCA68(event, 1, object);
+    if (r_u16(object + 320))
     {
         (void)sub_80096564(object);
         for (i = 0; i < 3; ++i)
-            axes[i] = rrj_u16(rrj_at(object + 528 + 2 * i, 2));
+            axes[i] = r_u16(object + 528 + 2 * i);
         for (i = 0; i < 3; ++i)
-            axes[i + 3] = rrj_u16(rrj_at(object + 516 + 2 * i, 2));
-        secondary = rrj_read32(object + 852);
+            axes[i + 3] = r_u16(object + 516 + 2 * i);
+        secondary = r_u32(object + 852);
         for (i = 0; i < 3; ++i)
-            rrj_put16(rrj_at(object + 450 + 2 * i, 2), axes[i]);
+            w_u16(object + 450 + 2 * i, axes[i]);
         for (i = 0; i < 3; ++i)
-            rrj_put16(rrj_at(object + 814 + 2 * i, 2), axes[i + 3]);
-        if ((material_byte(rrj_host_context(), secondary + 572) & 16) && material_byte(rrj_host_context(), rrj_read32(0x8005B2F8) + 57) != 1)
+            w_u16(object + 814 + 2 * i, axes[i + 3]);
+        if (((uint32_t)r_u8((secondary + 572)) & 16) && (uint32_t)r_u8((r_u32(0x8005B2F8) + 57)) != 1)
         {
-            sibling = rrj_read32(object + 856);
-            value = rrj_read32(object + 344);
-            rrj_write32(sibling + 344, value);
-            flags = rrj_read32(object + 364);
-            sibling = rrj_read32(object + 856);
-            x = rrj_read32(object + 304);
-            y = rrj_read32(sibling + 304);
-            value = rrj_read32(sibling + 344);
-            rrj_write32(sibling + 344, rrj_s32(flags) < 0 ? value - (x + y) : value + x + y);
-            sibling = rrj_read32(object + 856);
-            value = rrj_read32(object + 364);
-            rrj_write32(sibling + 364, value);
+            sibling = r_u32(object + 856);
+            value = r_u32(object + 344);
+            w_u32(sibling + 344, value);
+            flags = r_u32(object + 364);
+            sibling = r_u32(object + 856);
+            x = r_u32(object + 304);
+            y = r_u32(sibling + 304);
+            value = r_u32(sibling + 344);
+            w_u32(sibling + 344, ((int32_t)(uint32_t)(flags)) < 0 ? value - (x + y) : value + x + y);
+            sibling = r_u32(object + 856);
+            value = r_u32(object + 364);
+            w_u32(sibling + 364, value);
         }
     }
-    global = rrj_read32(0x8005B2F8);
-    index = rrj_u16(rrj_at(object + 172, 2));
-    if (index >= rrj_read32(global + 48))
+    global = r_u32(0x8005B2F8);
+    index = r_u16(object + 172);
+    if (index >= r_u32(global + 48))
         return 0;
     player = 0x800CD898 + 1132 * index;
-    rrj_write32(player + 548, rrj_read32(player + 548) & 0xf5ffff7f);
-    if (material_byte(rrj_host_context(), global + 4) == 44 && material_byte(rrj_host_context(), global + 57) == 2)
+    w_u32(player + 548, r_u32(player + 548) & 0xf5ffff7f);
+    if ((uint32_t)r_u8((global + 4)) == 44 && (uint32_t)r_u8((global + 57)) == 2)
     {
-        flags = rrj_read32(player + 552);
-        value = rrj_read32(player + 776);
-        rrj_write32(player + 552, flags | 16);
-        if (rrj_s32(value) < 5)
+        flags = r_u32(player + 552);
+        value = r_u32(player + 776);
+        w_u32(player + 552, flags | 16);
+        if (((int32_t)(uint32_t)(value)) < 5)
         {
-            rrj_write32(player + 776, 5);
-            rrj_write32(player + 792, 0);
+            w_u32(player + 776, 5);
+            w_u32(player + 792, 0);
         }
-        w_u8(rrj_read32(0x8005B2F8) + 10, 2);
+        w_u8(r_u32(0x8005B2F8) + 10, 2);
     }
     else
-        rrj_write32(player + 548, (rrj_read32(player + 548) | 6) & 0xff807fff);
+        w_u32(player + 548, (r_u32(player + 548) | 6) & 0xff807fff);
     (void)sub_80086AF8(player);
-    (void)sub_80018440(rrj_u16(rrj_at(object + 172, 2)), 0);
-    return sub_800235B0(rrj_u16(rrj_at(object + 172, 2)), object);
+    (void)sub_80018440(r_u16(object + 172), 0);
+    return sub_800235B0(r_u16(object + 172), object);
 }
 
 /* 80093FE4: inactive actor cleanup, including actual activation when required. */
-void sub_80093FE4(uint32_t object, RRJReverbCall reverb)
+void sub_80093FE4(uint32_t object)
 {
     FUNCTION_MARKER(0x80093FE4u, "RASHCDG.BIN");
     uint32_t global, secondary, flags, animation;
     uint32_t state;
-    if (!object || rrj_u16(rrj_at(object + 320, 2)))
+    if (!object || r_u16(object + 320))
         return;
-    global = rrj_read32(0x8005B2F8);
-    if (rrj_u16(rrj_at(object + 172, 2)) < rrj_read32(global + 48) || (uint32_t)(material_byte(rrj_host_context(), global + 57) - 1u) >= 2u)
+    global = r_u32(0x8005B2F8);
+    if (r_u16(object + 172) < r_u32(global + 48) || (uint32_t)((uint32_t)r_u8((global + 57)) - 1u) >= 2u)
     {
         (void)sub_8002090C(object);
-        secondary = rrj_read32(object + 852);
-        if (rrj_read32(secondary + 604) >= 3u && rrj_u16(rrj_at(secondary + 320, 2)))
-            rrj_write32(object + 568, rrj_read32(object + 568) | 0x100u);
+        secondary = r_u32(object + 852);
+        if (r_u32(secondary + 604) >= 3u && r_u16(secondary + 320))
+            w_u32(object + 568, r_u32(object + 568) | 0x100u);
         else
         {
-            rrj_put16(rrj_at(secondary + 320, 2), 0);
-            (void)sub_800903F4(object, 1, reverb);
+            w_u16(secondary + 320, 0);
+            (void)sub_800903F4(object, 1);
         }
     }
-    flags = rrj_read32(object + 568);
-    animation = rrj_read32(object + 540);
-    rrj_write32(object + 568, flags | 0x08000000u);
+    flags = r_u32(object + 568);
+    animation = r_u32(object + 540);
+    w_u32(object + 568, flags | 0x08000000u);
     if (animation)
     {
-        rrj_write32(animation + 36, 0);
-        rrj_write32(0x800CE178, rrj_read32(0x800CE178) - 1u);
-        rrj_write32(object + 540, 0);
+        w_u32(animation + 36, 0);
+        w_u32(0x800CE178, r_u32(0x800CE178) - 1u);
+        w_u32(object + 540, 0);
     }
-    global = rrj_read32(0x8005B2F8);
-    if (rrj_u16(rrj_at(object + 172, 2)) >= rrj_read32(global + 48) && (material_byte(rrj_host_context(), rrj_read32(object + 1084) + 1) & 15u) == 2u)
+    global = r_u32(0x8005B2F8);
+    if (r_u16(object + 172) >= r_u32(global + 48) && ((uint32_t)r_u8((r_u32(object + 1084) + 1)) & 15u) == 2u)
     {
-        state = material_byte(rrj_host_context(), object + 928);
+        state = (uint32_t)r_u8((object + 928));
         if (state & 16u)
         {
             w_u8(object + 928, (uint8_t)(state & 0xEFu));
-            rrj_write32(object + 324, rrj_read32(0x8005B244) << 12);
+            w_u32(object + 324, r_u32(0x8005B244) << 12);
             (void)sub_8009DAF8(0xFFFFFFFFu);
-            if (rrj_read32(object + 36) & 0x08000000u)
+            if (r_u32(object + 36) & 0x08000000u)
             {
                 (void)sub_8002847C(object);
                 (void)sub_8002820C(object);
             }
         }
-        w_u8(object + 928, (uint8_t)(material_byte(rrj_host_context(), object + 928) & 0xDFu));
+        w_u8(object + 928, (uint8_t)((uint32_t)r_u8((object + 928)) & 0xDFu));
     }
 }
 
 /* 800A0708: activate and place the actor at its directional track offset. */
-uint32_t sub_800A0708(uint32_t object, RRJReverbCall reverb)
+uint32_t sub_800A0708(uint32_t object)
 {
     FUNCTION_MARKER(0x800A0708u, "RASHCDG.BIN");
     uint32_t global, value, record, offset = 0, direction, piece, scale, x, y, z;
-    (void)sub_800903F4(object, 1, reverb);
-    global = rrj_read32(0x8005B2F8);
-    value = rrj_read32(0x80053138 + 4u * rrj_read32(global + 60));
-    record = rrj_read32(object + 372);
-    rrj_write32(object + 576, value);
-    rrj_write32(object + 480, value);
-    rrj_write32(object + 924, value);
+    (void)sub_800903F4(object, 1);
+    global = r_u32(0x8005B2F8);
+    value = r_u32(0x80053138 + 4u * r_u32(global + 60));
+    record = r_u32(object + 372);
+    w_u32(object + 576, value);
+    w_u32(object + 480, value);
+    w_u32(object + 924, value);
     if (record)
     {
-        direction = rrj_read32(object + 364);
-        offset = rrj_read32(record + 80);
-        if (rrj_s32(direction) >= 0)
-            offset = rrj_read32(record + 208);
+        direction = r_u32(object + 364);
+        offset = r_u32(record + 80);
+        if (((int32_t)(uint32_t)(direction)) >= 0)
+            offset = r_u32(record + 208);
     }
-    piece = rrj_read32(object + 340);
-    direction = rrj_read32(object + 364);
+    piece = r_u32(object + 340);
+    direction = r_u32(object + 364);
     scale = offset - 0x8000u + ((0u - direction) & 0x10000u);
-    rrj_write32(object + 344, scale);
-    (void)sub_8002EAD8(rrj_at(object + 184, 12), rrj_at(piece + 2, 6), scale, rrj_at(object + 184, 12));
-    x = rrj_read32(object + 184);
-    y = rrj_read32(object + 188);
-    z = rrj_read32(object + 192);
-    rrj_write32(object + 504, x);
-    rrj_write32(object + 508, y);
-    rrj_write32(object + 512, z);
+    w_u32(object + 344, scale);
+    (void)sub_8002EAD8(xport_guest_ptr(object + 184, 12), xport_guest_ptr(piece + 2, 6), scale, xport_guest_ptr(object + 184, 12));
+    x = r_u32(object + 184);
+    y = r_u32(object + 188);
+    z = r_u32(object + 192);
+    w_u32(object + 504, x);
+    w_u32(object + 508, y);
+    w_u32(object + 512, z);
     return x;
 }
 
@@ -4948,86 +4761,98 @@ uint32_t sub_800A0708(uint32_t object, RRJReverbCall reverb)
 uint32_t sub_8003A468(uint32_t position, uint32_t output)
 {
     FUNCTION_MARKER(0x8003A468u, "SLUS_010.53");
-    uint32_t segment = sub_80039DFC(0, position), route = 0, count, i, word, base, subrecord, piece, delta, limit;
+    uint32_t segment = sub_80039DFC(0, ((position) ? (const uint32_t[3]){r_u32(position), 0, (uint32_t)r_u16((position) + 10) << 16} : NULL)), route = 0, count, i, word, base, subrecord, piece, delta, limit;
     if (!segment)
         return 0;
-    if (!material_half(rrj_host_context(), segment + 16))
-        route = rrj_read32(segment + 44);
+    if (!(uint32_t)r_s16((segment + 16)))
+        route = r_u32(segment + 44);
     else
     {
-        count = material_half(rrj_host_context(), segment + 18);
-        if (rrj_s32(count) > 0)
+        count = (uint32_t)r_s16((segment + 18));
+        if (((int32_t)(uint32_t)(count)) > 0)
         {
-            word = rrj_read32(position);
-            base = rrj_read32(segment + 44);
-            for (i = 0; rrj_s32(i) < rrj_s32(count); ++i)
+            word = r_u32(position);
+            base = r_u32(segment + 44);
+            for (i = 0; ((int32_t)(uint32_t)(i)) < ((int32_t)(uint32_t)(count)); ++i)
             {
                 route = base + 32 * i;
-                if (material_half(rrj_host_context(), route + 2) == (word >> 16) && rrj_read32(route + 12) == (word & 65535u))
+                if ((uint32_t)r_s16((route + 2)) == (word >> 16) && r_u32(route + 12) == (word & 65535u))
                     break;
             }
         }
-        if (material_half(rrj_host_context(), route + 2))
+        if ((uint32_t)r_s16((route + 2)))
             return 0;
     }
-    subrecord = rrj_read32(segment + 48) + 28u * material_half(rrj_host_context(), route + 20);
-    piece = rrj_read32(segment + 52) + 52u * material_half(rrj_host_context(), subrecord + 8);
-    rrj_write32(output, segment);
-    rrj_write32(output + 4, route);
-    rrj_write32(output + 8, subrecord);
-    rrj_write32(output + 12, piece);
-    rrj_write32(output + 20, 0);
-    rrj_write32(output + 16, 0);
-    rrj_write32(output + 24, 0);
-    rrj_write32(output + 28, 0);
-    delta = rrj_read32(position + 8) - rrj_read32(route + 24);
-    if (rrj_s32(delta) < 0)
+    subrecord = r_u32(segment + 48) + 28u * (uint32_t)r_s16((route + 20));
+    piece = r_u32(segment + 52) + 52u * (uint32_t)r_s16((subrecord + 8));
+    w_u32(output, segment);
+    w_u32(output + 4, route);
+    w_u32(output + 8, subrecord);
+    w_u32(output + 12, piece);
+    w_u32(output + 20, 0);
+    w_u32(output + 16, 0);
+    w_u32(output + 24, 0);
+    w_u32(output + 28, 0);
+    delta = r_u32(position + 8) - r_u32(route + 24);
+    if (((int32_t)(uint32_t)(delta)) < 0)
         delta = 0;
-    limit = rrj_read32(route + 28);
-    if (rrj_s32(limit) < rrj_s32(delta))
+    limit = r_u32(route + 28);
+    if (((int32_t)(uint32_t)(limit)) < ((int32_t)(uint32_t)(delta)))
         delta = limit;
-    (void)sub_80037524(output, delta);
+    {
+        uint32_t route_geometry[8] = {r_u32(output), r_u32(output + 4), r_u32(output + 8), r_u32(output + 12), r_u32(output + 16), r_u32(output + 20), r_u32(output + 24), r_u32(output + 28)};
+        (void)sub_80037524(route_geometry, delta);
+        w_u32(output + 12, route_geometry[3]);
+        w_u32(output + 20, route_geometry[5]);
+    }
     return 1;
 }
 
-static uint32_t surface_magnitude(uint32_t value)
-{
-    uint32_t sign = pause_asr(value, 31);
-    return (sign + value) ^ sign;
-}
-
-/* 8003E67C: classify lateral position against surface bands. */
 uint32_t sub_8003E67C(uint32_t surface, uint32_t position, uint32_t side, uint32_t output)
 {
-    FUNCTION_MARKER(0x8003E67Cu, "SLUS_010.53");
-    uint32_t block = surface + (side == 2 ? 136u : 8u), main_width = rrj_read32(block + 8), width, value;
-    uint32_t count = material_half(rrj_host_context(), block + 6), outer = rrj_read32(block + 72);
-    position = surface_magnitude(position);
-    if (rrj_s32(count) > 0 && rrj_s32(position) < rrj_s32(surface_magnitude(outer)))
-    {
-        value = rrj_u16(rrj_at(block + 82, 2));
-        rrj_put16(rrj_at(output, 2), 5);
-        rrj_put16(rrj_at(output + 2, 2), value);
-        return 0;
-    }
+    uint32_t block, main_width, width, outer, sign, magnitude, value;
+    int32_t count;
+    FUNCTION_MARKER(0x8003E67C, "SLUS_010.53");
+    sign = (uint32_t)((int32_t)position >> 31);
+    position = (position + sign) ^ sign;
+    block = surface + (side == 2 ? 136 : 8);
+    main_width = r_u32(block + 8);
+    count = r_s16(block + 6);
+    outer = r_u32(block + 72);
     width = main_width;
-    if (rrj_s32(material_half(rrj_host_context(), block + 2)) > 0)
-        width = rrj_read32(block + 24);
-    if (rrj_s32(position) < rrj_s32(surface_magnitude(width)))
+    if (count > 0)
     {
-        rrj_put16(rrj_at(output + 2, 2), 1);
-        rrj_put16(rrj_at(output, 2), 4);
+        sign = (uint32_t)((int32_t)outer >> 31);
+        magnitude = (outer + sign) ^ sign;
+        if ((int32_t)position < (int32_t)magnitude)
+        {
+            value = r_u16(block + 82);
+            w_u16(output, 5);
+            w_u16(output + 2, (uint16_t)value);
+            return 0;
+        }
+    }
+    if (r_s16(block + 2) > 0)
+        width = r_u32(block + 24);
+    sign = (uint32_t)((int32_t)width >> 31);
+    magnitude = (width + sign) ^ sign;
+    if ((int32_t)position < (int32_t)magnitude)
+    {
+        w_u16(output + 2, 1);
+        w_u16(output, 4);
         return 0;
     }
-    if (rrj_s32(position) < rrj_s32(surface_magnitude(main_width)))
+    sign = (uint32_t)((int32_t)main_width >> 31);
+    magnitude = (main_width + sign) ^ sign;
+    if ((int32_t)position < (int32_t)magnitude)
     {
-        value = rrj_u16(rrj_at(block + 18, 2));
-        rrj_put16(rrj_at(output, 2), 1);
-        rrj_put16(rrj_at(output + 2, 2), value);
+        value = r_u16(block + 18);
+        w_u16(output, 1);
+        w_u16(output + 2, (uint16_t)value);
         return 0;
     }
-    rrj_put16(rrj_at(output + 2, 2), 0);
-    rrj_put16(rrj_at(output, 2), 0);
+    w_u16(output + 2, 0);
+    w_u16(output, 0);
     return 1;
 }
 
@@ -5035,57 +4860,57 @@ uint32_t sub_8003E67C(uint32_t surface, uint32_t position, uint32_t side, uint32
 uint32_t sub_8003EF34(uint32_t record, uint32_t position, uint32_t output)
 {
     FUNCTION_MARKER(0x8003EF34u, "SLUS_010.53");
-    uint32_t segment = rrj_read32(record), route = rrj_read32(record + 4), subrecord = rrj_read32(record + 8);
-    uint32_t kind = material_half(rrj_host_context(), route + 2), piece = rrj_read32(record + 12), count = 0, interval, surface = 0, changed = 0, flags = 0;
+    uint32_t segment = r_u32(record), route = r_u32(record + 4), subrecord = r_u32(record + 8);
+    uint32_t kind = (uint32_t)r_s16((route + 2)), piece = r_u32(record + 12), count = 0, interval, surface = 0, changed = 0, flags = 0;
     uint32_t progress, last, lateral, start, end, index, base, i, p, value;
     if (!kind)
     {
-        count = material_half(rrj_host_context(), subrecord + 16);
-        if (rrj_s32(count) < 0)
+        count = (uint32_t)r_s16((subrecord + 16));
+        if (((int32_t)(uint32_t)(count)) < 0)
             count = 0;
     }
-    interval = rrj_read32(output + 4);
-    index = material_half(rrj_host_context(), subrecord + 8) + material_half(rrj_host_context(), subrecord + 10);
-    progress = rrj_read32(position + 8);
-    last = rrj_read32(segment + 52) + 52u * index - 52u;
-    kind = material_half(rrj_host_context(), piece);
-    lateral = rrj_read32(record + 16);
-    if ((!kind && rrj_s32(progress) < rrj_s32(rrj_read32(piece + 40))) || (piece == last && rrj_s32(rrj_read32(piece + 40) + rrj_read32(piece + 32)) < rrj_s32(progress)))
+    interval = r_u32(output + 4);
+    index = (uint32_t)r_s16((subrecord + 8)) + (uint32_t)r_s16((subrecord + 10));
+    progress = r_u32(position + 8);
+    last = r_u32(segment + 52) + 52u * index - 52u;
+    kind = (uint32_t)r_s16(piece);
+    lateral = r_u32(record + 16);
+    if ((!kind && ((int32_t)(uint32_t)(progress)) < ((int32_t)(uint32_t)(r_u32(piece + 40)))) || (piece == last && ((int32_t)(uint32_t)(r_u32(piece + 40) + r_u32(piece + 32))) < ((int32_t)(uint32_t)(progress))))
     {
-        start = rrj_read32(piece + 40);
-        end = start + rrj_read32(piece + 32);
-        progress = rrj_read32(position + 8);
-        if (rrj_s32(end) < rrj_s32(progress))
+        start = r_u32(piece + 40);
+        end = start + r_u32(piece + 32);
+        progress = r_u32(position + 8);
+        if (((int32_t)(uint32_t)(end)) < ((int32_t)(uint32_t)(progress)))
             progress = end;
-        if (rrj_s32(start) >= rrj_s32(progress))
+        if (((int32_t)(uint32_t)(start)) >= ((int32_t)(uint32_t)(progress)))
             progress = start;
     }
-    if (!count || !rrj_read32(output))
+    if (!count || !r_u32(output))
         interval = 0;
     if (interval)
     {
-        start = rrj_read32(interval + 8);
-        value = rrj_read32(position + 8);
-        if (rrj_s32(value) < rrj_s32(start) || rrj_s32(rrj_read32(interval + 12)) < rrj_s32(value) || rrj_s32(material_half(rrj_host_context(), interval + 4)) < 0)
+        start = r_u32(interval + 8);
+        value = r_u32(position + 8);
+        if (((int32_t)(uint32_t)(value)) < ((int32_t)(uint32_t)(start)) || ((int32_t)(uint32_t)(r_u32(interval + 12))) < ((int32_t)(uint32_t)(value)) || ((int32_t)(uint32_t)((uint32_t)r_s16((interval + 4)))) < 0)
             interval = 0;
         else
-            surface = rrj_read32(output);
+            surface = r_u32(output);
     }
-    if (rrj_s32(count) > 0 && !interval)
+    if (((int32_t)(uint32_t)(count)) > 0 && !interval)
     {
-        progress = pause_asr(progress, 16);
-        index = material_half(rrj_host_context(), subrecord + 18);
-        base = rrj_read32(segment + 56);
-        for (i = 0; rrj_s32(i) < rrj_s32(count); ++i)
+        progress = ((uint32_t)((!((uint32_t)(16))) ? (((uint32_t)(progress))) : ((((uint32_t)(progress)) >> ((uint32_t)(16))) | ((((uint32_t)(progress)) & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(16)))) : 0))));
+        index = (uint32_t)r_s16((subrecord + 18));
+        base = r_u32(segment + 56);
+        for (i = 0; ((int32_t)(uint32_t)(i)) < ((int32_t)(uint32_t)(count)); ++i)
         {
             p = base + 16u * (index + i);
-            if (rrj_s32(progress) >= rrj_s32(material_half(rrj_host_context(), p + 10)) && rrj_s32(material_half(rrj_host_context(), p + 14)) >= rrj_s32(progress))
+            if (((int32_t)(uint32_t)(progress)) >= ((int32_t)(uint32_t)((uint32_t)r_s16((p + 10)))) && ((int32_t)(uint32_t)((uint32_t)r_s16((p + 14)))) >= ((int32_t)(uint32_t)(progress)))
             {
                 interval = p;
-                value = material_half(rrj_host_context(), p + 4);
+                value = (uint32_t)r_s16((p + 4));
                 surface = 0;
-                if (rrj_s32(value) >= 0)
-                    surface = rrj_read32(segment + 60) + 264u * value;
+                if (((int32_t)(uint32_t)(value)) >= 0)
+                    surface = r_u32(segment + 60) + 264u * value;
                 break;
             }
         }
@@ -5093,35 +4918,23 @@ uint32_t sub_8003EF34(uint32_t record, uint32_t position, uint32_t output)
     }
     if (surface)
     {
-        rrj_write32(output + 52, rrj_read32(surface + 4));
-        rrj_write32(output + 40, rrj_read32(surface + 144));
-        rrj_put16(rrj_at(output + 48, 2), rrj_u16(rrj_at(surface + 140, 2)));
-        rrj_write32(output + 28, rrj_read32(surface + 16));
-        rrj_put16(rrj_at(output + 36, 2), rrj_u16(rrj_at(surface + 12, 2)));
-        flags = sub_8003E67C(surface, lateral, rrj_s32(lateral) < 0 ? 1u : 2u, output + 20);
+        w_u32(output + 52, r_u32(surface + 4));
+        w_u32(output + 40, r_u32(surface + 144));
+        w_u16(output + 48, r_u16(surface + 140));
+        w_u32(output + 28, r_u32(surface + 16));
+        w_u16(output + 36, r_u16(surface + 12));
+        flags = sub_8003E67C(surface, lateral, ((int32_t)(uint32_t)(lateral)) < 0 ? 1u : 2u, output + 20);
     }
-    value = rrj_read32(output + 16);
-    rrj_write32(output, surface);
-    rrj_write32(output + 4, interval);
-    rrj_write32(output + 8, 0);
-    rrj_write32(output + 12, 0);
-    rrj_write32(output + 16, (value & 0xfffffff0u) | flags);
+    value = r_u32(output + 16);
+    w_u32(output, surface);
+    w_u32(output + 4, interval);
+    w_u32(output + 8, 0);
+    w_u32(output + 12, 0);
+    w_u32(output + 16, (value & 0xfffffff0u) | flags);
     return changed;
 }
 
 /* 800B6AAC falls through800B6B04: each product is shifted before summation. */
-static uint32_t junction_plane_distance(RRJMemory *m, uint32_t point, const uint16_t normal[3], uint32_t origin)
-{
-    uint32_t i, result = 0;
-    for (i = 0; i < 3; ++i)
-    {
-        uint32_t component = (uint32_t)(int32_t)(int16_t)normal[i] << 4;
-        uint32_t delta = rrj_read32(point + 4 * i) - rrj_read32(origin + 4 * i);
-        int64_t product = (int64_t)rrj_s32(component) * (int64_t)rrj_s32(delta);
-        result += (uint32_t)((uint64_t)product >> 16);
-    }
-    return result;
-}
 
 uint32_t sub_800B6AAC(const uint32_t point[3], const uint16_t normal[3], const uint32_t origin[3])
 {
@@ -5130,71 +4943,69 @@ uint32_t sub_800B6AAC(const uint32_t point[3], const uint16_t normal[3], const u
     FUNCTION_MARKER(0x800B6AAC, "RASHCDG.BIN");
     for (axis = 0; axis < 3; ++axis)
     {
-        uint32_t component = (uint32_t)(int32_t)(int16_t)rrj_u16((const uint8_t *)normal + 2u * axis) << 4;
-        uint32_t value = rrj_u32((const uint8_t *)point + 4u * axis);
-        uint32_t base = rrj_u32((const uint8_t *)origin + 4u * axis);
-        int64_t product = (int64_t)rrj_s32(component) * (int64_t)rrj_s32(value - base);
+        uint32_t component = (uint32_t)(int32_t)(int16_t)xport_load_le16((const uint8_t *)normal + 2u * axis) << 4;
+        uint32_t value = xport_load_le32((const uint8_t *)point + 4u * axis);
+        uint32_t base = xport_load_le32((const uint8_t *)origin + 4u * axis);
+        int64_t product = (int64_t)((int32_t)(uint32_t)(component)) * (int64_t)((int32_t)(uint32_t)(value - base));
         result += (uint32_t)((uint64_t)product >> 16);
     }
     return result;
 }
 
-uint32_t rrj_find_junction_planes_local(RRJMemory *m, uint32_t point, uint32_t header, uint32_t *first, uint32_t *next, uint32_t hint)
+uint32_t sub_8003EB58(uint32_t point, uint32_t header, uint32_t *first, uint32_t *next, uint32_t hint)
 {
-    uint32_t count, current = 0, following = 0, result = 0xffffffffu, i, entry, planes[4];
+    uint32_t result = 0xFFFFFFFFu, current = 0u, following = 0u, entry, planes[4];
+    int32_t count;
     uint16_t normal[3];
-    count = material_half(m, header + 2);
-    if (rrj_s32(hint) >= 0 && rrj_s32(hint) < rrj_s32(count))
-    {
-        result = hint;
-        current = hint;
-        if (rrj_s32(hint) < rrj_s32(count - 1u))
-            following = hint + 1u;
-    }
-    else
-    {
-        for (i = 0; rrj_s32(i) < rrj_s32(count); ++i)
-        {
-            /* Four entries fit the104-byte junction record. Larger input would
-               overwrite the original local stack; it is outside this port's domain. */
-            if (i >= 4)
-                abort();
-            entry = header + 8 + 24 * i;
-            normal[0] = (uint16_t)(0u - rrj_u16(rrj_at(entry + 10, 2)));
-            normal[1] = rrj_u16(rrj_at(entry + 8, 2));
-            normal[2] = rrj_u16(rrj_at(entry + 6, 2));
-            planes[i] = junction_plane_distance(m, point, normal, entry + 12);
-            count = material_half(m, header + 2);
-        }
-        count = material_half(m, header + 2);
-        for (current = 0; rrj_s32(current) < rrj_s32(count); ++current)
-        {
-            following = rrj_s32(current) < rrj_s32(count - 1u) ? current + 1u : 0;
-            ++result;
-            if (rrj_s32(planes[current]) <= 0 && rrj_s32(planes[following]) > 0)
-                break;
-        }
-    }
-    if (rrj_s32(result) >= 0)
-    {
-        if (first)
-            *first = header + 24 * current + 8;
-        if (next)
-            *next = header + 24 * following + 8;
-    }
-    return result;
-}
-
-uint32_t sub_8003EB58(uint32_t point, uint32_t header, uint32_t first, uint32_t next, uint32_t hint)
-{
     FUNCTION_MARKER(0x8003EB58u, "SLUS_010.53");
-    uint32_t a = 0, b = 0, result = rrj_find_junction_planes_local(rrj_host_context(), point, header, &a, &b, hint);
-    if (rrj_s32(result) >= 0)
+    if ((int32_t)hint >= 0)
+    {
+        count = r_s16(header + 2u);
+        if ((int32_t)hint < count)
+        {
+            result = hint;
+            current = hint;
+            if ((int32_t)hint < count - 1)
+                following = hint + 1u;
+            goto outputs;
+        }
+    }
+    count = r_s16(header + 2u);
+    if (count > 0)
+    {
+        do
+        {
+            /* Reject input exceeding the original four-plane local buffer */
+            if (current >= 4u)
+                abort();
+            entry = header + 8u + 24u * current;
+            xport_store_le16(normal, (uint16_t)(0u - r_u16(entry + 10u)));
+            xport_store_le16((uint8_t *)normal + 2u, r_u16(entry + 8u));
+            xport_store_le16((uint8_t *)normal + 4u, r_u16(entry + 6u));
+            planes[current++] = sub_800B6AAC(xport_guest_cptr(point, 12), normal, xport_guest_cptr(entry + 12u, 12));
+            count = r_s16(header + 2u);
+        } while ((int32_t)current < count);
+        count = r_s16(header + 2u);
+    }
+    current = 0u;
+    if (count > 0)
+    {
+        do
+        {
+            following = (int32_t)current < count - 1 ? current + 1u : 0u;
+            ++result;
+            if ((int32_t)planes[current] <= 0 && (int32_t)planes[following] > 0)
+                break;
+            ++current;
+        } while ((int32_t)current < count);
+    }
+outputs:
+    if ((int32_t)result >= 0)
     {
         if (first)
-            rrj_write32(first, a);
+            xport_store_le32(first, header + 24u * current + 8u);
         if (next)
-            rrj_write32(next, b);
+            xport_store_le32(next, header + 24u * following + 8u);
     }
     return result;
 }
@@ -5206,35 +5017,35 @@ void sub_8003F204(uint32_t object, uint32_t hint)
     uint32_t header, first = 0, next = 0, index, segment, count, entry, i, a, b, found = 0;
     if (!object)
         return;
-    header = sub_80039AFC(rrj_read32(rrj_read32(object + 328)));
+    header = sub_80039AFC(r_u32(r_u32(object + 328)));
     if (!header)
         return;
-    index = rrj_find_junction_planes_local(rrj_host_context(), object + 184, header, &first, &next, hint);
-    if (rrj_s32(index) < 0)
+    index = sub_8003EB58(object + 184, header, &first, &next, hint);
+    if (((int32_t)(uint32_t)(index)) < 0)
         return;
-    segment = rrj_read32(object + 328);
-    count = material_half(rrj_host_context(), segment + 78);
-    if (rrj_s32(count) >= 4)
+    segment = r_u32(object + 328);
+    count = (uint32_t)r_s16((segment + 78));
+    if (((int32_t)(uint32_t)(count)) >= 4)
         count = 3;
-    entry = rrj_read32(segment + 92);
-    if (entry && rrj_s32(count) > 0)
+    entry = r_u32(segment + 92);
+    if (entry && ((int32_t)(uint32_t)(count)) > 0)
     {
-        for (i = 0; rrj_s32(i) < rrj_s32(count); ++i, entry += 20)
+        for (i = 0; ((int32_t)(uint32_t)(i)) < ((int32_t)(uint32_t)(count)); ++i, entry += 20)
         {
-            if (material_byte(rrj_host_context(), entry + 2) != 1)
+            if ((uint32_t)r_u8((entry + 2)) != 1)
                 continue;
-            a = material_byte(rrj_host_context(), entry + 8);
+            a = (uint32_t)r_u8((entry + 8));
             if (a == 255)
             {
-                if (index == material_byte(rrj_host_context(), entry + 3))
+                if (index == (uint32_t)r_u8((entry + 3)))
                     found = 1;
             }
             else
             {
-                b = material_half(rrj_host_context(), first + 4);
-                if (a == b && material_byte(rrj_host_context(), entry + 9) == material_half(rrj_host_context(), next + 4))
+                b = (uint32_t)r_s16((first + 4));
+                if (a == b && (uint32_t)r_u8((entry + 9)) == (uint32_t)r_s16((next + 4)))
                     found = 1;
-                else if (material_byte(rrj_host_context(), entry + 9) == b && a == material_half(rrj_host_context(), next + 4))
+                else if ((uint32_t)r_u8((entry + 9)) == b && a == (uint32_t)r_s16((next + 4)))
                     found = 1;
             }
             if (found)
@@ -5243,20 +5054,20 @@ void sub_8003F204(uint32_t object, uint32_t hint)
     }
     if (!found)
     {
-        rrj_write32(object + 496, 0);
+        w_u32(object + 496, 0);
         return;
     }
-    rrj_write32(object + 496, object + 500);
-    w_u8(object + 502, (uint8_t)material_byte(rrj_host_context(), entry));
-    rrj_put16(rrj_at(object + 500, 2), rrj_u16(rrj_at(entry + 4, 2)));
-    w_u8(object + 503, (uint8_t)material_byte(rrj_host_context(), entry + 6));
+    w_u32(object + 496, object + 500);
+    w_u8(object + 502, (uint8_t)r_u8(entry));
+    w_u16(object + 500, r_u16(entry + 4));
+    w_u8(object + 503, (uint8_t)r_u8((entry + 6)));
 }
 
 uint32_t sub_8003F1F0(uint32_t object)
 {
     FUNCTION_MARKER(0x8003F1F0u, "SLUS_010.53");
-    uint32_t result = rrj_read32(object + 340) + 44u;
-    rrj_write32(object + 492, result);
+    uint32_t result = r_u32(object + 340) + 44u;
+    w_u32(object + 492, result);
     return result;
 }
 
@@ -5267,178 +5078,208 @@ void sub_8003DF54(uint32_t object, uint32_t reset, uint32_t hint)
     uint32_t previous;
     if (reset == 1)
         (void)sub_8001E100(object + 492, 0, 12);
-    if (rrj_u16(rrj_at(object + 362, 2)) == 1)
+    if (r_u16(object + 362) == 1)
     {
-        previous = rrj_read32(object + 496);
-        rrj_write32(object + 492, 0);
+        previous = r_u32(object + 496);
+        w_u32(object + 492, 0);
         if (previous == 0xffffffffu)
-            rrj_write32(object + 496, 0);
+            w_u32(object + 496, 0);
         sub_8003F204(object, hint);
     }
     else
     {
-        previous = rrj_read32(object + 492);
-        rrj_write32(object + 496, 0);
+        previous = r_u32(object + 492);
+        w_u32(object + 496, 0);
         if (previous == 0xffffffffu)
-            rrj_write32(object + 492, 0);
+            w_u32(object + 492, 0);
         (void)sub_8003F1F0(object);
     }
 }
 
-/* 8003BD2C: lookup a directional junction link and its signed offset. */
-static uint32_t junction_link_lookup(RRJMemory *m, uint32_t record, uint32_t first, uint32_t next, uint32_t *offset, uint32_t *found, unsigned *written)
+uint32_t sub_8003BD2C(uint32_t record, uint32_t first, uint32_t next, uint32_t *offset, uint32_t *entry)
 {
-    uint32_t metadata, i = 0, manager, entry, link, index, table, value;
-    *written = 0;
+    uint32_t metadata, index = 0, manager, candidate, link, route, root, table, segment, value;
+    FUNCTION_MARKER(0x8003BD2C, "SLUS_010.53");
     if (!record)
         return 0;
-    metadata = rrj_read32(record + 24);
-    if (!metadata)
+    metadata = r_u32(record + 24);
+    if (!metadata || r_s16(metadata + 8) <= 0)
         return 0;
-    while (rrj_s32(i) < rrj_s32(material_half(m, metadata + 8)))
+    do
     {
-        index = material_half(m, metadata + 6) + i;
-        manager = rrj_read32(0x8005B240);
-        entry = rrj_read32(manager + 52) + 12u * index;
-        if (material_half(m, entry + 8) == first && material_half(m, entry + 10) == next)
+        segment = (uint32_t)r_s16(metadata + 6) + index;
+        manager = r_u32(0x8005B240);
+        candidate = r_u32(manager + 52) + 12 * segment;
+        if ((uint32_t)r_s16(candidate + 8) == first && (uint32_t)r_s16(candidate + 10) == next)
         {
-            link = rrj_read32(manager + 56) + 12u * material_half(m, entry + 2);
-            index = material_half(m, rrj_read32(record + 4) + 20) + material_half(m, link + 4);
-            table = rrj_read32(rrj_read32(record) + 48);
-            value = material_half(m, link + 8);
+            segment = (uint32_t)r_s16(candidate + 2);
+            link = r_u32(manager + 56) + 12 * segment;
+            route = r_u32(record + 4);
+            segment = (uint32_t)r_s16(link + 4) + (uint32_t)r_s16(route + 20);
+            root = r_u32(record);
+            value = (uint32_t)r_s16(link + 8);
+            table = r_u32(root + 48);
             *offset = value;
-            *found = entry;
-            *written = 1;
-            return table + 28u * index;
+            *entry = candidate;
+            return table + 28 * segment;
         }
-        metadata = rrj_read32(record + 24);
-        ++i;
-    }
+        metadata = r_u32(record + 24);
+        ++index;
+    } while ((int32_t)index < r_s16(metadata + 8));
     return 0;
-}
-
-uint32_t rrj_find_junction_link_local(RRJMemory *m, uint32_t record, uint32_t first, uint32_t next, uint32_t *offset, uint32_t *entry)
-{
-    unsigned written;
-    return junction_link_lookup(m, record, first, next, offset, entry, &written);
-}
-
-uint32_t sub_8003BD2C(uint32_t record, uint32_t first, uint32_t next, uint32_t offset, uint32_t entry)
-{
-    FUNCTION_MARKER(0x8003BD2Cu, "SLUS_010.53");
-    uint32_t a = 0, b = 0, result;
-    unsigned written;
-    result = junction_link_lookup(rrj_host_context(), record, first, next, &a, &b, &written);
-    if (written)
-    {
-        rrj_write32(offset, a);
-        rrj_write32(entry, b);
-    }
-    return result;
 }
 
 /* 8003E61C: signed fixed-point blend, truncating each product separately. */
 uint32_t sub_8003E61C(uint32_t weight, uint32_t first, uint32_t next)
 {
     FUNCTION_MARKER(0x8003E61Cu, "SLUS_010.53");
-    int64_t a = (int64_t)rrj_s32(65536u - weight) * (int64_t)rrj_s32(first);
-    int64_t b = (int64_t)rrj_s32(weight) * (int64_t)rrj_s32(next);
+    int64_t a = (int64_t)((int32_t)(uint32_t)(65536u - weight)) * (int64_t)((int32_t)(uint32_t)(first));
+    int64_t b = (int64_t)((int32_t)(uint32_t)(weight)) * (int64_t)((int32_t)(uint32_t)(next));
     return (uint32_t)((uint64_t)a >> 16) + (uint32_t)((uint64_t)b >> 16);
 }
 
-/* 8003E45C: interpolate two surface bands; actual eight-argument ABI. */
 uint32_t sub_8003E45C(uint32_t first, uint32_t next, uint32_t weight, uint32_t position, uint32_t side_a, uint32_t side_b, uint32_t reference, uint32_t output)
 {
-    FUNCTION_MARKER(0x8003E45Cu, "SLUS_010.53");
-    uint32_t a = first + (side_a == 2 ? 136u : 8u), b = next + (side_b == 2 ? 136u : 8u), main_width, inner, x, y, ca, cb, value;
-    if (rrj_s32(position ^ reference) < 0)
+    uint32_t a, b, main_width, inner, x, y, sign, magnitude, value;
+    int32_t count_a, count_b;
+    FUNCTION_MARKER(0x8003E45C, "SLUS_010.53");
+    if ((int32_t)(position ^ reference) < 0)
         position = 0;
-    position = surface_magnitude(position);
-    main_width = sub_8003E61C(weight, surface_magnitude(rrj_read32(a + 8)), surface_magnitude(rrj_read32(b + 8)));
+    sign = (uint32_t)((int32_t)position >> 31);
+    position = (position + sign) ^ sign;
+    a = first + (side_a == 2 ? 136 : 8);
+    b = next + (side_b == 2 ? 136 : 8);
+    x = r_u32(a + 8);
+    y = r_u32(b + 8);
+    sign = (uint32_t)((int32_t)x >> 31);
+    x = (x + sign) ^ sign;
+    sign = (uint32_t)((int32_t)y >> 31);
+    y = (y + sign) ^ sign;
+    main_width = sub_8003E61C(weight, x, y);
     inner = main_width;
-    x = surface_magnitude(rrj_read32(a + 8));
-    y = surface_magnitude(rrj_read32(b + 8));
-    ca = material_half(rrj_host_context(), a + 2);
-    if (rrj_s32(ca) > 0)
+    x = r_u32(a + 8);
+    y = r_u32(b + 8);
+    sign = (uint32_t)((int32_t)x >> 31);
+    x = (x + sign) ^ sign;
+    sign = (uint32_t)((int32_t)y >> 31);
+    y = (y + sign) ^ sign;
+    count_a = r_s16(a + 2);
+    if (count_a > 0)
     {
-        x = surface_magnitude(rrj_read32(a + 24));
-        cb = material_half(rrj_host_context(), b + 2);
-        if (cb)
-            y = surface_magnitude(rrj_read32(b + 24));
+        x = r_u32(a + 24);
+        sign = (uint32_t)((int32_t)x >> 31);
+        x = (x + sign) ^ sign;
+        count_b = r_s16(b + 2);
+        goto interpolate_inner;
+    }
+    count_b = r_s16(b + 2);
+    if (count_b > 0)
+    {
+        if (count_a)
+        {
+            x = r_u32(a + 24);
+            sign = (uint32_t)((int32_t)x >> 31);
+            x = (x + sign) ^ sign;
+            count_b = r_s16(b + 2);
+        }
+interpolate_inner:
+        if (count_b)
+        {
+            y = r_u32(b + 24);
+            sign = (uint32_t)((int32_t)y >> 31);
+            y = (y + sign) ^ sign;
+        }
         inner = sub_8003E61C(weight, x, y);
     }
-    else
+    sign = (uint32_t)((int32_t)inner >> 31);
+    magnitude = (inner + sign) ^ sign;
+    if ((int32_t)position < (int32_t)magnitude)
     {
-        cb = material_half(rrj_host_context(), b + 2);
-        if (rrj_s32(cb) > 0)
-        {
-            if (ca)
-                x = surface_magnitude(rrj_read32(a + 24));
-            y = surface_magnitude(rrj_read32(b + 24));
-            inner = sub_8003E61C(weight, x, y);
-        }
-    }
-    if (rrj_s32(position) < rrj_s32(surface_magnitude(inner)))
-    {
-        rrj_put16(rrj_at(output + 2, 2), 1);
-        rrj_write32(output + 4, 0);
-        rrj_put16(rrj_at(output, 2), 4);
+        w_u16(output + 2, 1);
+        w_u32(output + 4, 0);
+        w_u16(output, 4);
         return 0;
     }
-    if (rrj_s32(position) < rrj_s32(surface_magnitude(main_width)))
+    sign = (uint32_t)((int32_t)main_width >> 31);
+    magnitude = (main_width + sign) ^ sign;
+    if ((int32_t)position < (int32_t)magnitude)
     {
-        rrj_write32(output + 4, inner);
-        value = rrj_u16(rrj_at(a + 18, 2));
-        rrj_put16(rrj_at(output, 2), 1);
-        rrj_put16(rrj_at(output + 2, 2), value);
+        w_u32(output + 4, inner);
+        value = r_u16(a + 18);
+        w_u16(output, 1);
+        w_u16(output + 2, (uint16_t)value);
         return 0;
     }
-    rrj_write32(output + 4, main_width);
-    rrj_put16(rrj_at(output + 2, 2), 0);
-    rrj_put16(rrj_at(output, 2), 0);
+    w_u32(output + 4, main_width);
+    w_u16(output + 2, 0);
+    w_u16(output, 0);
     return 1;
 }
 
-/* 8003ED14: compose an interpolated junction surface contact (nine args). */
 uint32_t sub_8003ED14(uint32_t first, uint32_t interval, uint32_t orientation_a, uint32_t orientation_b, uint32_t next, uint32_t position, uint32_t weight, uint32_t output, uint32_t reference)
 {
-    FUNCTION_MARKER(0x8003ED14u, "SLUS_010.53");
-    uint32_t side_a = rrj_s32(orientation_a) > 0 ? 1u : 2u, side_b = rrj_s32(orientation_b) > 0 ? 2u : 1u;
-    uint32_t a = first + (side_a == 2 ? 136u : 8u), b = next + (side_b == 2 ? 136u : 8u), width, material, flags, value, old;
-    width = sub_8003E61C(weight, surface_magnitude(rrj_read32(a + 8)), surface_magnitude(rrj_read32(b + 8)));
-    material = rrj_u16(rrj_at(a + 4, 2));
+    uint32_t side_a, side_b, a, b, x, y, sign, width, material, flags, value, old;
+    FUNCTION_MARKER(0x8003ED14, "SLUS_010.53");
+    side_a = (int32_t)orientation_a > 0 ? 1 : 2;
+    side_b = (int32_t)orientation_b > 0 ? 2 : 1;
+    a = first + (side_a == 2 ? 136 : 8);
+    b = next + (side_b == 2 ? 136 : 8);
+    x = r_u32(a + 8);
+    y = r_u32(b + 8);
+    sign = (uint32_t)((int32_t)x >> 31);
+    x = (x + sign) ^ sign;
+    sign = (uint32_t)((int32_t)y >> 31);
+    y = (y + sign) ^ sign;
+    width = sub_8003E61C(weight, x, y);
+    material = r_u16(a + 4);
     flags = sub_8003E45C(first, next, weight, position, side_a, side_b, reference, output + 20);
-    value = sub_8003E61C(weight, rrj_read32(first + 4), rrj_read32(next + 4));
-    rrj_write32(output + 28, 0);
-    rrj_put16(rrj_at(output + 36, 2), 0);
-    rrj_write32(output + 40, width);
-    old = rrj_read32(output + 16);
-    rrj_write32(output + 52, value);
-    rrj_write32(output, first);
-    rrj_write32(output + 4, interval);
-    rrj_write32(output + 8, next);
-    rrj_write32(output + 12, interval);
-    rrj_write32(output + 16, (old & 0xfffffff0u) | flags);
-    rrj_put16(rrj_at(output + 48, 2), material);
+    x = r_u32(first + 4);
+    y = r_u32(next + 4);
+    value = sub_8003E61C(weight, x, y);
+    w_u32(output + 28, 0);
+    w_u16(output + 36, 0);
+    w_u32(output + 40, width);
+    old = r_u32(output + 16);
+    w_u32(output + 52, value);
+    w_u32(output, first);
+    w_u32(output + 4, interval);
+    w_u32(output + 8, next);
+    w_u32(output + 12, interval);
+    w_u32(output + 16, (old & 0xFFFFFFF0) | flags);
+    w_u16(output + 48, (uint16_t)material);
     return 0;
 }
 
-/* 80036800: optional lateral/longitudinal projections; callers ignore v0. */
-void sub_80036800(uint32_t point, uint32_t piece, uint32_t lateral, uint32_t longitudinal)
+void sub_80036800(uint32_t point, uint32_t piece, uint32_t *lateral, uint32_t *longitudinal)
 {
-    FUNCTION_MARKER(0x80036800u, "SLUS_010.53");
+    uint32_t sum, delta, axis;
+    int32_t normal;
+    int64_t product;
+    FUNCTION_MARKER(0x80036800, "SLUS_010.53");
     if (lateral)
-        rrj_write32(lateral, sub_800B6AAC(rrj_at(point, 12), rrj_at(piece + 2, 6), rrj_at(piece + 20, 12)));
+    {
+        sum = 0;
+        for (axis = 0; axis < 3; ++axis)
+        {
+            normal = r_s16(piece + 2 + 2 * axis);
+            delta = r_u32(point + 4 * axis) - r_u32(piece + 20 + 4 * axis);
+            product = (int64_t)(normal * 16) * (int32_t)delta;
+            sum += (uint32_t)((uint64_t)product >> 16);
+        }
+        *lateral = sum;
+    }
     if (longitudinal)
-        rrj_write32(longitudinal, sub_800B6AAC(rrj_at(point, 12), rrj_at(piece + 14, 6), rrj_at(piece + 20, 12)));
-}
-
-void rrj_project_track_local(RRJMemory *m, uint32_t point, uint32_t piece, uint32_t *lateral, uint32_t *longitudinal)
-{
-    if (lateral)
-        *lateral = sub_800B6AAC(rrj_at(point, 12), rrj_at(piece + 2, 6), rrj_at(piece + 20, 12));
-    if (longitudinal)
-        *longitudinal = sub_800B6AAC(rrj_at(point, 12), rrj_at(piece + 14, 6), rrj_at(piece + 20, 12));
+    {
+        sum = 0;
+        for (axis = 0; axis < 3; ++axis)
+        {
+            normal = r_s16(piece + 14 + 2 * axis);
+            delta = r_u32(point + 4 * axis) - r_u32(piece + 20 + 4 * axis);
+            product = (int64_t)(normal * 16) * (int32_t)delta;
+            sum += (uint32_t)((uint64_t)product >> 16);
+        }
+        *longitudinal = sum;
+    }
 }
 
 /* 8003697C: distance from a segment start or its opposite endpoint. */
@@ -5448,22 +5289,22 @@ uint32_t sub_8003697C(uint32_t previous, uint32_t direction, uint32_t piece, uin
     uint32_t origin[3], axis[3], i, length, result = 0;
     for (i = 0; i < 3; ++i)
     {
-        origin[i] = rrj_read32(piece + 20 + 4 * i);
-        axis[i] = material_half(rrj_host_context(), piece + 14 + 2 * i) << 4;
+        origin[i] = r_u32(piece + 20 + 4 * i);
+        axis[i] = (uint32_t)r_s16((piece + 14 + 2 * i)) << 4;
     }
-    if (rrj_s32(direction) <= 0 && previous != direction)
+    if (((int32_t)(uint32_t)(direction)) <= 0 && previous != direction)
     {
-        length = rrj_read32(piece + 32);
+        length = r_u32(piece + 32);
         for (i = 0; i < 3; ++i)
         {
-            int64_t product = (int64_t)rrj_s32(axis[i]) * (int64_t)rrj_s32(length);
+            int64_t product = (int64_t)((int32_t)(uint32_t)(axis[i])) * (int64_t)((int32_t)(uint32_t)(length));
             origin[i] += (uint32_t)((uint64_t)product >> 16);
         }
     }
     for (i = 0; i < 3; ++i)
     {
-        uint32_t delta = rrj_read32(point + 4 * i) - origin[i];
-        int64_t product = (int64_t)rrj_s32(axis[i]) * (int64_t)rrj_s32(delta);
+        uint32_t delta = r_u32(point + 4 * i) - origin[i];
+        int64_t product = (int64_t)((int32_t)(uint32_t)(axis[i])) * (int64_t)((int32_t)(uint32_t)(delta));
         result += (uint32_t)((uint64_t)product >> 16);
     }
     return result;
@@ -5473,8 +5314,8 @@ uint32_t sub_8003697C(uint32_t previous, uint32_t direction, uint32_t piece, uin
 uint32_t sub_8001FC58(void)
 {
     FUNCTION_MARKER(0x8001FC58u, "SLUS_010.53");
-    uint32_t value = rrj_read32(0x8005B4A8u) * 1664525u + 1013904223u;
-    rrj_write32(0x8005B4A8u, value);
+    uint32_t value = r_u32(0x8005B4A8u) * 1664525u + 1013904223u;
+    w_u32(0x8005B4A8u, value);
     return value;
 }
 
@@ -5485,13 +5326,13 @@ uint32_t sub_80039C38(uint32_t link)
     uint32_t index, manager;
     if (!link)
         return 0;
-    index = material_half(rrj_host_context(), link + 2);
-    if (rrj_s32(index) < 0)
+    index = (uint32_t)r_s16((link + 2));
+    if (((int32_t)(uint32_t)(index)) < 0)
         return 0;
-    manager = rrj_read32(0x8005B240u);
-    if (rrj_s32(index) >= rrj_s32(material_half(rrj_host_context(), manager + 64)))
+    manager = r_u32(0x8005B240u);
+    if (((int32_t)(uint32_t)(index)) >= ((int32_t)(uint32_t)((uint32_t)r_s16((manager + 64)))))
         return 0;
-    return rrj_read32(manager + 56) + 12u * index;
+    return r_u32(manager + 56) + 12u * index;
 }
 
 /* 8003F580: membership in a route's signed-count road list. */
@@ -5499,12 +5340,12 @@ uint32_t sub_8003F580(uint32_t record, uint32_t road)
 {
     FUNCTION_MARKER(0x8003F580u, "SLUS_010.53");
     uint32_t count, i;
-    if (!record || rrj_s32(road) < 0)
+    if (!record || ((int32_t)(uint32_t)(road)) < 0)
         return 0;
-    count = rrj_read32(record + 16);
-    for (i = 0; rrj_s32(i) < rrj_s32(count); ++i)
+    count = r_u32(record + 16);
+    for (i = 0; ((int32_t)(uint32_t)(i)) < ((int32_t)(uint32_t)(count)); ++i)
     {
-        if (rrj_read32(record + 84) == road)
+        if (r_u32(record + 84) == road)
             return 1;
         record += 4;
     }
@@ -5516,63 +5357,63 @@ uint32_t sub_8003F5D0(uint32_t road)
 {
     FUNCTION_MARKER(0x8003F5D0u, "SLUS_010.53");
     uint32_t i = 0, offset = 0, record;
-    if (rrj_s32(material_half(rrj_host_context(), 0x800D6182u) + 1u) <= 0)
+    if (((int32_t)(uint32_t)((uint32_t)r_s16(0x800D6182u) + 1u)) <= 0)
         return 0;
     do
     {
-        record = rrj_read32(0x800D6194u) + offset;
+        record = r_u32(0x800D6194u) + offset;
         if (sub_8003F580(record, road))
             return record;
         ++i;
         offset += 120;
-    } while (rrj_s32(i) < rrj_s32(material_half(rrj_host_context(), 0x800D6182u) + 1u));
+    } while (((int32_t)(uint32_t)(i)) < ((int32_t)(uint32_t)((uint32_t)r_s16(0x800D6182u) + 1u)));
     return 0;
 }
 
 /* 8003C840/8003C948: resolve the loaded segment beyond either endpoint. */
-static uint32_t adjacent_track_segment(RRJMemory *m, uint32_t segment, uint32_t link_id, unsigned backward)
+static uint32_t adjacent_track_segment(uint32_t segment, uint32_t link_id, unsigned backward)
 {
-    uint32_t record = sub_80039A08(rrj_read32(segment)), target = 0xffffffffu, header, link;
+    uint32_t record = sub_80039A08(r_u32(segment)), target = 0xffffffffu, header, link;
     if (!record)
         return 0;
-    if (!material_half(m, record + 4))
+    if (!(uint32_t)r_s16((record + 4)))
     {
-        header = sub_80039AA0(rrj_read32(segment));
+        header = sub_80039AA0(r_u32(segment));
         if (header)
-            target = material_half(m, header + (backward ? 4u : 2u));
+            target = (uint32_t)r_s16((header + (backward ? 4u : 2u)));
     }
     else
     {
-        header = sub_80039AFC(rrj_read32(segment));
+        header = sub_80039AFC(r_u32(segment));
         if (header)
         {
-            if (!rrj_read32(record + 28))
-                target = material_half(m, header + 6);
+            if (!r_u32(record + 28))
+                target = (uint32_t)r_s16((header + 6));
             else
             {
                 link = sub_8003A37C(header, link_id);
                 if (link)
                 {
-                    unsigned positive = rrj_s32(material_half(m, link + 2)) > 0;
-                    target = material_half(m, ((positive != backward) ? link : header + 6));
+                    unsigned positive = ((int32_t)(uint32_t)((uint32_t)r_s16((link + 2)))) > 0;
+                    target = (uint32_t)r_s16((((positive != backward) ? link : header + 6)));
                 }
             }
         }
     }
     record = sub_80039A08(target);
-    return record ? rrj_read32(record + 12) : 0;
+    return record ? r_u32(record + 12) : 0;
 }
 
 uint32_t sub_8003C840(uint32_t actor, uint32_t segment, uint32_t link_id)
 {
     FUNCTION_MARKER(0x8003C840u, "SLUS_010.53");
-    return adjacent_track_segment(rrj_host_context(), segment, link_id, 0);
+    return adjacent_track_segment(segment, link_id, 0);
 }
 
 uint32_t sub_8003C948(uint32_t actor, uint32_t segment, uint32_t link_id)
 {
     FUNCTION_MARKER(0x8003C948u, "SLUS_010.53");
-    return adjacent_track_segment(rrj_host_context(), segment, link_id, 1);
+    return adjacent_track_segment(segment, link_id, 1);
 }
 
 /* 8003F408: find an explicitly connected route; table count is exclusive. */
@@ -5580,24 +5421,24 @@ uint32_t sub_8003F408(uint32_t record, uint32_t id)
 {
     FUNCTION_MARKER(0x8003F408u, "SLUS_010.53");
     uint32_t result = 0, count, i, n, j, p;
-    if (material_half(rrj_host_context(), 0x800D6182u) == 0xffffffffu)
+    if ((uint32_t)r_s16(0x800D6182u) == 0xffffffffu)
         return 0;
     if (!record || id == 0xffffffffu)
         return 0;
-    if (rrj_read32(record) == id)
+    if (r_u32(record) == id)
         return record;
-    count = rrj_read32(record + 16);
-    for (i = 0; rrj_s32(i) < rrj_s32(count); ++i, record += 4)
+    count = r_u32(record + 16);
+    for (i = 0; ((int32_t)(uint32_t)(i)) < ((int32_t)(uint32_t)(count)); ++i, record += 4)
     {
-        if (rrj_read32(record + 100) != id)
+        if (r_u32(record + 100) != id)
             continue;
-        n = material_half(rrj_host_context(), 0x800D6182u);
-        if (rrj_s32(n) <= 0)
+        n = (uint32_t)r_s16(0x800D6182u);
+        if (((int32_t)(uint32_t)(n)) <= 0)
             continue;
-        p = rrj_read32(0x800D6194u);
-        for (j = 0; rrj_s32(j) < rrj_s32(n); ++j, p += 120)
+        p = r_u32(0x800D6194u);
+        for (j = 0; ((int32_t)(uint32_t)(j)) < ((int32_t)(uint32_t)(n)); ++j, p += 120)
         {
-            if (rrj_read32(p) == id)
+            if (r_u32(p) == id)
             {
                 result = p;
                 break;
@@ -5608,174 +5449,151 @@ uint32_t sub_8003F408(uint32_t record, uint32_t id)
 }
 
 /* 8003CCA0: choose a candidate road for a player or pursuing actor. */
-static uint32_t actor_route_choice_ref(RRJMemory *m, uint32_t actor, RRJTrackWords candidates, uint32_t count)
+
+uint32_t sub_8003CCA0(uint32_t actor, const uint32_t candidates[24], uint32_t count)
 {
-    uint32_t desired = 0xffffffffu, result = count - 2u, identity, target, route, index = 0, i, player, road;
-    if (rrj_u16(rrj_at(actor + 172, 2)) >= rrj_read32(rrj_read32(0x8005B2F8u) + 48) && (material_byte(m, rrj_read32(actor + 1084) + 1) & 15u) == 2 && rrj_s32(rrj_read32(actor + 480)) < 131)
+    uint32_t desired = 0xFFFFFFFF, result = count - 2;
+    uint32_t identity, target, road, random_index = 0, selected_route, index;
+    int player;
+
+    FUNCTION_MARKER(0x8003CCA0, "SLUS_010.53");
+    if (r_u16(actor + 172) >= r_u32(r_u32(0x8005B2F8) + 48) && (r_u8(r_u32(actor + 1084) + 1) & 15) == 2 && r_s32(actor + 480) < 131)
     {
-        index = material_byte(m, actor + 946);
-        if (index & 128u)
-            index |= 0xffffff00u;
-        identity = rrj_u16(rrj_at(actor + 958 + 8u * (index - 1u), 2));
+        index = (uint32_t)(int32_t)r_s8(actor + 946);
+        identity = r_u16(actor + 8 * (index - 1) + 958);
         if (identity != 224 && !(identity >> 5))
         {
-            target = rrj_read32(0x8005B3A0u) + 1096u * identity;
+            target = r_u32(0x8005B3A0) + 1096 * identity;
             if (target)
-                desired = rrj_u16(rrj_at(target + 360, 2));
+                desired = r_u16(target + 360);
         }
     }
-    if (material_half(m, 0x800D6182u) == 0xffffffffu)
-    {
+    if (r_s16(0x800D6182) == -1)
         return count == 2 ? sub_8001FC58() % count : result;
-    }
-    route = sub_8003F408(rrj_read32(actor + 428), rrj_read32(track_read(m, candidates, 0) + 8));
-    if (!route)
+    road = candidates[0];
+    target = r_u32(actor + 428);
+    road = r_u32(road + 8);
+    selected_route = sub_8003F408(target, road);
+    if (!selected_route)
         return result;
-    index = 0;
-    if (rrj_s32(rrj_read32(route + 16)) >= 2)
+    if (r_s32(selected_route + 16) >= 2)
     {
-        index = sub_8001FC58();
-        if (count)
-            index %= count;
+        uint32_t random = sub_8001FC58();
+        random_index = count ? random % count : random;
     }
-    if (rrj_s32(count) <= 0)
+    if ((int32_t)count <= 0)
         return result;
-    target = route + 4u * index;
-    player = rrj_u16(rrj_at(actor + 172, 2)) < rrj_read32(rrj_read32(0x8005B2F8u) + 48);
-    for (i = 0; rrj_s32(i) < rrj_s32(count); ++i, candidates = track_offset(candidates, 32))
+    target = selected_route + 4 * random_index;
+    player = r_u16(actor + 172) < r_u32(r_u32(0x8005B2F8) + 48);
+    for (index = 0; (int32_t)index < (int32_t)count; ++index)
     {
-        if (!player && (material_byte(m, rrj_read32(actor + 1084) + 1) & 15u) == 2 && desired != 0xffffffffu)
+        if (!player && (r_u8(r_u32(actor + 1084) + 1) & 15) == 2 && desired != 0xFFFFFFFF)
         {
-            road = material_half(m, track_read(m, candidates, 28) + 10);
+            road = (uint32_t)(int32_t)r_s16(candidates[8 * index + 7] + 10);
             if (road == desired)
-                return i;
+                return index;
         }
         else
         {
-            road = material_half(m, track_read(m, candidates, 28) + 10);
-            if (road == rrj_read32(target + 84))
-                return i;
+            road = (uint32_t)(int32_t)r_s16(candidates[8 * index + 7] + 10);
+            if (road == r_u32(target + 84))
+                return index;
         }
     }
     return result;
 }
 
-uint32_t sub_8003CCA0(uint32_t actor, uint32_t candidates, uint32_t count)
+uint32_t sub_80039048(uint32_t identity_ptr, uint32_t candidates[24], uint32_t directions[3], uint32_t count, uint32_t output[8], uint32_t *direction_out)
 {
-    FUNCTION_MARKER(0x8003CCA0u, "SLUS_010.53");
-    return actor_route_choice_ref(rrj_host_context(), actor, track_ram(candidates), count);
-}
+    uint32_t kind = 6, actor = 0, index = 0xFFFFFFFF, desired = 0xFFFFFFFF;
+    uint32_t identity, traffic, player, road, value, old, current;
 
-uint32_t rrj_actor_route_choice_local(RRJMemory *m, uint32_t actor, uint32_t candidates[24], uint32_t count)
-{
-    return actor_route_choice_ref(m, actor, track_local(candidates), count);
-}
-
-static unsigned excluded_route_road(uint32_t road)
-{
-    return road == 11 || road == 12 || road == 20 || road == 26;
-}
-
-/* 80039048: select and commit a candidate track record (six arguments). */
-static void track_copy_record(RRJMemory *m, RRJTrackWords output, RRJTrackWords source)
-{
-    uint32_t i;
-    if (!output.local && !source.local)
-    {
-        (void)sub_8001E0B4(output.address, source.address, 32);
-        return;
-    }
-    for (i = 0; i < 8; ++i)
-        track_write(m, output, 4 * i, track_read(m, source, 4 * i));
-}
-
-static uint32_t commit_track_ref(RRJMemory *m, uint32_t identity_ptr, RRJTrackWords candidates, RRJTrackWords directions, uint32_t count, RRJTrackWords output, RRJTrackWords direction_out, RRJTrackWords previous, RRJTrackWords previous_direction)
-{
-    uint32_t kind = 6, actor = 0, identity = 0, index = 0xffffffffu, value, old, traffic, desired = 0xffffffffu, i, p, road;
-    RRJTrackWords cursor, selected;
+    FUNCTION_MARKER(0x80039048, "SLUS_010.53");
     if (identity_ptr)
     {
-        identity = rrj_u16(rrj_at(identity_ptr, 2));
+        identity = r_u16(identity_ptr);
         kind = identity >> 5;
         if (!kind)
-            actor = rrj_read32(0x8005B3A0u) + 1096u * identity;
+            actor = r_u32(0x8005B3A0) + 1096 * identity;
     }
-    if (!track_read(m, candidates, 28))
+    if (!candidates[7])
     {
-        if (actor && rrj_read32(actor + 356))
+        if (actor && r_u32(actor + 356))
         {
             w_u8(actor + 947, 255);
-            rrj_write32(actor + 948, 0);
-            rrj_write32(actor + 952, 0);
+            w_u32(actor + 948, 0);
+            w_u32(actor + 952, 0);
         }
-        if (track_read(m, output, 8) == track_read(m, candidates, 8))
-            track_write(m, output, 12, track_read(m, candidates, 12));
+        if (output[2] == candidates[2])
+            output[3] = candidates[3];
         else
-            track_copy_record(m, output, candidates);
-        value = track_read(m, directions, 0);
-        if (value == 1 || value == 0xffffffffu)
-            track_write(m, direction_out, 0, value);
-        return track_read(m, output, 12);
+            (void)sub_8001E0B4(output, candidates, 32);
+        value = directions[0];
+        if (value == 1 || value == 0xFFFFFFFF)
+            *direction_out = value;
+        return output[3];
     }
-    if (rrj_s32(count) < 2)
+    if ((int32_t)count < 2)
     {
-        if (track_read(m, output, 8) == track_read(m, candidates, 8))
-            track_write(m, output, 12, track_read(m, candidates, 12));
+        if (output[2] == candidates[2])
+            output[3] = candidates[3];
         else
         {
-            track_copy_record(m, output, candidates);
-            track_write(m, direction_out, 0, track_read(m, directions, 0));
+            (void)sub_8001E0B4(output, candidates, 32);
+            *direction_out = directions[0];
         }
-        return track_read(m, output, 12);
+        return output[3];
     }
     if (kind == 3)
     {
-        traffic = 0x800CF660u + 512u * (identity & 31u);
-        if (sub_8003F3B4(rrj_read32(track_read(m, candidates, 4) + 12)))
+        identity = r_u16(identity_ptr);
+        traffic = 0x800CF660 + 512 * (identity & 31);
+        if (sub_8003F3B4(r_u32(candidates[1] + 12)))
         {
-            if ((material_byte(m, rrj_read32(0x8005B2F8u) + 4) & 1u) && !rrj_read32(traffic + 180))
+            if ((r_u8(r_u32(0x8005B2F8) + 4) & 1) && !r_u32(traffic + 180))
             {
-                value = material_byte(m, traffic + 511);
-                if (rrj_s32(value) < rrj_s32(rrj_read32(0x8005B1F8u)))
+                player = r_u8(traffic + 511);
+                if ((int32_t)player < r_s32(0x8005B1F8))
                 {
-                    p = rrj_read32(0x8005B3A0u) + 1096u * value;
-                    if (p)
+                    current = r_u32(0x8005B3A0) + 1096 * player;
+                    if (current)
                     {
-                        value = rrj_read32(p + 360);
+                        value = r_u32(current + 360);
                         if (!(value >> 16))
                             desired = value;
                     }
                 }
             }
-            for (i = 0, cursor = candidates; rrj_s32(i) < rrj_s32(count); ++i, cursor = track_offset(cursor, 32))
+            for (current = 0; (int32_t)current < (int32_t)count; ++current)
             {
-                value = material_byte(m, rrj_read32(0x8005B2F8u) + 4);
-                road = material_half(m, track_read(m, cursor, 28) + 10);
-                if (value & 16u)
+                value = r_u8(r_u32(0x8005B2F8) + 4);
+                road = (uint32_t)(int32_t)r_s16(candidates[8 * current + 7] + 10);
+                if (value & 16)
                 {
-                    if (sub_8003F5D0(road) && !excluded_route_road(road))
+                    if (sub_8003F5D0(road) && road - 11 >= 2 && road != 20 && road != 26)
                     {
-                        index = i;
+                        index = current;
                         break;
                     }
                 }
-                else if ((desired != 0xffffffffu && road == desired) || sub_8003F5D0(road))
+                else if ((desired != 0xFFFFFFFF && road == desired) || sub_8003F5D0(road))
                 {
-                    index = i;
+                    index = current;
                     break;
                 }
             }
         }
-        if (index == 0xffffffffu)
+        if (index == 0xFFFFFFFF)
         {
-            if (material_byte(m, rrj_read32(0x8005B2F8u) + 4) & 16u)
+            if (r_u8(r_u32(0x8005B2F8) + 4) & 16)
             {
-                for (i = 0, cursor = candidates; rrj_s32(i) < rrj_s32(count); ++i, cursor = track_offset(cursor, 32))
+                for (current = 0; (int32_t)current < (int32_t)count; ++current)
                 {
-                    road = material_half(m, track_read(m, cursor, 28) + 10);
-                    if (!excluded_route_road(road))
+                    value = r_u16(candidates[8 * current + 7] + 10);
+                    road = (uint32_t)(int32_t)(int16_t)value;
+                    if (value - 11 >= 2 && road != 20 && road != 26)
                     {
-                        index = i;
+                        index = current;
                         break;
                     }
                 }
@@ -5788,118 +5606,70 @@ static uint32_t commit_track_ref(RRJMemory *m, uint32_t identity_ptr, RRJTrackWo
         index = sub_8001FC58() % count;
     else if (actor)
     {
-        if (rrj_u16(rrj_at(actor + 172, 2)) < rrj_read32(rrj_read32(0x8005B2F8u) + 48) || (material_byte(m, rrj_read32(actor + 1084) + 1) & 15u) != 2)
+        if (r_u16(actor + 172) < r_u32(r_u32(0x8005B2F8) + 48) || (r_u8(r_u32(actor + 1084) + 1) & 15) != 2)
         {
-            old = rrj_read32(actor + 948);
+            old = r_u32(actor + 948);
             if (old)
             {
-                if (material_half(m, old + 2) == material_half(m, track_read(m, candidates, 24) + 2))
-                {
-                    index = material_byte(m, actor + 947);
-                    if (index & 128u)
-                        index |= 0xffffff00u;
-                }
+                int32_t old_route = r_s16(old + 2);
+                int32_t next_route = r_s16(candidates[6] + 2);
+                if (old_route == next_route)
+                    index = (uint32_t)(int32_t)r_s8(actor + 947);
                 else
                 {
                     w_u8(actor + 947, 255);
-                    rrj_write32(actor + 948, 0);
-                    rrj_write32(actor + 952, 0);
+                    w_u32(actor + 948, 0);
+                    w_u32(actor + 952, 0);
                 }
             }
         }
-        if (index == 0xffffffffu)
-            index = actor_route_choice_ref(m, actor, candidates, count);
+        if (index == 0xFFFFFFFF)
+            index = sub_8003CCA0(actor, candidates, count);
     }
-    if (candidates.local)
-    {
-        if (index == 0xffffffffu)
-            selected = previous;
-        else
-        {
-            if (index >= 3)
-                abort();
-            selected = track_offset(candidates, 32u * index);
-        }
-    }
-    else
-        selected = track_offset(candidates, 32u * index);
-    track_copy_record(m, output, selected);
-    if (directions.local && index == 0xffffffffu && !previous_direction.local)
-        abort(); /* Original caller reads an undefined stack word. */
-    value = directions.local && index == 0xffffffffu ? track_read(m, previous_direction, 0) : track_read(m, directions, 4u * index);
-    track_write(m, direction_out, 0, value);
-    if (actor && !rrj_read32(actor + 948))
+    /* Repair the original out-of-range route selection without reading before either array */
+    if (index >= count)
+        index = 0;
+    (void)sub_8001E0B4(output, candidates + 8 * index, 32);
+    *direction_out = directions[index];
+    if (actor && !r_u32(actor + 948))
     {
         w_u8(actor + 947, (uint8_t)index);
-        rrj_write32(actor + 948, track_read(m, output, 24));
-        rrj_write32(actor + 952, track_read(m, output, 28));
+        w_u32(actor + 948, output[6]);
+        w_u32(actor + 952, output[7]);
     }
-    return track_read(m, output, 12);
+    return output[3];
 }
 
-/* 80039BB0: gather matching links, preserving the original inclusive limit. */
-uint32_t sub_80039048(uint32_t identity_ptr, uint32_t candidates[24], uint32_t directions[3], uint32_t count, uint32_t output[8], uint32_t *direction_out)
+uint32_t sub_80039BB0(uint32_t metadata, uint32_t id, uint32_t *output, uint32_t limit)
 {
-    FUNCTION_MARKER(0x80039048u, "SLUS_010.53");
-    return commit_track_ref(rrj_host_context(), identity_ptr, track_local(candidates), track_local(directions), count, track_local(output), track_local(direction_out), track_local((uint32_t *)((uint8_t *)candidates - 32)), track_local((uint32_t *)((uint8_t *)directions - 4)));
-}
-
-uint32_t rrj_commit_track_local(RRJMemory *m, uint32_t identity_ptr, uint32_t candidates[24], uint32_t directions[3], uint32_t count, uint32_t output[8], uint32_t *direction_out, uint32_t previous[8], uint32_t *previous_direction)
-{
-    return commit_track_ref(m, identity_ptr, track_local(candidates), track_local(directions), count, track_local(output), track_local(direction_out), track_local(previous), track_local(previous_direction));
-}
-
-static uint32_t collect_route_links(RRJMemory *m, uint32_t metadata, uint32_t id, uint32_t output, uint32_t limit, uint32_t *local, uint32_t capacity)
-{
-    uint32_t matches = 0, i = 0, manager, entry, index;
-    if (!metadata || rrj_s32(material_half(m, metadata + 8)) <= 0)
+    uint32_t matches = 0, index = 0, manager, entry;
+    FUNCTION_MARKER(0x80039BB0, "SLUS_010.53");
+    if (!metadata || r_s16(metadata + 8) <= 0)
         return 0;
-    manager = rrj_read32(0x8005B240u);
+    manager = r_u32(0x8005B240);
     do
     {
-        index = material_half(m, metadata + 6) + i;
-        entry = rrj_read32(manager + 52) + 12u * index;
-        if (material_half(m, entry + 8) == id)
+        entry = r_u32(manager + 52) + 12 * ((uint32_t)r_s16(metadata + 6) + index);
+        if ((uint32_t)r_s16(entry + 8) == id)
         {
-            if (rrj_s32(limit) < rrj_s32(matches))
-                return 0xffffffffu;
-            if (local)
-            {
-                if (matches >= capacity)
-                    abort();
-                local[matches] = entry;
-            }
-            else
-            {
-                rrj_write32(output, entry);
-                output += 4;
-            }
-            ++matches;
+            if ((int32_t)limit < (int32_t)matches)
+                return UINT32_MAX;
+            output[matches++] = entry;
         }
-        ++i;
-    } while (rrj_s32(i) < rrj_s32(material_half(m, metadata + 8)));
+        ++index;
+    } while ((int32_t)index < r_s16(metadata + 8));
     return matches;
 }
 
-uint32_t sub_80039BB0(uint32_t metadata, uint32_t id, uint32_t output, uint32_t limit)
+/* Enumerate the next track pieces in either direction */
+static uint32_t traverse_track_candidates(uint32_t actor, uint32_t record[8], uint32_t *output, uint32_t *directions, uint32_t limit, unsigned backward)
 {
-    FUNCTION_MARKER(0x80039BB0u, "SLUS_010.53");
-    return collect_route_links(rrj_host_context(), metadata, id, output, limit, NULL, 0);
-}
-
-uint32_t rrj_collect_route_links_local(RRJMemory *m, uint32_t metadata, uint32_t id, uint32_t *output, uint32_t capacity, uint32_t limit)
-{
-    return collect_route_links(m, metadata, id, 0, limit, output, capacity);
-}
-
-/* 80037A30/80037FBC: enumerate the next track pieces in either direction. */
-static uint32_t traverse_track_candidates(RRJMemory *m, uint32_t actor, RRJTrackWords record, RRJTrackWords output, RRJTrackWords directions, uint32_t limit, unsigned backward)
-{
-    uint32_t segment = track_read(m, record, 0), route = track_read(m, record, 4), sub = track_read(m, record, 8);
-    uint32_t last = track_read(m, record, 28), saved = track_read(m, record, 12), piece = 0, state = 0, count = 0;
-    uint32_t old, header, link = 0xffffffffu, lookup, metadata, links[4], n, i, index, base, value, positive;
-    RRJTrackWords p;
-    if (backward ? material_half(m, saved) != 0 : rrj_s32(material_half(m, saved)) < rrj_s32(material_half(m, sub + 10) - 1u))
+    uint32_t segment = record[0], route = record[1], sub = record[2];
+    uint32_t last = record[7], saved = record[3], piece = 0, state = 0, count = 0;
+    uint32_t old, header, link = 0xffffffff, lookup, metadata, n, i, index, base, value, positive;
+    uint32_t *p, *links;
+    int32_t capacity;
+    if (backward ? (uint32_t)r_s16(saved) != 0 : ((int32_t)(uint32_t)((uint32_t)r_s16(saved))) < ((int32_t)(uint32_t)((uint32_t)r_s16((sub + 10)) - 1)))
     {
         piece = backward ? saved - 52 : saved + 52;
         route = 0;
@@ -5907,545 +5677,539 @@ static uint32_t traverse_track_candidates(RRJMemory *m, uint32_t actor, RRJTrack
         goto tail;
     }
     old = segment;
-    if (!material_half(m, segment + 16))
+    if (!(uint32_t)r_s16((segment + 16)))
     {
-        segment = backward ? sub_8003C948(actor, segment, 0xffffffffu) : sub_8003C840(actor, segment, 0xffffffffu);
+        segment = backward ? sub_8003C948(actor, segment, 0xffffffff) : sub_8003C840(actor, segment, 0xffffffff);
         if (!segment)
             goto tail;
-        route = !material_half(m, segment + 16) ? rrj_read32(segment + 44) : sub_80039C90(segment, rrj_read32(old + 8));
+        route = !(uint32_t)r_s16((segment + 16)) ? r_u32(segment + 44) : sub_80039C90(segment, r_u32(old + 8));
         if (route)
             state = 1;
         goto tail;
     }
-    header = sub_80039AFC(rrj_read32(segment));
+    header = sub_80039AFC(r_u32(segment));
     if (!header)
         goto tail;
-    if (rrj_read32(segment + 12) == 1)
+    if (r_u32(segment + 12) == 1)
     {
-        link = sub_8003A37C(header, rrj_read32(route + 12));
+        link = sub_8003A37C(header, r_u32(route + 12));
         if (!link)
             goto tail;
-        value = rrj_read32(route + 12);
+        value = r_u32(route + 12);
         segment = backward ? sub_8003C948(actor, segment, value) : sub_8003C840(actor, segment, value);
         if (!segment)
             goto tail;
-        route = !material_half(m, segment + 16) ? rrj_read32(segment + 44) : sub_80039C90(segment, material_half(m, link + 4));
+        route = !(uint32_t)r_s16((segment + 16)) ? r_u32(segment + 44) : sub_80039C90(segment, (uint32_t)r_s16((link + 4)));
         if (route)
             state = 1;
         goto tail;
     }
-    if (material_half(m, route + 2))
+    if ((uint32_t)r_s16((route + 2)))
     {
         if (!backward && !last)
             goto tail;
         if (backward)
             route = 0;
-        value = 0xffffffffu;
+        value = 0xffffffff;
         if (last)
         {
             lookup = sub_80039C38(last);
-            if (!backward && !lookup)
+            /* Repair the backward original null-lookup dereference */
+            if (!lookup)
                 goto tail;
-            positive = rrj_s32(material_half(m, last + 6)) > 0;
-            index = rrj_s32(material_half(m, lookup + 8)) > 0;
-            value = material_half(m, last + ((positive == index) ? (backward ? 8u : 10u) : (backward ? 10u : 8u)));
+            positive = ((int32_t)(uint32_t)((uint32_t)r_s16((last + 6)))) > 0;
+            index = ((int32_t)(uint32_t)((uint32_t)r_s16((lookup + 8)))) > 0;
+            value = (uint32_t)r_s16((last + ((positive == index) ? (backward ? 8 : 10) : (backward ? 10 : 8))));
         }
         route = 0;
         link = sub_8003A37C(header, value);
         if (link)
-            route = sub_80039C90(segment, material_half(m, link + 4));
+            route = sub_80039C90(segment, (uint32_t)r_s16((link + 4)));
         if (route)
         {
-            base = rrj_read32(segment + 52);
-            sub = rrj_read32(segment + 48) + 28u * material_half(m, route + 20);
-            index = material_half(m, sub + 8);
-            value = material_half(m, link + 2);
-            if (backward ? rrj_s32(value) <= 0 : rrj_s32(value) < 0)
-                index += material_half(m, sub + 10) - 1u;
-            piece = base + 52u * index;
+            base = r_u32(segment + 52);
+            sub = r_u32(segment + 48) + 28 * (uint32_t)r_s16((route + 20));
+            index = (uint32_t)r_s16((sub + 8));
+            value = (uint32_t)r_s16((link + 2));
+            if (backward ? ((int32_t)(uint32_t)(value)) <= 0 : ((int32_t)(uint32_t)(value)) < 0)
+                index += (uint32_t)r_s16((sub + 10)) - 1;
+            piece = base + 52 * index;
             state = 2;
-            track_write(m, directions, 0, material_half(m, link + 2));
+            directions[0] = (uint32_t)r_s16((link + 2));
         }
         goto tail;
     }
-    link = sub_8003A37C(header, rrj_read32(route + 12));
+    link = sub_8003A37C(header, r_u32(route + 12));
     if (!link)
         goto tail;
-    positive = rrj_s32(material_half(m, link + 2)) > 0;
+    positive = ((int32_t)(uint32_t)((uint32_t)r_s16((link + 2)))) > 0;
     if (positive != backward)
     {
-        value = rrj_read32(route + 12);
+        value = r_u32(route + 12);
         route = 0;
         segment = backward ? sub_8003C948(actor, segment, value) : sub_8003C840(actor, segment, value);
         if (segment)
-            route = sub_80039C90(segment, material_half(m, link + 4));
+            route = sub_80039C90(segment, (uint32_t)r_s16((link + 4)));
         if (route)
             state = 1;
         goto tail;
     }
-    metadata = sub_80039B60(rrj_read32(segment));
+    metadata = sub_80039B60(r_u32(segment));
     if (!metadata)
         goto tail;
-    n = rrj_collect_route_links_local(m, metadata, material_half(m, link + 4), links, 4, limit);
-    if (rrj_s32(n) <= 0 || rrj_s32(n) >= rrj_s32(limit))
+    /* Allocate all metadata entries to repair the original four-slot overflow */
+    capacity = r_s16(metadata + 8);
+    links = malloc((size_t)(capacity > 0 ? capacity : 1) * sizeof(*links));
+    if (!links)
+        abort();
+    n = sub_80039BB0(metadata, (uint32_t)r_s16(link + 4), links, limit);
+    if ((int32_t)n <= 0 || (int32_t)n >= (int32_t)limit)
+    {
+        free(links);
         goto tail;
+    }
     for (i = 0; i < n; ++i)
     {
         last = links[i];
         lookup = sub_80039C38(last);
         if (!lookup)
             continue;
-        route = rrj_read32(segment + 44) + 32u * material_half(m, lookup + 2);
-        sub = rrj_read32(segment + 48) + 28u * (material_half(m, route + 20) + material_half(m, lookup + 4));
-        positive = rrj_s32(material_half(m, last + 6)) > 0;
-        index = material_half(m, sub + 8);
-        value = material_half(m, lookup + 8);
-        base = rrj_read32(segment + 52);
-        if (positive != (uint32_t)(rrj_s32(value) > 0))
-            index += material_half(m, sub + 10) - 1u;
-        piece = base + 52u * index;
-        value = material_half(m, lookup + 8);
-        track_write(m, directions, 0, positive ? value : 0u - value);
-        directions = track_offset(directions, 4);
-        p = track_offset(output, 32u * count);
-        track_write(m, p, 20, track_read(m, record, 20));
-        value = track_read(m, record, 16);
-        track_write(m, p, 0, segment);
-        track_write(m, p, 4, route);
-        track_write(m, p, 8, sub);
-        track_write(m, p, 12, piece);
-        track_write(m, p, 28, last);
-        track_write(m, p, 24, metadata);
-        track_write(m, p, 16, value);
+        route = r_u32(segment + 44) + 32 * (uint32_t)r_s16((lookup + 2));
+        sub = r_u32(segment + 48) + 28 * ((uint32_t)r_s16((route + 20)) + (uint32_t)r_s16((lookup + 4)));
+        positive = ((int32_t)(uint32_t)((uint32_t)r_s16((last + 6)))) > 0;
+        index = (uint32_t)r_s16((sub + 8));
+        value = (uint32_t)r_s16((lookup + 8));
+        base = r_u32(segment + 52);
+        if (positive != (uint32_t)(((int32_t)(uint32_t)(value)) > 0))
+            index += (uint32_t)r_s16((sub + 10)) - 1;
+        piece = base + 52 * index;
+        value = (uint32_t)r_s16((lookup + 8));
+        directions[0] = positive ? value : 0 - value;
+        ++directions;
+        p = output + 8 * count;
+        p[5] = record[5];
+        value = record[4];
+        p[0] = segment;
+        p[1] = route;
+        p[2] = sub;
+        p[3] = piece;
+        p[7] = last;
+        p[6] = metadata;
+        p[4] = value;
         ++count;
         state = 1;
     }
+    free(links);
 tail:
     if (!state)
     {
-        p = track_offset(output, 32u * count);
-        track_write(m, p, 8, track_read(m, record, 8));
-        track_write(m, p, 12, track_read(m, record, 12));
+        p = output + 8 * count;
+        p[2] = record[2];
+        p[3] = record[3];
         return count + 1;
     }
     if (count)
         return count;
     if (!route)
     {
-        value = track_read(m, record, 8);
+        value = record[2];
         if (sub == value || piece == saved)
         {
-            track_write(m, output, 8, value);
-            track_write(m, output, 12, piece);
+            output[2] = value;
+            output[3] = piece;
             return 1;
         }
     }
     if (state != 2)
     {
-        base = rrj_read32(segment + 52);
-        sub = rrj_read32(segment + 48) + 28u * material_half(m, route + 20);
-        index = material_half(m, sub + 8);
+        base = r_u32(segment + 52);
+        sub = r_u32(segment + 48) + 28 * (uint32_t)r_s16((route + 20));
+        index = (uint32_t)r_s16((sub + 8));
         if (backward)
-            index += material_half(m, sub + 10) - 1u;
-        track_write(m, directions, 0, backward ? 0xffffffffu : 1);
-        piece = base + 52u * index;
+            index += (uint32_t)r_s16((sub + 10)) - 1;
+        directions[0] = backward ? 0xffffffff : 1;
+        piece = base + 52 * index;
     }
-    track_write(m, output, 20, track_read(m, record, 20));
-    value = track_read(m, record, 16);
-    track_write(m, output, 0, segment);
-    track_write(m, output, 4, route);
-    track_write(m, output, 8, sub);
-    track_write(m, output, 12, piece);
-    track_write(m, output, 24, 0);
-    track_write(m, output, 28, 0);
-    track_write(m, output, 16, value);
+    output[5] = record[5];
+    value = record[4];
+    output[0] = segment;
+    output[1] = route;
+    output[2] = sub;
+    output[3] = piece;
+    output[6] = 0;
+    output[7] = 0;
+    output[4] = value;
     return 1;
 }
 
 uint32_t sub_80037A30(uint32_t actor, uint32_t record[8], uint32_t output[24], uint32_t directions[3], uint32_t limit)
 {
     FUNCTION_MARKER(0x80037A30u, "SLUS_010.53");
-    return traverse_track_candidates(rrj_host_context(), actor, track_local(record), track_local(output), track_local(directions), limit, 0);
+    return traverse_track_candidates(actor, record, output, directions, limit, 0);
 }
 
 uint32_t sub_80037FBC(uint32_t actor, uint32_t record[8], uint32_t output[24], uint32_t directions[3], uint32_t limit)
 {
     FUNCTION_MARKER(0x80037FBCu, "SLUS_010.53");
-    return traverse_track_candidates(rrj_host_context(), actor, track_local(record), track_local(output), track_local(directions), limit, 1);
+    return traverse_track_candidates(actor, record, output, directions, limit, 1);
 }
 
-uint32_t rrj_traverse_track_local(RRJMemory *m, uint32_t actor, uint32_t record[8], uint32_t candidates[24], uint32_t directions[3], uint32_t limit, unsigned backward)
-{
-    return traverse_track_candidates(m, actor, track_local(record), track_local(candidates), track_local(directions), limit, backward);
-}
-
-static uint32_t commit_followed_piece(RRJMemory *m, uint32_t actor, RRJTrackWords record, uint32_t temporary[8])
-{
-    uint32_t flags, selected;
-    if (track_read(m, record, 8) == temporary[2])
-        track_write(m, record, 12, temporary[3]);
-    else
-        track_copy_record(m, record, track_local(temporary));
-    flags = rrj_read32(actor + 216);
-    selected = track_read(m, record, 12);
-    if ((flags & 128u) && material_half(m, selected + 50))
-        rrj_write32(rrj_read32(0x8005B3A0u) + 1096u * rrj_u16(rrj_at(actor, 2)) + 828, selected);
-    return selected;
-}
-
-/* 80036B14: follow a position across pieces and junctions. */
-static uint32_t follow_track_ref(RRJMemory *m, uint32_t actor, RRJTrackWords record, uint32_t point)
+uint32_t sub_80036B14(uint32_t actor, uint32_t record[8], uint32_t point)
 {
     uint32_t temporary[8] = {0}, candidates[24] = {0}, directions[3] = {0};
-    uint32_t selected, candidate, distance, previous, direction, last_distance = 0, n, index, difference;
-    temporary[2] = track_read(m, record, 8);
-    temporary[3] = track_read(m, record, 12);
-    selected = track_read(m, record, 12);
-    distance = sub_800B6AAC(rrj_at(point, 12), rrj_at(selected + 14, 6), rrj_at(selected + 20, 12));
+    uint32_t selected, candidate, distance = 0, previous, direction, last_distance = 0;
+    uint32_t count, index, difference, sign, axis, delta;
+    uint32_t (*traverse)(uint32_t, uint32_t *, uint32_t *, uint32_t *, uint32_t);
+    FUNCTION_MARKER(0x80036B14, "SLUS_010.53");
+    temporary[2] = record[2];
+    temporary[3] = record[3];
+    selected = record[3];
+    for (axis = 0; axis < 3; ++axis)
+    {
+        int64_t product;
+        delta = r_u32(point + 4 * axis) - r_u32(selected + 20 + 4 * axis);
+        product = (int64_t)(int32_t)delta * ((int32_t)r_s16(selected + 14 + 2 * axis) * 16);
+        distance += (uint32_t)((uint64_t)product >> 16);
+    }
     if (!distance)
         goto done;
-    direction = rrj_s32(distance) > 0 ? 1u : 0xffffffffu;
+    direction = (int32_t)distance > 0 ? 1 : UINT32_MAX;
     previous = direction;
     directions[0] = direction;
     candidate = selected;
-    index = material_half(m, temporary[3]);
-    if (index != 0 && index != material_half(m, temporary[2] + 10) - 1u)
+    index = (uint32_t)r_s16(temporary[3]);
+    if (index && index != (uint32_t)r_s16(temporary[2] + 10) - 1)
     {
-        candidate += 52u * previous;
+        candidate += 52 * previous;
         temporary[3] = candidate;
     }
     else
     {
-        if (!temporary[0])
-        {
-            track_copy_record(m, track_local(temporary), record);
-            temporary[3] = candidate;
-        }
-        n = rrj_traverse_track_local(m, actor, temporary, candidates, directions, 3, rrj_s32(direction) <= 0);
-        candidate = rrj_commit_track_local(m, actor, candidates, directions, n, temporary, &direction, temporary, NULL);
+        (void)sub_8001E0B4(temporary, record, 32);
+        temporary[3] = candidate;
+        traverse = (int32_t)direction <= 0 ? sub_80037FBC : sub_80037A30;
+        count = traverse(actor, temporary, candidates, directions, 3);
+        candidate = sub_80039048(actor, candidates, directions, count, temporary, &direction);
     }
     distance = sub_8003697C(previous, direction, candidate, point);
-    while ((rrj_s32(direction) > 0 && rrj_s32(distance) >= 0) || (rrj_s32(direction) < 0 && rrj_s32(distance) < 0))
+    while (((int32_t)direction > 0 && (int32_t)distance >= 0) || ((int32_t)direction < 0 && (int32_t)distance < 0))
     {
-        selected = commit_followed_piece(m, actor, record, temporary);
+        if (record[2] == temporary[2])
+            record[3] = temporary[3];
+        else
+            (void)sub_8001E0B4(record, temporary, 32);
+        selected = record[3];
+        if ((r_u32(actor + 216) & 128) && r_s16(selected + 50))
+            w_u32(r_u32(0x8005B3A0) + 1096 * r_u16(actor) + 828, selected);
         previous = direction;
-        index = material_half(m, temporary[3]);
-        if (index != 0 && index != material_half(m, temporary[2] + 10) - 1u)
+        index = (uint32_t)r_s16(temporary[3]);
+        if (index && index != (uint32_t)r_s16(temporary[2] + 10) - 1)
         {
-            candidate += 52u * previous;
+            candidate += 52 * previous;
             temporary[3] = candidate;
         }
         else
         {
             if (!temporary[0])
             {
-                track_copy_record(m, track_local(temporary), record);
+                (void)sub_8001E0B4(temporary, record, 32);
                 temporary[3] = candidate;
             }
-            if (rrj_track_exit_local(m, temporary, direction))
+            if (sub_800394F0(temporary, direction))
             {
-                if (rrj_u16(rrj_at(actor, 2)) < rrj_read32(rrj_read32(0x8005B2F8u) + 48))
-                    rrj_write32(0x8005B580u, 1);
+                if (r_u16(actor) < r_u32(r_u32(0x8005B2F8) + 48))
+                    w_u32(0x8005B580, 1);
                 break;
             }
-            n = rrj_traverse_track_local(m, actor, temporary, candidates, directions, 3, rrj_s32(direction) <= 0);
-            candidate = rrj_commit_track_local(m, actor, candidates, directions, n, temporary, &direction, temporary, NULL);
+            traverse = (int32_t)direction <= 0 ? sub_80037FBC : sub_80037A30;
+            count = traverse(actor, temporary, candidates, directions, 3);
+            candidate = sub_80039048(actor, candidates, directions, count, temporary, &direction);
         }
         distance = sub_8003697C(previous, direction, candidate, point);
-        difference = surface_magnitude(distance - last_distance);
+        difference = distance - last_distance;
+        sign = (uint32_t)((int32_t)difference >> 31);
+        difference = (difference + sign) ^ sign;
         last_distance = distance;
-        if (rrj_s32(difference) < 131)
+        if ((int32_t)difference < 131)
             break;
     }
-    if (rrj_s32(previous) < 0 && rrj_s32(direction) < 0 && rrj_s32(distance) > 0 && rrj_s32(distance) < rrj_s32(rrj_read32(temporary[3] + 32)))
-        selected = commit_followed_piece(m, actor, record, temporary);
+    if ((int32_t)previous < 0 && (int32_t)direction < 0 && (int32_t)distance > 0 && (int32_t)distance < r_s32(temporary[3] + 32))
+    {
+        if (record[2] == temporary[2])
+            record[3] = temporary[3];
+        else
+            (void)sub_8001E0B4(record, temporary, 32);
+        selected = record[3];
+        if ((r_u32(actor + 216) & 128) && r_s16(selected + 50))
+            w_u32(r_u32(0x8005B3A0) + 1096 * r_u16(actor) + 828, selected);
+    }
 done:
-    rrj_write32(actor + 216, rrj_read32(actor + 216) & 0xffffff7fu);
+    w_u32(actor + 216, r_u32(actor + 216) & 0xFFFFFF7F);
     return selected;
 }
 
-uint32_t sub_80036B14(uint32_t actor, uint32_t record, uint32_t point)
-{
-    FUNCTION_MARKER(0x80036B14u, "SLUS_010.53");
-    return follow_track_ref(rrj_host_context(), actor, track_ram(record), point);
-}
-
-uint32_t rrj_follow_track_local(RRJMemory *m, uint32_t actor, uint32_t record[8], uint32_t point)
-{
-    return follow_track_ref(m, actor, track_local(record), point);
-}
-
 /* 8003E754: junction surface attachment, actual five-argument ABI. */
-static uint32_t surface_attach_ref(RRJMemory *m, uint32_t actor, uint32_t header, uint32_t output, RRJTrackWords track_output, uint32_t hint)
+uint32_t sub_8003E754(uint32_t actor, uint32_t header, uint32_t output, uint32_t track_output[8], uint32_t hint)
 {
-    uint32_t root = rrj_read32(actor + 328), first = 0, next = 0, reference = 1, link = 0;
+    FUNCTION_MARKER(0x8003E754, "SLUS_010.53");
+    uint32_t root = r_u32(actor + 328), first = 0, next = 0, reference = 1, link = 0;
     uint32_t record[8], vector[3] = {0}, sub, piece, length, lateral, longitudinal, index, interval, pair;
-    uint32_t a, b, side_a, side_b, surface, next_surface, progress, delta, clamped, ratio, result, value, i;
+    uint32_t a, b, side_a, side_b, surface, next_surface, progress, delta, clamped, ratio, result, value, i, sign;
     uint16_t normal[3];
-    if (!header || !rrj_read32(root + 64))
+    if (!header || !r_u32(root + 64))
         goto missing;
-    if (rrj_s32(rrj_find_junction_planes_local(m, actor + 184, header, &first, &next, hint)) < 0)
+    if (((int32_t)(uint32_t)(sub_8003EB58(actor + 184, header, &first, &next, hint))) < 0)
         goto missing;
-    sub = rrj_find_junction_link_local(m, actor + 328, material_half(m, first + 4), material_half(m, next + 4), &reference, &link);
-    length = rrj_read32(sub + 12);
-    for (i = 0; i < 8; ++i)
-        record[i] = rrj_read32(actor + 328 + 4 * i);
+    sub = sub_8003BD2C(actor + 328, (uint32_t)r_s16((first + 4)), (uint32_t)r_s16((next + 4)), &reference, &link);
+    length = r_u32(sub + 12);
+    (void)sub_8001E0B4(record, xport_guest_cptr(actor + 328, 32), 32);
     record[2] = sub;
-    record[3] = rrj_read32(root + 52) + 52u * material_half(m, sub + 8);
-    piece = rrj_follow_track_local(m, actor + 172, record, actor + 184);
-    rrj_project_track_local(m, actor + 184, piece, &lateral, &longitudinal);
-    if (material_half(m, header + 2) == 2)
-        lateral = surface_magnitude(lateral);
+    record[3] = r_u32(root + 52) + 52 * (uint32_t)r_s16((sub + 8));
+    piece = sub_80036B14(actor + 172, record, actor + 184);
+    sub_80036800(actor + 184, piece, &lateral, &longitudinal);
+    if (r_s16(header + 2) == 2)
+    {
+        sign = (uint32_t)((int32_t)lateral >> 31);
+        lateral = (lateral + sign) ^ sign;
+    }
     record[4] = lateral;
     record[5] = longitudinal;
     for (i = 0; i < 3; ++i)
-        normal[i] = rrj_u16(rrj_at(piece + 14 + 2 * i, 2));
+        normal[i] = r_u16(piece + 14 + 2 * i);
     /* Prior direction changes only magnitude: all downstream tests use its sign.
        This caller consumes only progress, independent of the original stale word. */
-    (void)rrj_update_track_direction_local(m, normal, record, vector);
-    index = material_half(m, sub + 18);
-    if (rrj_s32(index) < 0)
+    (void)sub_8003662C(normal, record, vector);
+    index = (uint32_t)r_s16((sub + 18));
+    if (((int32_t)(uint32_t)(index)) < 0)
         goto missing;
-    interval = rrj_read32(root + 56) + 16u * index;
-    pair = rrj_read32(root + 64) + 20u * index;
-    a = material_half(m, pair + 4);
-    if (a == 0xffffffffu)
+    interval = r_u32(root + 56) + 16 * index;
+    pair = r_u32(root + 64) + 20 * index;
+    a = (uint32_t)r_s16((pair + 4));
+    if (a == 0xffffffff)
         goto missing;
-    b = material_half(m, pair + 6);
-    if (b == 0xffffffffu)
+    b = (uint32_t)r_s16((pair + 6));
+    if (b == 0xffffffff)
         goto missing;
-    if (material_half(m, first + 4) == material_half(m, pair + 10) && material_half(m, next + 4) == material_half(m, pair + 12))
+    if ((uint32_t)r_s16((first + 4)) == (uint32_t)r_s16((pair + 10)) && (uint32_t)r_s16((next + 4)) == (uint32_t)r_s16((pair + 12)))
     {
-        side_a = material_half(m, first + 2);
-        side_b = material_half(m, next + 2);
-        value = rrj_read32(root + 60);
-        surface = value + 264u * a;
-        next_surface = value + 264u * b;
+        side_a = (uint32_t)r_s16((first + 2));
+        side_b = (uint32_t)r_s16((next + 2));
+        value = r_u32(root + 60);
+        surface = value + 264 * a;
+        next_surface = value + 264 * b;
     }
     else
     {
-        b = material_half(m, pair + 6);
-        value = rrj_read32(root + 60);
-        a = material_half(m, pair + 4);
-        surface = value + 264u * b;
-        next_surface = value + 264u * a;
-        side_a = material_half(m, next + 2);
-        side_b = material_half(m, first + 2);
+        b = (uint32_t)r_s16((pair + 6));
+        value = r_u32(root + 60);
+        a = (uint32_t)r_s16((pair + 4));
+        surface = value + 264 * b;
+        next_surface = value + 264 * a;
+        side_a = (uint32_t)r_s16((next + 2));
+        side_b = (uint32_t)r_s16((first + 2));
     }
     progress = vector[2];
     delta = length - progress;
-    clamped = (~pause_asr(progress, 31) & progress) + (pause_asr(delta, 31) & delta);
-    ratio = sub_80010028(surface_magnitude(clamped), surface_magnitude(length));
-    if ((rrj_s32(clamped) > 0) != (rrj_s32(length) > 0))
-        ratio = 0u - ratio;
+    clamped = (~(uint32_t)((int32_t)progress >> 31) & progress) + ((uint32_t)((int32_t)delta >> 31) & delta);
+    ratio = sub_80010028((int32_t)clamped <= 0 ? 0 - clamped : clamped, (int32_t)length <= 0 ? 0 - length : length);
+    if ((((int32_t)(uint32_t)(clamped)) > 0) != (((int32_t)(uint32_t)(length)) > 0))
+        ratio = 0 - ratio;
     if (!surface)
         goto missing;
     result = sub_8003ED14(surface, interval, side_a, side_b, next_surface, lateral, ratio, output, reference);
-    if (track_output.local || track_output.address)
+    if (track_output)
     {
-        if (material_half(m, record[1] + 2) == 1)
+        if ((uint32_t)r_s16((record[1] + 2)) == 1)
         {
-            track_write(m, track_output, 0, record[0]);
+            track_output[0] = record[0];
             value = record[1];
-            track_write(m, track_output, 8, sub);
-            track_write(m, track_output, 12, piece);
-            track_write(m, track_output, 16, lateral);
-            track_write(m, track_output, 20, longitudinal);
-            track_write(m, track_output, 4, value);
-            track_write(m, track_output, 28, link);
-            track_write(m, track_output, 24, record[6]);
+            track_output[2] = sub;
+            track_output[3] = piece;
+            track_output[4] = lateral;
+            track_output[5] = longitudinal;
+            track_output[1] = value;
+            track_output[7] = link;
+            track_output[6] = record[6];
         }
         else
-            track_write(m, track_output, 12, 0);
+            track_output[3] = 0;
     }
-    return result & 255u;
+    return result & 255;
 missing:
-    value = rrj_read32(output + 16);
-    rrj_write32(output, 0);
-    rrj_write32(output + 16, value & 0xfffffff0u);
-    if (track_output.local || track_output.address)
-        track_write(m, track_output, 12, 0);
+    value = r_u32(output + 16);
+    w_u32(output, 0);
+    w_u32(output + 16, value & 0xfffffff0);
+    if (track_output)
+        track_output[3] = 0;
     return 1;
 }
 
 /* 8003EE68: junction-only contact selection; fourth argument is plane hint. */
-static uint32_t select_surface_ref(RRJMemory *m, uint32_t actor, uint32_t output, RRJTrackWords track_output, uint32_t hint)
+uint32_t sub_8003EE68(uint32_t actor, uint32_t output, uint32_t track_output[8], uint32_t hint)
 {
-    uint32_t kind = material_half(m, rrj_read32(actor + 332) + 2), root = rrj_read32(actor + 328);
+    FUNCTION_MARKER(0x8003EE68, "SLUS_010.53");
+    uint32_t kind = (uint32_t)r_s16((r_u32(actor + 332) + 2)), root = r_u32(actor + 328);
     uint32_t header, result = 0, selected = 0, value;
     if (kind == 1)
     {
-        header = sub_80039AFC(rrj_read32(root));
+        header = sub_80039AFC(r_u32(root));
         if (header)
         {
-            result = surface_attach_ref(m, actor, header, output, track_output, hint);
-            selected = rrj_read32(output);
+            result = sub_8003E754(actor, header, output, track_output, hint);
+            selected = r_u32(output);
         }
     }
     if (!selected)
     {
-        value = rrj_read32(output + 16);
-        rrj_write32(output, 0);
-        rrj_write32(output + 16, value & 0xfffffff0u);
-        if (track_output.local || track_output.address)
-            track_write(m, track_output, 12, 0);
+        value = r_u32(output + 16);
+        w_u32(output, 0);
+        w_u32(output + 16, value & 0xfffffff0);
+        if (track_output)
+            track_output[3] = 0;
     }
-    return result & 255u;
+    return result & 255;
 }
 
 /* 8003DE28: update actor contact and retain the previous contact flag. */
-static uint32_t update_contact_ref(RRJMemory *m, uint32_t actor, uint32_t reset, RRJTrackWords track_output, uint32_t hint)
+uint32_t sub_8003DE28(uint32_t actor, uint32_t reset, uint32_t track_output[8], uint32_t hint)
 {
+    FUNCTION_MARKER(0x8003DE28, "SLUS_010.53");
     uint32_t previous = 0, interval, result;
-    if (rrj_read32(actor + 372))
-        previous = rrj_read32(actor + 388) & 1u;
+    if (r_u32(actor + 372))
+        previous = r_u32(actor + 388) & 1;
     if (reset == 1)
     {
-        rrj_write32(actor + 372, 0);
-        rrj_write32(actor + 376, 0);
-        rrj_write32(actor + 380, 0);
-        rrj_write32(actor + 384, 0);
+        w_u32(actor + 372, 0);
+        w_u32(actor + 376, 0);
+        w_u32(actor + 380, 0);
+        w_u32(actor + 384, 0);
     }
-    if (rrj_u16(rrj_at(actor + 362, 2)) == 1)
+    if (r_u16(actor + 362) == 1)
     {
-        interval = rrj_read32(actor + 376);
-        if (interval && rrj_s32(material_half(m, interval + 4)) >= 0)
-            rrj_write32(actor + 376, 0);
-        result = select_surface_ref(m, actor, actor + 372, track_output, hint);
+        interval = r_u32(actor + 376);
+        if (interval && ((int32_t)(uint32_t)((uint32_t)r_s16((interval + 4)))) >= 0)
+            w_u32(actor + 376, 0);
+        result = sub_8003EE68(actor, actor + 372, track_output, hint);
     }
     else
     {
-        interval = rrj_read32(actor + 376);
-        if (interval && rrj_s32(material_half(m, interval + 4)) < 0)
-            rrj_write32(actor + 376, 0);
+        interval = r_u32(actor + 376);
+        if (interval && ((int32_t)(uint32_t)((uint32_t)r_s16((interval + 4)))) < 0)
+            w_u32(actor + 376, 0);
         result = sub_8003EF34(actor + 328, actor + 360, actor + 372);
-        if (track_output.local || track_output.address)
-            track_write(m, track_output, 12, 0);
+        if (track_output)
+            track_output[3] = 0;
     }
-    if (rrj_read32(actor + 372) && ((rrj_read32(actor + 388) & 1u) || previous))
+    if (r_u32(actor + 372) && ((r_u32(actor + 388) & 1) || previous))
         result = 1;
-    return result & 255u;
+    return result & 255;
 }
 
 /* 800952AC: actor state transition, effects-only return contract. */
-void sub_800952AC(uint32_t actor, uint32_t requested, RRJReverbCall reverb)
+void sub_800952AC(uint32_t actor, uint32_t requested)
 {
     FUNCTION_MARKER(0x800952ACu, "RASHCDG.BIN");
     uint32_t active, linked, piece;
     uint8_t event[8] = {0};
     if (!actor)
         return;
-    active = rrj_u16(rrj_at(actor + 320, 2));
+    active = r_u16(actor + 320);
     if ((active & 1u) == (requested & 1u))
         return;
     if (active)
     {
         if (!sub_8003A468(actor + 360, actor + 328))
         {
-            rrj_put16(rrj_at(actor + 320, 2), 0);
+            w_u16(actor + 320, 0);
             return;
         }
-        rrj_write32(actor + 600, 0xffff0000u);
+        w_u32(actor + 600, 0xffff0000u);
         (void)sub_8003DE28(actor, 1, 0, 0xffffffffu);
         sub_8003DF54(actor, 1, 0xffffffffu);
-        piece = rrj_read32(actor + 340);
-        (void)sub_8002EAD8(rrj_at(piece + 20, 12), rrj_at(piece + 14, 6), rrj_read32(actor + 348), rrj_at(actor + 184, 12));
-        piece = rrj_read32(actor + 340);
-        (void)sub_8002EAD8(rrj_at(actor + 184, 12), rrj_at(piece + 2, 6), rrj_read32(actor + 344), rrj_at(actor + 184, 12));
-        rrj_write32(actor + 508, 0);
-        rrj_write32(actor + 552, 0);
-        rrj_put16(rrj_at(actor + 544, 2), 224);
-        rrj_write32(actor + 604, 0);
+        piece = r_u32(actor + 340);
+        (void)sub_8002EAD8(xport_guest_ptr(piece + 20, 12), xport_guest_ptr(piece + 14, 6), r_u32(actor + 348), xport_guest_ptr(actor + 184, 12));
+        piece = r_u32(actor + 340);
+        (void)sub_8002EAD8(xport_guest_ptr(actor + 184, 12), xport_guest_ptr(piece + 2, 6), r_u32(actor + 344), xport_guest_ptr(actor + 184, 12));
+        w_u32(actor + 508, 0);
+        w_u32(actor + 552, 0);
+        w_u16(actor + 544, 224);
+        w_u32(actor + 604, 0);
         (void)sub_800C4550(73, actor, 17);
     }
     else
     {
-        linked = rrj_read32(actor + 596);
-        if (material_half(rrj_host_context(), linked + 320))
+        linked = r_u32(actor + 596);
+        if ((uint32_t)r_s16((linked + 320)))
         {
             (void)sub_800C3104(actor, 0);
-            (void)sub_800BCD10(rrj_read32(actor + 596));
-            linked = rrj_read32(actor + 596);
-            rrj_put16(event, 4);
-            rrj_put16(event + 2, rrj_u16(rrj_at(linked + 172, 2)));
+            (void)sub_800BCD10(r_u32(actor + 596));
+            linked = r_u32(actor + 596);
+            xport_store_le16(event, 4);
+            xport_store_le16(event + 2, r_u16(linked + 172));
             /* Mode zero overwrites both queued tail halves before their use. */
-            (void)rrj_enqueue_actor_event_local(rrj_host_context(), event, 0, rrj_read32(actor + 596));
-            rrj_put16(event, 18);
-            (void)rrj_enqueue_actor_event_local(rrj_host_context(), event, 0, rrj_read32(actor + 596));
+            (void)sub_800BCA68(event, 0, r_u32(actor + 596));
+            xport_store_le16(event, 18);
+            (void)sub_800BCA68(event, 0, r_u32(actor + 596));
         }
         else
-            (void)sub_800903F4(linked, 1, reverb);
+            (void)sub_800903F4(linked, 1);
     }
 }
 
 /* 800951B8: choose actor activity then apply its transition. */
-void sub_800951B8(uint32_t actor, uint32_t force_inactive, RRJReverbCall reverb)
+void sub_800951B8(uint32_t actor, uint32_t force_inactive)
 {
     FUNCTION_MARKER(0x800951B8u, "RASHCDG.BIN");
-    uint32_t previous = material_half(rrj_host_context(), actor + 320), tag, count, value, linked;
+    uint32_t previous = (uint32_t)r_s16((actor + 320)), tag, count, value, linked;
     if (!previous)
         (void)sub_80099D48(actor);
-    else if (rrj_read32(actor + 552) & 0x04000000u)
+    else if (r_u32(actor + 552) & 0x04000000u)
     {
-        tag = rrj_u16(rrj_at(actor + 172, 2));
-        count = rrj_read32(rrj_read32(0x8005B2F8) + 48);
-        if (((tag >> 5) != 1 || rrj_s32(tag & 31u) >= rrj_s32(count)) && !(material_byte(rrj_host_context(), actor + 572) & 32u))
+        tag = r_u16(actor + 172);
+        count = r_u32(r_u32(0x8005B2F8) + 48);
+        if (((tag >> 5) != 1 || ((int32_t)(uint32_t)(tag & 31u)) >= ((int32_t)(uint32_t)(count))) && !((uint32_t)r_u8((actor + 572)) & 32u))
         {
             force_inactive = 1;
-            linked = rrj_read32(actor + 596);
-            value = rrj_read32(actor + 552);
-            linked = rrj_read32(linked + 360);
-            rrj_write32(actor + 552, value & 0xfbffffffu);
-            rrj_write32(actor + 360, linked + 1u);
+            linked = r_u32(actor + 596);
+            value = r_u32(actor + 552);
+            linked = r_u32(linked + 360);
+            w_u32(actor + 552, value & 0xfbffffffu);
+            w_u32(actor + 360, linked + 1u);
         }
     }
     if (force_inactive)
-        rrj_put16(rrj_at(actor + 320, 2), 0);
+        w_u16(actor + 320, 0);
     else
-        rrj_put16(rrj_at(actor + 320, 2), sub_80039F68(actor + 172));
-    sub_800952AC(actor, previous, reverb);
+        w_u16(actor + 320, sub_80039F68(actor + 172));
+    sub_800952AC(actor, previous);
 }
 
 /* 8003701C: follow actor position and update its road coordinates. */
 uint32_t sub_8003701C(uint32_t actor)
 {
     FUNCTION_MARKER(0x8003701Cu, "SLUS_010.53");
-    uint32_t sub = rrj_read32(actor + 336), old_piece = rrj_read32(actor + 340), old_id = material_half(rrj_host_context(), sub + 6);
-    uint32_t piece = sub_80036B14(actor + 172, actor + 328, actor + 184), prior, mask, value, flags;
-    sub = rrj_read32(actor + 336);
-    prior = rrj_read32(actor + 364);
-    mask = material_half(rrj_host_context(), sub + 6) == old_id ? 0xffffffffu : 0;
-    value = rrj_s32(prior) > 0 ? 5u + (mask & (prior - 5u)) : 0xfffffffbu + (mask & (prior + 5u));
-    rrj_write32(actor + 364, value);
-    sub_80036800(actor + 184, piece, actor + 344, actor + 348);
-    (void)sub_8003662C(actor + 450, actor + 328, actor + 360);
-    flags = rrj_read32(actor + 388);
+    uint32_t sub = r_u32(actor + 336), old_piece = r_u32(actor + 340), old_id = (uint32_t)r_s16((sub + 6));
+    uint32_t piece = sub_80036B14(actor + 172, xport_guest_ptr(actor + 328, 32), actor + 184), prior, mask, value, flags;
+    sub = r_u32(actor + 336);
+    prior = r_u32(actor + 364);
+    mask = (uint32_t)r_s16((sub + 6)) == old_id ? 0xffffffffu : 0;
+    value = ((int32_t)(uint32_t)(prior)) > 0 ? 5u + (mask & (prior - 5u)) : 0xfffffffbu + (mask & (prior + 5u));
+    w_u32(actor + 364, value);
+    sub_80036800(actor + 184, piece, xport_guest_ptr(actor + 344, 4), xport_guest_ptr(actor + 348, 4));
+    {
+        const uint16_t route_direction[3] = {r_u16(actor + 450), r_u16(actor + 450 + 2), r_u16(actor + 450 + 4)};
+        const uint32_t route_record[8] = {r_u32(actor + 328), r_u32(actor + 328 + 4), r_u32(actor + 328 + 8), r_u32(actor + 328 + 12), r_u32(actor + 328 + 16), r_u32(actor + 328 + 20), r_u32(actor + 328 + 24), r_u32(actor + 328 + 28)};
+        uint32_t route_position[3] = {r_u32(actor + 360), r_u32(actor + 360 + 4), r_u32(actor + 360 + 8)};
+        uint32_t route_result = sub_8003662C(route_direction, route_record, route_position);
+        w_u32(actor + 360, route_position[0]);
+        w_u32(actor + 360 + 4, route_position[1]);
+        w_u32(actor + 360 + 8, route_position[2]);
+        (void)route_result;
+    }
+    flags = r_u32(actor + 388);
     flags = piece == old_piece ? flags & 0xffffffbfu : flags | 64u;
-    rrj_write32(actor + 388, flags);
+    w_u32(actor + 388, flags);
     return flags;
-}
-
-uint32_t sub_8003E754(uint32_t actor, uint32_t header, uint32_t output, uint32_t track_output, uint32_t hint)
-{
-    FUNCTION_MARKER(0x8003E754u, "SLUS_010.53");
-    return surface_attach_ref(rrj_host_context(), actor, header, output, track_ram(track_output), hint);
-}
-
-uint32_t sub_8003EE68(uint32_t actor, uint32_t output, uint32_t track_output, uint32_t hint)
-{
-    FUNCTION_MARKER(0x8003EE68u, "SLUS_010.53");
-    return select_surface_ref(rrj_host_context(), actor, output, track_ram(track_output), hint);
-}
-
-uint32_t sub_8003DE28(uint32_t actor, uint32_t reset, uint32_t track_output, uint32_t hint)
-{
-    FUNCTION_MARKER(0x8003DE28u, "SLUS_010.53");
-    return update_contact_ref(rrj_host_context(), actor, reset, track_ram(track_output), hint);
-}
-
-uint32_t rrj_update_contact_local(RRJMemory *m, uint32_t actor, uint32_t reset, uint32_t track_output[8], uint32_t hint)
-{
-    return update_contact_ref(m, actor, reset, track_local(track_output), hint);
 }
 
 /* 8003DDB0: optional junction-plane hint for the actor position. */
@@ -6453,12 +6217,12 @@ uint32_t sub_8003DDB0(uint32_t actor)
 {
     FUNCTION_MARKER(0x8003DDB0u, "SLUS_010.53");
     uint32_t header;
-    if (!actor || rrj_u16(rrj_at(actor + 362, 2)) != 1)
+    if (!actor || r_u16(actor + 362) != 1)
         return 0xffffffffu;
-    header = sub_80039AFC(rrj_read32(rrj_read32(actor + 328)));
+    header = sub_80039AFC(r_u32(r_u32(actor + 328)));
     if (!header)
         return 0xffffffffu;
-    return rrj_find_junction_planes_local(rrj_host_context(), actor + 184, header, NULL, NULL, 0xffffffffu);
+    return sub_8003EB58(actor + 184, header, NULL, NULL, 0xffffffffu);
 }
 
 /* 8003DFF4: refresh contact, optionally adopt its junction track record. */
@@ -6466,67 +6230,70 @@ uint32_t sub_8003DFF4(uint32_t actor)
 {
     FUNCTION_MARKER(0x8003DFF4u, "SLUS_010.53");
     uint32_t hint = sub_8003DDB0(actor), record[8] = {0}, result, flags, value, i;
-    result = rrj_update_contact_local(rrj_host_context(), actor, 0, record, hint) & 255u;
-    if ((rrj_u16(rrj_at(actor + 172, 2)) >> 5) < 2)
+    result = sub_8003DE28(actor, 0, record, hint) & 255u;
+    if ((r_u16(actor + 172) >> 5) < 2)
     {
-        flags = rrj_read32(actor + 388);
-        if (((flags & 32u) || (rrj_read32(actor + 372) && (flags & 1u))) && rrj_u16(rrj_at(actor + 362, 2)) == 1 && material_half(rrj_host_context(), rrj_read32(actor + 332) + 2) == 1 && record[3] && rrj_read32(actor + 336) != record[2] && record[1] && material_half(rrj_host_context(), record[1] + 2) == 1)
+        flags = r_u32(actor + 388);
+        if (((flags & 32u) || (r_u32(actor + 372) && (flags & 1u))) && r_u16(actor + 362) == 1 && (uint32_t)r_s16((r_u32(actor + 332) + 2)) == 1 && record[3] && r_u32(actor + 336) != record[2] && record[1] && (uint32_t)r_s16((record[1] + 2)) == 1)
         {
             for (i = 0; i < 8; ++i)
-                rrj_write32(actor + 328 + 4 * i, record[i]);
-            (void)sub_8003662C(actor + 450, actor + 328, actor + 360);
+                w_u32(actor + 328 + 4 * i, record[i]);
+            {
+                const uint16_t route_direction[3] = {r_u16(actor + 450), r_u16(actor + 450 + 2), r_u16(actor + 450 + 4)};
+                const uint32_t route_record[8] = {r_u32(actor + 328), r_u32(actor + 328 + 4), r_u32(actor + 328 + 8), r_u32(actor + 328 + 12), r_u32(actor + 328 + 16), r_u32(actor + 328 + 20), r_u32(actor + 328 + 24), r_u32(actor + 328 + 28)};
+                uint32_t route_position[3] = {r_u32(actor + 360), r_u32(actor + 360 + 4), r_u32(actor + 360 + 8)};
+                uint32_t route_result = sub_8003662C(route_direction, route_record, route_position);
+                w_u32(actor + 360, route_position[0]);
+                w_u32(actor + 360 + 4, route_position[1]);
+                w_u32(actor + 360 + 8, route_position[2]);
+                (void)route_result;
+            }
         }
     }
-    if (rrj_read32(actor + 388) & 65u)
+    if (r_u32(actor + 388) & 65u)
         result = 1;
     sub_8003DF54(actor, 0, hint);
     value = (0u - result) & 64u;
-    rrj_write32(actor + 388, rrj_read32(actor + 388) | value);
+    w_u32(actor + 388, r_u32(actor + 388) | value);
     return value;
 }
 
 /* 8003A5F4: choose an endpoint junction and return its road distance. */
-uint32_t rrj_nearest_junction_local(RRJMemory *m, uint32_t position, uint32_t *output, uint32_t mode)
+uint32_t sub_8003A5F4(uint32_t position, uint32_t *output, uint32_t mode)
 {
-    uint32_t word = rrj_read32(position), id = 0xffffffffu, distance = 0, road, progress, junction;
+    uint32_t word, id = 0xFFFFFFFF, distance = 0, road, progress, junction;
+    FUNCTION_MARKER(0x8003A5F4, "SLUS_010.53");
+    word = r_u32(position);
     if ((word >> 16) == 1)
-        id = word & 65535u;
+        id = word & 65535;
     else
     {
-        road = sub_800245DC(word & 65535u);
+        road = sub_800245DC(word & 65535);
         if (road)
         {
-            word = rrj_read32(road + 4);
-            id = rrj_read32(road + 12);
-            progress = rrj_read32(position + 8);
+            word = r_u32(road + 4);
+            id = r_u32(road + 12);
+            progress = r_u32(position + 8);
             distance = ((word >> 6) << 16) - progress;
-            if ((!mode && rrj_s32(progress) < rrj_s32(distance)) || (rrj_s32(rrj_read32(position + 4)) < 0 && mode == 1))
+            if ((!mode && (int32_t)progress < (int32_t)distance) || (r_s32(position + 4) < 0 && mode == 1))
             {
-                distance = rrj_read32(position + 8);
-                id = rrj_read32(road + 8);
+                distance = r_u32(position + 8);
+                id = r_u32(road + 8);
             }
         }
     }
-    if (id != 0xffffffffu)
+    if (id != 0xFFFFFFFF)
     {
         junction = sub_800245F4(id);
         if (junction)
         {
-            id = 0xffffffffu;
-            if (rrj_read32(junction + 4) >= 3)
-                id = rrj_read32(junction);
+            id = 0xFFFFFFFF;
+            if (r_u32(junction + 4) >= 3)
+                id = r_u32(junction);
         }
     }
     *output = id;
     return distance;
-}
-
-uint32_t sub_8003A5F4(uint32_t position, uint32_t output, uint32_t mode)
-{
-    FUNCTION_MARKER(0x8003A5F4u, "SLUS_010.53");
-    uint32_t id, result = rrj_nearest_junction_local(rrj_host_context(), position, &id, mode);
-    rrj_write32(output, id);
-    return result;
 }
 
 /* 8003F4D8: first loaded route containing the requested member. */
@@ -6534,15 +6301,15 @@ uint32_t sub_8003F4D8(uint32_t id)
 {
     FUNCTION_MARKER(0x8003F4D8u, "SLUS_010.53");
     uint32_t i = 0, record;
-    if (rrj_s32(material_half(rrj_host_context(), 0x800D6182)) <= 0)
+    if (((int32_t)(uint32_t)((uint32_t)r_s16(0x800D6182))) <= 0)
         return 0;
     do
     {
-        record = rrj_read32(0x800D6194) + 120u * i;
+        record = r_u32(0x800D6194) + 120u * i;
         if (sub_8003B4B0(record, id))
             return record;
         ++i;
-    } while (rrj_s32(i) < rrj_s32(material_half(rrj_host_context(), 0x800D6182)));
+    } while (((int32_t)(uint32_t)(i)) < ((int32_t)(uint32_t)((uint32_t)r_s16(0x800D6182))));
     return 0;
 }
 
@@ -6555,49 +6322,49 @@ void sub_8003B024(uint32_t input, uint32_t player, uint32_t kind, uint32_t other
         return;
     if (player)
     {
-        count = rrj_read32(rrj_read32(0x8005B2F8) + 48);
-        if (rrj_u16(rrj_at(player + 172, 2)) < count || (material_byte(rrj_host_context(), rrj_read32(player + 1084) + 1) & 15u) != 2)
+        count = r_u32(r_u32(0x8005B2F8) + 48);
+        if (r_u16(player + 172) < count || ((uint32_t)r_u8((r_u32(player + 1084) + 1)) & 15u) != 2)
         {
-            count = material_half(rrj_host_context(), 0x800D6182);
-            table = rrj_read32(0x800D6194);
-            rrj_write32(input + 256, table + 120u * count);
+            count = (uint32_t)r_s16(0x800D6182);
+            table = r_u32(0x800D6194);
+            w_u32(input + 256, table + 120u * count);
         }
         else if (other)
-            rrj_write32(input + 256, rrj_read32(other + 428));
+            w_u32(input + 256, r_u32(other + 428));
         else
         {
-            found = sub_8003F4D8(rrj_u16(rrj_at(input + 188, 2)));
+            found = sub_8003F4D8(r_u16(input + 188));
             if (found)
-                rrj_write32(input + 256, found);
+                w_u32(input + 256, found);
         }
-        table = rrj_read32(player + 428);
-        id = rrj_u16(rrj_at(player + 172, 2));
-        flags = rrj_u16(rrj_at(table + 118, 2));
-        rrj_put16(rrj_at(table + 118, 2), flags | (1u << (id & 31u)));
+        table = r_u32(player + 428);
+        id = r_u16(player + 172);
+        flags = r_u16(table + 118);
+        w_u16(table + 118, flags | (1u << (id & 31u)));
         return;
     }
     if (kind == 1)
     {
-        id = rrj_u16(rrj_at(input, 2)) & 31u;
-        linked = rrj_read32(0x8005B3A4) + 628u * id;
-        table = linked ? rrj_read32(rrj_read32(linked + 596) + 428) : 0;
-        rrj_write32(input + 256, table);
+        id = r_u16(input) & 31u;
+        linked = r_u32(0x8005B3A4) + 628u * id;
+        table = linked ? r_u32(r_u32(linked + 596) + 428) : 0;
+        w_u32(input + 256, table);
         return;
     }
     if (other)
-        found = sub_8003B4B0(rrj_read32(other + 428), rrj_u16(rrj_at(input + 188, 2)));
+        found = sub_8003B4B0(r_u32(other + 428), r_u16(input + 188));
     if (!found)
     {
-        found = sub_8003F4D8(rrj_u16(rrj_at(input + 188, 2)));
+        found = sub_8003F4D8(r_u16(input + 188));
         if (found)
         {
-            rrj_write32(input + 256, found);
+            w_u32(input + 256, found);
             return;
         }
         if (!other)
             return;
     }
-    rrj_write32(input + 256, rrj_read32(other + 428));
+    w_u32(input + 256, r_u32(other + 428));
 }
 
 /* 8003B1C4: refresh the route after entering a road or junction.
@@ -6605,99 +6372,99 @@ void sub_8003B024(uint32_t input, uint32_t player, uint32_t kind, uint32_t other
 void sub_8003B1C4(uint32_t input, uint32_t kind, uint32_t player)
 {
     FUNCTION_MARKER(0x8003B1C4u, "SLUS_010.53");
-    uint32_t word = rrj_read32(input + 188), table, found, id, i, count, flags, mask;
+    uint32_t word = r_u32(input + 188), table, found, id, i, count, flags, mask;
     if ((word >> 16) == 1)
     {
         if (kind == 1 || (!kind && player))
         {
-            table = rrj_read32(input + 256);
-            if (!table || rrj_s32(rrj_read32(table + 16)) <= 0)
+            table = r_u32(input + 256);
+            if (!table || ((int32_t)(uint32_t)(r_u32(table + 16))) <= 0)
                 return;
             id = word & 65535u;
-            if (rrj_read32(table) == id)
+            if (r_u32(table) == id)
             {
                 if (player)
                 {
-                    mask = 1u << (rrj_u16(rrj_at(player + 172, 2)) & 31u);
-                    flags = rrj_u16(rrj_at(table + 118, 2));
-                    rrj_put16(rrj_at(table + 118, 2), flags | mask);
+                    mask = 1u << (r_u16(player + 172) & 31u);
+                    flags = r_u16(table + 118);
+                    w_u16(table + 118, flags | mask);
                 }
                 return;
             }
             i = 0;
             do
             {
-                found = rrj_read32(table + 100 + 4u * i);
+                found = r_u32(table + 100 + 4u * i);
                 if (found != 0xffffffffu && found == id)
                 {
                     found = sub_8003F3B4(found);
                     if (found)
-                        rrj_write32(input + 256, found);
+                        w_u32(input + 256, found);
                     if (player)
                     {
                         if (found)
                         {
-                            table = rrj_read32(input + 256);
-                            id = rrj_u16(rrj_at(player + 172, 2));
+                            table = r_u32(input + 256);
+                            id = r_u16(player + 172);
                         }
                         else
                         {
-                            id = rrj_u16(rrj_at(player + 172, 2));
-                            table = rrj_read32(input + 256);
+                            id = r_u16(player + 172);
+                            table = r_u32(input + 256);
                         }
                         mask = 1u << (id & 31u);
-                        flags = rrj_u16(rrj_at(table + 118, 2));
-                        rrj_put16(rrj_at(table + 118, 2), found ? flags | mask : flags & ~mask);
+                        flags = r_u16(table + 118);
+                        w_u16(table + 118, found ? flags | mask : flags & ~mask);
                     }
                     return;
                 }
-                count = rrj_read32(table + 16);
+                count = r_u32(table + 16);
                 ++i;
-            } while (rrj_s32(i) < rrj_s32(count));
+            } while (((int32_t)(uint32_t)(i)) < ((int32_t)(uint32_t)(count)));
             if (player)
             {
-                id = rrj_u16(rrj_at(player + 172, 2));
-                table = rrj_read32(input + 256);
-                flags = rrj_u16(rrj_at(table + 118, 2));
-                rrj_put16(rrj_at(table + 118, 2), flags & ~(1u << (id & 31u)));
+                id = r_u16(player + 172);
+                table = r_u32(input + 256);
+                flags = r_u16(table + 118);
+                w_u16(table + 118, flags & ~(1u << (id & 31u)));
             }
             return;
         }
-        found = sub_8003F3B4(rrj_u16(rrj_at(input + 188, 2)));
+        found = sub_8003F3B4(r_u16(input + 188));
         if (found)
-            rrj_write32(input + 256, found);
+            w_u32(input + 256, found);
         return;
     }
-    if (sub_8003B4B0(rrj_read32(input + 256), word & 65535u))
+    if (sub_8003B4B0(r_u32(input + 256), word & 65535u))
         return;
-    if (kind >= 2 || (player && !kind && (material_byte(rrj_host_context(), rrj_read32(player + 1084) + 1) & 15u) != 2 && rrj_u16(rrj_at(player + 172, 2)) >= rrj_read32(rrj_read32(0x8005B2F8) + 48)))
+    if (kind >= 2 || (player && !kind && ((uint32_t)r_u8((r_u32(player + 1084) + 1)) & 15u) != 2 && r_u16(player + 172) >= r_u32(r_u32(0x8005B2F8) + 48)))
     {
-        found = sub_8003F4D8(rrj_u16(rrj_at(input + 188, 2)));
+        found = sub_8003F4D8(r_u16(input + 188));
         if (found)
-            rrj_write32(input + 256, found);
+            w_u32(input + 256, found);
         return;
     }
-    table = rrj_read32(input + 256);
-    if (!table || !player || rrj_s32(rrj_read32(table + 16)) <= 0)
+    table = r_u32(input + 256);
+    if (!table || !player || ((int32_t)(uint32_t)(r_u32(table + 16))) <= 0)
         return;
-    if (rrj_s32(rrj_nearest_junction_local(rrj_host_context(), player + 360, &id, 0)) > 0x320000)
+    if (((int32_t)(uint32_t)(sub_8003A5F4(player + 360, &id, 0))) > 0x320000)
         return;
-    if (rrj_s32(rrj_read32(table + 16)) <= 0)
+    if (((int32_t)(uint32_t)(r_u32(table + 16))) <= 0)
         return;
     i = 0;
     do
     {
-        found = rrj_read32(table + 100 + 4u * i);
+        found = r_u32(table + 100 + 4u * i);
         if (found != 0xffffffffu && found == id)
         {
             found = sub_8003F3B4(found);
-            if (found && sub_8003F580(found, rrj_u16(rrj_at(player + 360, 2))))
-                rrj_write32(input + 256, found);
+            if (found && sub_8003F580(found, r_u16(player + 360)))
+                w_u32(input + 256, found);
             return;
         }
-        count = rrj_read32(table + 16);
+        count = r_u32(table + 16);
         ++i;
-    } while (rrj_s32(i) < rrj_s32(count));
+    } while (((int32_t)(uint32_t)(i)) < ((int32_t)(uint32_t)(count)));
 }
 
 /* 8003AF9C: select initial assignment versus route refresh. */
@@ -6707,11 +6474,11 @@ void sub_8003AF9C(uint32_t input, uint32_t refresh, uint32_t other)
     uint32_t tag, kind, player = 0;
     if (!input)
         return;
-    tag = rrj_u16(rrj_at(input, 2));
+    tag = r_u16(input);
     kind = tag >> 5;
     if (!kind)
-        player = rrj_read32(0x8005B3A0) + 1096u * tag;
-    if (rrj_read32(input + 256) && refresh)
+        player = r_u32(0x8005B3A0) + 1096u * tag;
+    if (r_u32(input + 256) && refresh)
         sub_8003B1C4(input, kind, player);
     else
         sub_8003B024(input, player, kind, other);
@@ -6720,105 +6487,109 @@ void sub_8003AF9C(uint32_t input, uint32_t refresh, uint32_t other)
 /* 8003B61C: distance along the assigned route, with junction projection. */
 uint32_t sub_8003B61C(uint32_t input)
 {
+    uint32_t scalar_value_68;
+    uint32_t scalar_value_71;
+    uint32_t scalar_value_73;
+
     FUNCTION_MARKER(0x8003B61Cu, "SLUS_010.53");
-    uint32_t count = material_half(rrj_host_context(), 0x800D6182), table = rrj_read32(input + 256);
+    uint32_t count = (uint32_t)r_s16(0x800D6182), table = r_u32(input + 256);
     uint32_t word, record, link, distance, progress, direction = 0, marker, id, value, sign, piece, offset, local[8] = {0};
-    unsigned written;
     if (count == 0xffffffffu)
         return 0;
     if (!table)
-        return rrj_read32(input + 196);
-    word = rrj_read32(input + 188);
+        return r_u32(input + 196);
+    word = r_u32(input + 188);
     if ((word >> 16) == 1)
     {
         record = sub_8003F408(table, word & 65535u);
         if (!record)
             goto fallback;
-        count = rrj_read32(record + 16);
-        distance = rrj_read32(record + 4);
-        if (rrj_s32(count) > 0)
+        count = r_u32(record + 16);
+        distance = r_u32(record + 4);
+        if (((int32_t)(uint32_t)(count)) > 0)
         {
-            link = track_link_match(rrj_host_context(), input + 156, rrj_read32(record + 8), rrj_read32(record + 84), &direction, &written);
+            const uint32_t route_geometry[8] = {r_u32(input + 156), r_u32(input + 156 + 4), r_u32(input + 156 + 8), r_u32(input + 156 + 12), r_u32(input + 156 + 16), r_u32(input + 156 + 20), r_u32(input + 156 + 24), r_u32(input + 156 + 28)};
+            link = sub_8003BE1C(route_geometry, r_u32(record + 8), r_u32(record + 84), &direction);
             if (link)
             {
-                if (link == rrj_read32(input + 164))
-                    progress = rrj_read32(input + 196);
+                if (link == r_u32(input + 164))
+                    progress = r_u32(input + 196);
                 else
                 {
-                    local[0] = rrj_read32(input + 156);
-                    local[1] = rrj_read32(input + 160);
+                    local[0] = r_u32(input + 156);
+                    local[1] = r_u32(input + 160);
                     local[2] = link;
-                    local[3] = rrj_read32(rrj_read32(input + 156) + 52) + 52u * material_half(rrj_host_context(), link + 8);
-                    piece = rrj_follow_track_local(rrj_host_context(), input, local, input + 12);
-                    offset = sub_800B6AAC(rrj_at(input + 12, 12), rrj_at(piece + 14, 6), rrj_at(piece + 20, 12));
-                    progress = rrj_read32(piece + 40) + offset;
+                    local[3] = r_u32(r_u32(input + 156) + 52) + 52u * (uint32_t)r_s16((link + 8));
+                    piece = sub_80036B14(input, local, input + 12);
+                    offset = sub_800B6AAC(xport_guest_ptr(input + 12, 12), xport_guest_ptr(piece + 14, 6), xport_guest_ptr(piece + 20, 12));
+                    progress = r_u32(piece + 40) + offset;
                 }
-                if (rrj_s32(direction) > 0)
-                    distance = distance - rrj_read32(record + 8) + pause_asr(rrj_read32(link + 12) - progress, 4);
+                if (((int32_t)(uint32_t)(direction)) > 0)
+                    distance = distance - r_u32(record + 8) + ((scalar_value_68 = (r_u32(link + 12) - progress)), (((uint32_t)((!((uint32_t)(4))) ? (scalar_value_68) : ((scalar_value_68 >> ((uint32_t)(4))) | ((scalar_value_68 & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(4)))) : 0))))));
                 else
-                    distance = distance - rrj_read32(record + 8) + pause_asr(progress, 4);
+                    distance = distance - r_u32(record + 8) + ((uint32_t)((!((uint32_t)(4))) ? (((uint32_t)(progress))) : ((((uint32_t)(progress)) >> ((uint32_t)(4))) | ((((uint32_t)(progress)) & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(4)))) : 0))));
             }
         }
     }
     else
     {
-        marker = rrj_read32(0x800D6188);
-        id = rrj_read32(marker + 12);
-        if ((id == rrj_read32(table) || id == 0xffffffffu) && !(word >> 16) && (word & 65535u) == rrj_read32(marker))
+        marker = r_u32(0x800D6188);
+        id = r_u32(marker + 12);
+        if ((id == r_u32(table) || id == 0xffffffffu) && !(word >> 16) && (word & 65535u) == r_u32(marker))
         {
-            direction = rrj_read32(marker + 8);
-            if ((rrj_s32(direction) > 0 && rrj_s32(rrj_read32(input + 196)) >= rrj_s32(rrj_read32(marker + 4))) || (rrj_s32(direction) < 0 && rrj_s32(rrj_read32(marker + 4)) >= rrj_s32(rrj_read32(input + 196))))
+            direction = r_u32(marker + 8);
+            if ((((int32_t)(uint32_t)(direction)) > 0 && ((int32_t)(uint32_t)(r_u32(input + 196))) >= ((int32_t)(uint32_t)(r_u32(marker + 4)))) || (((int32_t)(uint32_t)(direction)) < 0 && ((int32_t)(uint32_t)(r_u32(marker + 4))) >= ((int32_t)(uint32_t)(r_u32(input + 196)))))
                 return 0;
-            marker = rrj_read32(0x800D6188);
-            value = rrj_read32(marker + 4) - rrj_read32(input + 196);
-            sign = pause_asr(value, 31);
-            distance = pause_asr((sign + value) ^ sign, 4);
+            marker = r_u32(0x800D6188);
+            value = r_u32(marker + 4) - r_u32(input + 196);
+            sign = ((uint32_t)((!((uint32_t)(31))) ? (((uint32_t)(value))) : ((((uint32_t)(value)) >> ((uint32_t)(31))) | ((((uint32_t)(value)) & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(31)))) : 0))));
+            distance = ((scalar_value_71 = ((sign + value) ^ sign)), (((uint32_t)((!((uint32_t)(4))) ? (scalar_value_71) : ((scalar_value_71 >> ((uint32_t)(4))) | ((scalar_value_71 & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(4)))) : 0))))));
         }
         else
         {
-            record = sub_8003B4B0(table, rrj_u16(rrj_at(input + 188, 2)));
+            record = sub_8003B4B0(table, r_u16(input + 188));
             if (!record)
                 goto fallback;
-            if (rrj_s32(rrj_read32(record + 4)) > 0)
+            if (((int32_t)(uint32_t)(r_u32(record + 4))) > 0)
             {
-                progress = rrj_read32(record + 8) - rrj_read32(input + 196);
-                id = material_half(rrj_host_context(), record + 14);
+                progress = r_u32(record + 8) - r_u32(input + 196);
+                id = (uint32_t)r_s16((record + 14));
             }
             else
             {
-                progress = rrj_read32(input + 196);
-                id = material_half(rrj_host_context(), record + 12);
+                progress = r_u32(input + 196);
+                id = (uint32_t)r_s16((record + 12));
             }
-            distance = pause_asr(progress, 4);
+            distance = ((uint32_t)((!((uint32_t)(4))) ? (((uint32_t)(progress))) : ((((uint32_t)(progress)) >> ((uint32_t)(4))) | ((((uint32_t)(progress)) & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(4)))) : 0))));
             if (id != 0xffffffffu)
             {
                 record = sub_8003F408(table, id);
                 if (record)
-                    distance += rrj_read32(record + 4);
+                    distance += r_u32(record + 4);
             }
         }
     }
-    return rrj_s32(distance) < 0 ? 0 : distance;
+    return ((int32_t)(uint32_t)(distance)) < 0 ? 0 : distance;
 fallback:
-    distance = pause_asr(rrj_read32(input + 196), 4);
-    return rrj_s32(distance) < 0 ? 0 : distance;
+    distance = ((scalar_value_73 = (r_u32(input + 196))), (((uint32_t)((!((uint32_t)(4))) ? (scalar_value_73) : ((scalar_value_73 >> ((uint32_t)(4))) | ((scalar_value_73 & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(4)))) : 0))))));
+    return ((int32_t)(uint32_t)(distance)) < 0 ? 0 : distance;
 }
 
 /* 8003DCB8: opposite signs of projected zone boundaries. */
 uint32_t sub_8003DCB8(uint32_t actor, uint32_t zone)
 {
     FUNCTION_MARKER(0x8003DCB8u, "SLUS_010.53");
-    uint32_t nx = material_half(rrj_host_context(), rrj_read32(actor + 340) + 14) << 4;
-    uint32_t nz = material_half(rrj_host_context(), rrj_read32(actor + 340) + 18) << 4;
-    uint32_t x = rrj_read32(actor + 184), z, ax, az, bx, bz;
-    int64_t product = (int64_t)rrj_s32(nx) * rrj_s32(x - rrj_read32(zone + 20));
+    uint32_t nx = (uint32_t)r_s16((r_u32(actor + 340) + 14)) << 4;
+    uint32_t nz = (uint32_t)r_s16((r_u32(actor + 340) + 18)) << 4;
+    uint32_t x = r_u32(actor + 184), z, ax, az, bx, bz;
+    int64_t product = (int64_t)((int32_t)(uint32_t)(nx)) * ((int32_t)(uint32_t)(x - r_u32(zone + 20)));
     ax = (uint32_t)((uint64_t)product >> 16);
-    z = rrj_read32(actor + 192);
-    product = (int64_t)rrj_s32(nz) * rrj_s32(z - rrj_read32(zone + 28));
+    z = r_u32(actor + 192);
+    product = (int64_t)((int32_t)(uint32_t)(nz)) * ((int32_t)(uint32_t)(z - r_u32(zone + 28)));
     az = (uint32_t)((uint64_t)product >> 16);
-    product = (int64_t)rrj_s32(nx) * rrj_s32(x - rrj_read32(zone + 8));
+    product = (int64_t)((int32_t)(uint32_t)(nx)) * ((int32_t)(uint32_t)(x - r_u32(zone + 8)));
     bx = (uint32_t)((uint64_t)product >> 16);
-    product = (int64_t)rrj_s32(nz) * rrj_s32(z - rrj_read32(zone + 16));
+    product = (int64_t)((int32_t)(uint32_t)(nz)) * ((int32_t)(uint32_t)(z - r_u32(zone + 16)));
     bz = (uint32_t)((uint64_t)product >> 16);
     return ((ax + az) ^ (bx + bz)) >> 31;
 }
@@ -6829,106 +6600,106 @@ uint32_t sub_8003A9D8(uint32_t actor)
     FUNCTION_MARKER(0x8003A9D8u, "SLUS_010.53");
     uint32_t thresholds[6], i, j, flags, previous, descriptor, side = 0, count, zone, kind, tag, speed, index, limit, node;
     for (i = 0; i < 6; ++i)
-        thresholds[i] = rrj_read32(0x80010DFCu + 4 * i);
-    flags = rrj_read32(actor + 36);
-    descriptor = rrj_read32(actor + 496);
+        thresholds[i] = r_u32(0x80010DFCu + 4 * i);
+    flags = r_u32(actor + 36);
+    descriptor = r_u32(actor + 496);
     previous = (flags >> 5) & 3u;
     flags &= 0xfffffc9fu;
-    rrj_write32(actor + 36, flags);
+    w_u32(actor + 36, flags);
     if (descriptor)
         count = 1;
     else
     {
-        side = rrj_read32(actor + 492);
+        side = r_u32(actor + 492);
         if (!side)
             return flags;
-        if (rrj_s32(rrj_read32(actor + 344)) >= 0)
+        if (((int32_t)(uint32_t)(r_u32(actor + 344))) >= 0)
             side += 2;
-        count = material_byte(rrj_host_context(), side + 1);
+        count = (uint32_t)r_u8((side + 1));
     }
     if (count)
     {
         if (!descriptor && side)
-            descriptor = rrj_read32(rrj_read32(actor + 328) + 100) + 4u * material_byte(rrj_host_context(), side);
+            descriptor = r_u32(r_u32(actor + 328) + 100) + 4u * (uint32_t)r_u8(side);
         for (i = 0; i < count; ++i, descriptor += 4)
         {
-            zone = rrj_read32(rrj_read32(actor + 328) + 96) + 40u * material_half(rrj_host_context(), descriptor);
-            for (j = 0; j < material_byte(rrj_host_context(), descriptor + 3); ++j, zone += 40)
+            zone = r_u32(r_u32(actor + 328) + 96) + 40u * (uint32_t)r_s16(descriptor);
+            for (j = 0; j < (uint32_t)r_u8((descriptor + 3)); ++j, zone += 40)
             {
                 if (sub_8003DCB8(actor, zone))
                 {
-                    kind = rrj_u16(rrj_at(zone + 2, 2)) & 15u;
+                    kind = r_u16(zone + 2) & 15u;
                     switch (kind)
                     {
                         case 1:
                         case 2:
-                            flags = rrj_read32(actor + 36);
-                            flags = (flags & 0xfffffdffu) | (rrj_u16(rrj_at(zone + 2, 2)) & 512u);
-                            rrj_write32(actor + 36, flags);
+                            flags = r_u32(actor + 36);
+                            flags = (flags & 0xfffffdffu) | (r_u16(zone + 2) & 512u);
+                            w_u32(actor + 36, flags);
                             break;
                         case 3:
-                            rrj_write32(actor + 36, rrj_read32(actor + 36) | 768u);
+                            w_u32(actor + 36, r_u32(actor + 36) | 768u);
                             break;
                         case 5:
-                            rrj_write32(actor + 36, (rrj_read32(actor + 36) & 0xffffff9fu) | 800u);
+                            w_u32(actor + 36, (r_u32(actor + 36) & 0xffffff9fu) | 800u);
                             break;
                         case 4:
                         case 6:
                         case 7:
                         case 8:
-                            tag = rrj_u16(rrj_at(actor + 172, 2));
+                            tag = r_u16(actor + 172);
                             if ((tag >> 5) != 4 || (tag & 31u) < 30)
                             {
-                                speed = rrj_read32(actor + 480);
-                                if (pause_asr(speed, 16))
+                                speed = r_u32(actor + 480);
+                                if (((uint32_t)((!((uint32_t)(16))) ? (((uint32_t)(speed))) : ((((uint32_t)(speed)) >> ((uint32_t)(16))) | ((((uint32_t)(speed)) & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(16)))) : 0)))))
                                 {
-                                    index = pause_asr(speed, 20);
-                                    index = rrj_s32(index) < 0 ? 0 : (index > 5 ? 5 : index);
+                                    index = ((uint32_t)((!((uint32_t)(20))) ? (((uint32_t)(speed))) : ((((uint32_t)(speed)) >> ((uint32_t)(20))) | ((((uint32_t)(speed)) & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(20)))) : 0))));
+                                    index = ((int32_t)(uint32_t)(index)) < 0 ? 0 : (index > 5 ? 5 : index);
                                     limit = thresholds[index];
-                                    flags = rrj_read32(actor + 36);
+                                    flags = r_u32(actor + 36);
                                     if (((flags >> 1) & 15u) < limit)
-                                        rrj_write32(actor + 36, (flags & 0xffffff9fu) | (previous ? 64u : 0));
+                                        w_u32(actor + 36, (flags & 0xffffff9fu) | (previous ? 64u : 0));
                                     else if (previous)
                                     {
-                                        rrj_write32(actor + 36, flags & 0xffffffe1u);
+                                        w_u32(actor + 36, flags & 0xffffffe1u);
                                         if (sub_8001FC58() & limit)
                                         {
-                                            rrj_write32(actor + 36, rrj_read32(actor + 36) & 0xffffff9fu);
+                                            w_u32(actor + 36, r_u32(actor + 36) & 0xffffff9fu);
                                             index = sub_8001FC58() % limit;
-                                            rrj_write32(actor + 36, (rrj_read32(actor + 36) & 0xffffffe1u) | ((index & 15u) << 1));
+                                            w_u32(actor + 36, (r_u32(actor + 36) & 0xffffffe1u) | ((index & 15u) << 1));
                                         }
                                     }
                                     else
-                                        rrj_write32(actor + 36, (flags & 0xffffffe1u & 0xffffff9fu) | 64u);
-                                    flags = rrj_read32(actor + 36);
-                                    rrj_write32(actor + 36, (flags & 0xffffffe1u) | (((((flags >> 1) & 15u) + 1u) & 15u) << 1));
+                                        w_u32(actor + 36, (flags & 0xffffffe1u & 0xffffff9fu) | 64u);
+                                    flags = r_u32(actor + 36);
+                                    w_u32(actor + 36, (flags & 0xffffffe1u) | (((((flags >> 1) & 15u) + 1u) & 15u) << 1));
                                 }
                             }
-                            flags = rrj_read32(actor + 36) | 512u;
-                            rrj_write32(actor + 36, flags);
-                            kind = rrj_u16(rrj_at(zone + 2, 2)) & 15u;
-                            rrj_write32(actor + 36, (flags & 0xfffffeffu) | ((kind != 6 && kind != 8) ? 256u : 0));
+                            flags = r_u32(actor + 36) | 512u;
+                            w_u32(actor + 36, flags);
+                            kind = r_u16(zone + 2) & 15u;
+                            w_u32(actor + 36, (flags & 0xfffffeffu) | ((kind != 6 && kind != 8) ? 256u : 0));
                             break;
                         default:
                             break;
                     }
                 }
-                if (rrj_read32(actor + 36) & 96u)
+                if (r_u32(actor + 36) & 96u)
                     break;
             }
-            if (rrj_read32(actor + 36) & 96u)
+            if (r_u32(actor + 36) & 96u)
                 break;
         }
     }
     for (i = 0; i < 2; ++i)
     {
-        node = rrj_read32(actor + 56 + 8 * i);
+        node = r_u32(actor + 56 + 8 * i);
         while (node)
         {
-            flags = rrj_read32(node + 36);
-            flags = (flags & 0xffffff9fu) | (rrj_read32(actor + 36) & 96u);
-            rrj_write32(node + 36, flags);
-            node = rrj_read32(node + 56 + 8 * i);
+            flags = r_u32(node + 36);
+            flags = (flags & 0xffffff9fu) | (r_u32(actor + 36) & 96u);
+            w_u32(node + 36, flags);
+            node = r_u32(node + 56 + 8 * i);
         }
     }
     return 0;
@@ -6939,209 +6710,113 @@ uint32_t sub_8001FCB0(uint32_t x, uint32_t y, uint32_t z)
 {
     FUNCTION_MARKER(0x8001FCB0u, "SLUS_010.53");
     uint32_t sign, temp, sum;
-    sign = pause_asr(x, 31);
+    sign = ((uint32_t)((!((uint32_t)(31))) ? (((uint32_t)(x))) : ((((uint32_t)(x)) >> ((uint32_t)(31))) | ((((uint32_t)(x)) & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(31)))) : 0))));
     x = (sign + x) ^ sign;
-    sign = pause_asr(y, 31);
+    sign = ((uint32_t)((!((uint32_t)(31))) ? (((uint32_t)(y))) : ((((uint32_t)(y)) >> ((uint32_t)(31))) | ((((uint32_t)(y)) & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(31)))) : 0))));
     y = (sign + y) ^ sign;
-    sign = pause_asr(z, 31);
+    sign = ((uint32_t)((!((uint32_t)(31))) ? (((uint32_t)(z))) : ((((uint32_t)(z)) >> ((uint32_t)(31))) | ((((uint32_t)(z)) & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(31)))) : 0))));
     z = (sign + z) ^ sign;
-    if (rrj_s32(x) < rrj_s32(y))
+    if (((int32_t)(uint32_t)(x)) < ((int32_t)(uint32_t)(y)))
     {
         temp = x;
         x = y;
         y = temp;
     }
-    if (rrj_s32(x) < rrj_s32(z))
+    if (((int32_t)(uint32_t)(x)) < ((int32_t)(uint32_t)(z)))
     {
         temp = x;
         x = z;
         z = temp;
     }
     sum = y + z;
-    return x - pause_asr(x, 4) + pause_asr(sum, 2) + pause_asr(sum, 3);
+    return x - ((uint32_t)((!((uint32_t)(4))) ? (((uint32_t)(x))) : ((((uint32_t)(x)) >> ((uint32_t)(4))) | ((((uint32_t)(x)) & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(4)))) : 0)))) + ((uint32_t)((!((uint32_t)(2))) ? (((uint32_t)(sum))) : ((((uint32_t)(sum)) >> ((uint32_t)(2))) | ((((uint32_t)(sum)) & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(2)))) : 0)))) + ((uint32_t)((!((uint32_t)(3))) ? (((uint32_t)(sum))) : ((((uint32_t)(sum)) >> ((uint32_t)(3))) | ((((uint32_t)(sum)) & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(3)))) : 0))));
 }
 
-/* 8003BFE8: the original reads a pre-existing stack direction word.
- * Keep that input explicit until its caller contract is proved. */
-void rrj_correct_road_with_prior(RRJMemory *m, uint32_t actor, uint32_t prior_direction)
+uint32_t sub_800396A8(uint32_t actor)
 {
-    uint32_t root, record[8] = {0}, position[3] = {0}, projected[3], nearest, distance, best, header, i, entry, word, route, sub, piece, progress;
-    uint32_t found, table, tag, index, offset, flags, k;
-    uint16_t normal[3];
-    if (rrj_u16(rrj_at(actor + 362, 2)) || !rrj_read32(actor + 372) || !(rrj_read32(actor + 388) & 1u))
-        return;
-    root = rrj_read32(actor + 328);
-    record[0] = root;
-    position[1] = prior_direction;
-    distance = rrj_nearest_junction_local(m, actor + 360, &nearest, 0);
-    if (nearest == 0xffffffffu || rrj_s32(distance) > 0x31ffff)
-        return;
-    piece = rrj_read32(actor + 340);
-    sub_8002EAD8(rrj_at(piece + 20, 12), rrj_at(piece + 14, 6), rrj_read32(actor + 348), projected);
-    best = sub_8001FCB0(pause_asr(rrj_read32(actor + 184) - projected[0], 16), pause_asr(rrj_read32(actor + 188) - projected[1], 16), pause_asr(rrj_read32(actor + 192) - projected[2], 16));
-    header = 0;
-    if (material_half(m, root + 16) == 1 && !rrj_read32(root + 12))
-        header = sub_80039AFC(rrj_read32(root));
-    if (!header || rrj_s32(material_half(m, header + 2)) <= 0)
-        return;
-    i = 0;
-    do
+    uint16_t old_id;
+    uint32_t route, root, header, result, entry, selected = 0, index, point;
+    uint32_t best = 0xFFFF0000, delta[3], saved[3], x, z, sign, minimum, score;
+    uint32_t dot, segment, piece, value, mask;
+    FUNCTION_MARKER(0x800396A8, "SLUS_010.53");
+    old_id = r_u16(r_u32(actor + 336) + 6);
+    if (!r_u16(actor + 362))
     {
-        entry = header + 8 + 24u * i;
-        word = rrj_read32(actor + 360);
-        if (!(word >> 16) && (word & 65535u) == material_half(m, entry + 4))
-            goto next;
-        route = sub_80039C90(root, material_half(m, entry + 4));
-        if (!route)
-            return;
-        sub = rrj_read32(root + 48) + 28u * material_half(m, route + 20);
-        if (rrj_s32(material_half(m, entry + 2)) > 0)
-        {
-            piece = rrj_read32(root + 52) + 52u * material_half(m, sub + 8);
-            progress = 0;
-        }
+        (void)sub_8003BFE8(actor);
+        goto update_direction;
+    }
+    route = r_u32(actor + 332);
+    root = r_u32(actor + 328);
+    if (r_s16(route + 2) != 1 || r_s16(route))
+        goto update_direction;
+    header = sub_80039AFC(r_u32(root));
+    if (!header)
+        return 0;
+    result = (uint32_t)r_s16(header + 2);
+    for (index = 0; (int32_t)index < r_s16(header + 2); ++index)
+    {
+        entry = header + 8 + 24 * index;
+        delta[0] = r_u32(actor + 184) - r_u32(entry + 12);
+        delta[1] = r_u32(actor + 188) - r_u32(entry + 16);
+        delta[2] = r_u32(actor + 192) - r_u32(entry + 20);
+        sign = (uint32_t)((int32_t)delta[0] >> 31);
+        x = (delta[0] + sign) ^ sign;
+        sign = (uint32_t)((int32_t)delta[2] >> 31);
+        z = (delta[2] + sign) ^ sign;
+        if ((int32_t)x > 0x5A8000 || (int32_t)z > 0x5A8000)
+            score = 0x7FFF0000;
         else
         {
-            piece = rrj_read32(root + 52) + 52u * (material_half(m, sub + 8) + material_half(m, sub + 10)) - 52u;
-            progress = rrj_read32(piece + 32);
+            x = r_u32(actor + 184) - r_u32(entry + 12);
+            z = r_u32(actor + 192) - r_u32(entry + 20);
+            sign = (uint32_t)((int32_t)x >> 31);
+            x = (x + sign) ^ sign;
+            sign = (uint32_t)((int32_t)z >> 31);
+            z = (z + sign) ^ sign;
+            minimum = (int32_t)x < (int32_t)z ? x : z;
+            score = x + z - (uint32_t)((int32_t)(minimum + (minimum >> 31)) >> 1);
         }
-        record[1] = route;
-        record[2] = sub;
-        record[3] = piece;
-        record[5] = progress;
-        piece = rrj_follow_track_local(m, actor + 172, record, actor + 184);
-        record[4] = sub_800B6AAC(rrj_at(actor + 184, 12), rrj_at(piece + 2, 6), rrj_at(piece + 20, 12));
-        record[5] = sub_800B6AAC(rrj_at(actor + 184, 12), rrj_at(piece + 14, 6), rrj_at(piece + 20, 12));
-        for (k = 0; k < 3; ++k)
-            normal[k] = rrj_u16(rrj_at(actor + 450 + 2 * k, 2));
-        rrj_update_track_direction_local(m, normal, record, position);
-        sub_8002EAD8(rrj_at(piece + 20, 12), rrj_at(piece + 14, 6), record[5], projected);
-        distance = sub_8001FCB0(pause_asr(rrj_read32(actor + 184) - projected[0], 16), pause_asr(rrj_read32(actor + 188) - projected[1], 16), pause_asr(rrj_read32(actor + 192) - projected[2], 16));
-        if (rrj_s32(distance) >= rrj_s32(best))
-            goto next;
-        word = rrj_read32(actor + 360);
-        if ((word >> 16) || (position[0] >> 16) || word == position[0])
-            goto next;
-        for (k = 0; k < 8; ++k)
-            rrj_write32(actor + 328 + 4 * k, record[k]);
-        for (k = 0; k < 3; ++k)
-            rrj_write32(actor + 360 + 4 * k, position[k]);
-        (void)sub_8003DE28(actor, 1, 0, 0xffffffffu);
-        sub_8003DF54(actor, 1, 0xffffffffu);
-        found = sub_8003F3B4(nearest);
-        if (found)
-            rrj_write32(actor + 428, found);
-        table = rrj_read32(actor + 428);
-        if (table)
+        if (best == 0xFFFF0000 || (int32_t)score < (int32_t)best)
         {
-            tag = rrj_u16(rrj_at(actor + 172, 2));
-            if ((tag >> 5) < 2)
-            {
-                index = tag & 31u;
-                offset = rrj_read32(0x8005B1F8);
-                if (rrj_s32(index) >= rrj_s32(offset))
-                    index -= offset;
-                flags = rrj_u16(rrj_at(table + 118, 2));
-                word = 1u << (index & 31u);
-                rrj_put16(rrj_at(table + 118, 2), found ? flags | word : flags & ~word);
-            }
+            selected = entry;
+            best = score;
+            saved[0] = delta[0];
+            saved[1] = delta[1];
+            saved[2] = delta[2];
         }
-        sub_8003AF9C(actor + 172, 1, 0);
-        rrj_write32(actor + 324, sub_8003B61C(actor + 172));
-        return;
-    next:
-        ++i;
-    } while (rrj_s32(i) < rrj_s32(material_half(m, header + 2)));
-}
-
-static void correct_actor_track(RRJMemory *m, uint32_t actor, uint32_t prior_direction, unsigned canonical)
-{
-    uint32_t old_id = material_half(m, rrj_read32(actor + 336) + 6), route, root, header, entry, selected = 0, i, k;
-    uint32_t best = 0xffff0000u, delta[3], saved[3] = {0}, ax, az, sign, minimum, score, dot, sub, piece, value, mask, old_word;
-    if (!rrj_u16(rrj_at(actor + 362, 2)))
-    {
-        old_word = rrj_read32(actor + 360);
-        rrj_correct_road_with_prior(m, actor, prior_direction);
-        /* A changed road must have a distinct sub-id for the caller to erase
-         * the original uninitialized scratch magnitude. Keep this explicit. */
-        if (canonical && old_word != rrj_read32(actor + 360) && old_id == material_half(m, rrj_read32(actor + 336) + 6))
-            abort();
+        result = (int32_t)(index + 1) < r_s16(header + 2);
     }
-    else
+    if (!selected)
+        return result;
+    dot = 0;
+    for (point = 0; point < 3; ++point)
     {
-        route = rrj_read32(actor + 332);
-        root = rrj_read32(actor + 328);
-        if (material_half(m, route + 2) != 1 || material_half(m, route))
-            goto tail;
-        header = sub_80039AFC(rrj_read32(root));
-        if (!header)
-            return;
-        for (i = 0; rrj_s32(i) < rrj_s32(material_half(m, header + 2)); ++i)
-        {
-            entry = header + 8 + 24u * i;
-            for (k = 0; k < 3; ++k)
-                delta[k] = rrj_read32(actor + 184 + 4 * k) - rrj_read32(entry + 12 + 4 * k);
-            sign = pause_asr(delta[0], 31);
-            ax = (delta[0] + sign) ^ sign;
-            sign = pause_asr(delta[2], 31);
-            az = (delta[2] + sign) ^ sign;
-            if (rrj_s32(ax) > 0x5a8000 || rrj_s32(az) > 0x5a8000)
-                score = 0x7fff0000u;
-            else
-            {
-                minimum = rrj_s32(ax) < rrj_s32(az) ? ax : az;
-                score = ax + az - pause_asr(minimum + (minimum >> 31), 1);
-            }
-            if (best == 0xffff0000u || rrj_s32(score) < rrj_s32(best))
-            {
-                selected = entry;
-                best = score;
-                for (k = 0; k < 3; ++k)
-                    saved[k] = delta[k];
-            }
-        }
-        if (!selected)
-            return;
-        dot = 0;
-        for (k = 0; k < 3; ++k)
-        {
-            int64_t product = (int64_t)rrj_s32(saved[k]) * rrj_s32(material_half(m, selected + 6 + 2 * k) << 4);
-            dot += (uint32_t)((uint64_t)product >> 16);
-        }
-        if (rrj_s32(dot) < -131)
-        {
-            route = sub_80039C90(root, material_half(m, selected + 4));
-            if (!route)
-                return;
-            sub = rrj_read32(root + 48) + 28u * material_half(m, route + 20);
-            i = material_half(m, sub + 8);
-            if (rrj_s32(material_half(m, selected + 2)) <= 0)
-                i += material_half(m, sub + 10) - 1u;
-            piece = rrj_read32(root + 52) + 52u * i;
-            sub_80036800(actor + 184, piece, actor + 344, actor + 348);
-            rrj_write32(actor + 332, route);
-            rrj_write32(actor + 336, sub);
-            rrj_write32(actor + 340, piece);
-            rrj_write32(actor + 352, 0);
-            rrj_write32(actor + 356, 0);
-        }
+        int64_t product = (int64_t)(int32_t)saved[point] * ((int32_t)r_s16(selected + 6 + 2 * point) * 16);
+        dot += (uint32_t)((uint64_t)product >> 16);
     }
-tail:
-    mask = old_id == material_half(m, rrj_read32(actor + 336) + 6) ? 0xffffffffu : 0;
-    value = rrj_read32(actor + 364);
-    value = rrj_s32(value) > 0 ? 5u + (mask & (value - 5u)) : 0xfffffffbu + (mask & (value + 5u));
-    rrj_write32(actor + 364, value);
-}
-
-void rrj_correct_actor_track_with_prior(RRJMemory *m, uint32_t actor, uint32_t prior_direction)
-{
-    correct_actor_track(m, actor, prior_direction, 0);
-}
-
-void sub_800396A8(uint32_t actor)
-{
-    FUNCTION_MARKER(0x800396A8u, "SLUS_010.53");
-    correct_actor_track(rrj_host_context(), actor, 0, 1);
+    if ((int32_t)dot < -131)
+    {
+        route = sub_80039C90(root, (uint32_t)r_s16(selected + 4));
+        if (!route)
+            return 0;
+        segment = r_u32(root + 48) + 28 * (uint32_t)r_s16(route + 20);
+        index = (uint32_t)r_s16(segment + 8);
+        if (r_s16(selected + 2) <= 0)
+            index += (uint32_t)r_s16(segment + 10) - 1;
+        piece = r_u32(root + 52) + 52 * index;
+        sub_80036800(actor + 184, piece, xport_guest_ptr(actor + 344, 4), xport_guest_ptr(actor + 348, 4));
+        w_u32(actor + 332, route);
+        w_u32(actor + 336, segment);
+        w_u32(actor + 340, piece);
+        w_u32(actor + 352, 0);
+        w_u32(actor + 356, 0);
+    }
+update_direction:
+    mask = r_s16(r_u32(actor + 336) + 6) == (int16_t)old_id ? UINT32_MAX : 0;
+    value = r_u32(actor + 364);
+    result = (int32_t)value > 0 ? 5 + (mask & (value - 5)) : 0xFFFFFFFB + (mask & (value + 5));
+    w_u32(actor + 364, result);
+    return result;
 }
 
 /* 80037104: projected track record and attached actor placement. */
@@ -7150,39 +6825,39 @@ uint32_t sub_80037104(uint32_t actor)
     FUNCTION_MARKER(0x80037104u, "SLUS_010.53");
     uint32_t record[8] = {0}, i, flag, scale, origin, linked, result, flags;
     for (i = 0; i < 4; ++i)
-        record[i] = rrj_read32(actor + 328 + 4 * i);
-    flag = (rrj_read32(actor + 568) & 0x600u) != 0;
-    scale = rrj_read32(actor + 308);
+        record[i] = r_u32(actor + 328 + 4 * i);
+    flag = (r_u32(actor + 568) & 0x600u) != 0;
+    scale = r_u32(actor + 308);
     origin = actor + (flag ? 184u : 504u);
     if (!flag)
         scale <<= 1;
-    (void)sub_8002EAD8(rrj_at(origin, 12), rrj_at(actor + 528, 6), scale, rrj_at(actor + 244, 12));
-    (void)rrj_follow_track_local(rrj_host_context(), actor + 172, record, actor + 244);
+    (void)sub_8002EAD8(xport_guest_ptr(origin, 12), xport_guest_ptr(actor + 528, 6), scale, xport_guest_ptr(actor + 244, 12));
+    (void)sub_80036B14(actor + 172, record, actor + 244);
     result = record[3];
-    linked = rrj_read32(actor + 856);
-    rrj_write32(actor + 256, result);
+    linked = r_u32(actor + 856);
+    w_u32(actor + 256, result);
     if (!linked)
         return result;
-    result = rrj_read32(actor + 1088);
+    result = r_u32(actor + 1088);
     if (!result)
         return 0;
     if (flag)
         origin = actor + 184;
     else
     {
-        (void)sub_8002EAD8(rrj_at(actor + 504, 12), rrj_at(actor + 528, 6), rrj_read32(actor + 308), rrj_at(linked + 504, 12));
+        (void)sub_8002EAD8(xport_guest_ptr(actor + 504, 12), xport_guest_ptr(actor + 528, 6), r_u32(actor + 308), xport_guest_ptr(linked + 504, 12));
         origin = linked + 504;
     }
-    scale = rrj_read32(actor + 304) + rrj_read32(linked + 304);
-    (void)sub_8002EAD8(rrj_at(origin, 12), rrj_at(actor + 516, 6), scale, rrj_at(linked + 184, 12));
-    if (rrj_read32(actor + 560) & 0x08000000u)
-        flags = rrj_read32(linked + 388) & ~32u;
+    scale = r_u32(actor + 304) + r_u32(linked + 304);
+    (void)sub_8002EAD8(xport_guest_ptr(origin, 12), xport_guest_ptr(actor + 516, 6), scale, xport_guest_ptr(linked + 184, 12));
+    if (r_u32(actor + 560) & 0x08000000u)
+        flags = r_u32(linked + 388) & ~32u;
     else
     {
         sub_800396A8(linked);
-        flags = rrj_read32(linked + 388) | 32u;
+        flags = r_u32(linked + 388) | 32u;
     }
-    rrj_write32(linked + 388, flags);
+    w_u32(linked + 388, flags);
     return sub_8003701C(linked);
 }
 
@@ -7192,14 +6867,14 @@ uint32_t sub_80037450(uint32_t actor)
     FUNCTION_MARKER(0x80037450u, "SLUS_010.53");
     uint32_t distance;
     (void)sub_8003701C(actor);
-    if (!(rrj_u16(rrj_at(actor + 172, 2)) >> 5))
+    if (!(r_u16(actor + 172) >> 5))
         (void)sub_80037104(actor);
     (void)sub_8003DFF4(actor);
     sub_8003AF9C(actor + 172, 1, 0);
     distance = sub_8003B61C(actor + 172);
-    rrj_write32(actor + 324, distance);
+    w_u32(actor + 324, distance);
     (void)sub_8003A9D8(actor);
-    return (rrj_read32(actor + 388) >> 6) & 1u;
+    return (r_u32(actor + 388) >> 6) & 1u;
 }
 
 /* 800374D4: optional correction, then the complete actor track update. */
@@ -7210,94 +6885,29 @@ uint32_t sub_800374D4(uint32_t actor, uint32_t correct)
     if (correct)
     {
         sub_800396A8(actor);
-        flags = rrj_read32(actor + 388) | 32u;
+        flags = r_u32(actor + 388) | 32u;
     }
     else
-        flags = rrj_read32(actor + 388) & ~32u;
-    rrj_write32(actor + 388, flags);
+        flags = r_u32(actor + 388) & ~32u;
+    w_u32(actor + 388, flags);
     return sub_80037450(actor);
-}
-
-/* 8003FA40: rotation MVMVA(sf=1,lm=0), one input column at a time.
- * The rotation is captured before stores; later columns may alias output. */
-static uint32_t multiply_rotation(RRJMemory *m, uint32_t left, uint32_t right, const uint16_t *local_right, const uint16_t *local_left, uint32_t output)
-{
-    int32_t rotation[9], vector[3];
-    uint32_t i, j, k;
-    int64_t sum, value;
-    for (i = 0; i < 9; ++i)
-        rotation[i] = local_left ? (int32_t)(int16_t)local_left[i] : rrj_s32(material_half(m, left + 2 * i));
-    for (j = 0; j < 3; ++j)
-    {
-        for (k = 0; k < 3; ++k)
-            vector[k] = local_right ? (int32_t)(int16_t)local_right[3 * k + j] : rrj_s32(material_half(m, right + 6 * k + 2 * j));
-        for (i = 0; i < 3; ++i)
-        {
-            sum = 0;
-            for (k = 0; k < 3; ++k)
-                sum += (int64_t)rotation[3 * i + k] * vector[k];
-            value = sum / 4096 - (sum < 0 && sum % 4096 != 0);
-            if (value > 32767)
-                value = 32767;
-            if (value < -32768)
-                value = -32768;
-            rrj_put16(rrj_at(output + 6 * i + 2 * j, 2), (uint32_t)value);
-        }
-    }
-    return output + 2;
-}
-
-/* 8003FB34: axis/angle matrix, original table and intermediate truncation. */
-static uint32_t axis_rotation(RRJMemory *m, uint32_t axis, uint32_t angle, uint32_t output, uint16_t *local_output)
-{
-    uint32_t v[3], square[3], sine[3], cross[3], cosine, sin_value, complement, product, diagonal[3], values[9], i, j, k;
-    cosine = material_half(m, 0x8005624c + 4 * (angle & 4095u) + 2) << 4;
-    sin_value = material_half(m, 0x8005624c + 4 * (angle & 4095u)) << 4;
-    complement = 65536u - cosine;
-    for (i = 0; i < 3; ++i)
-        v[i] = material_half(m, axis + 2 * i);
-    for (i = 0; i < 3; ++i)
-    {
-        square[i] = (uint32_t)sub_8001FC90(rrj_s32(v[i] << 4), rrj_s32(v[i] << 4));
-        sine[i] = (uint32_t)sub_8001FC90(rrj_s32(v[i] << 4), rrj_s32(sin_value));
-        j = (i + 1) % 3;
-        k = (i + 2) % 3;
-        product = v[j] * v[k];
-        cross[i] = (uint32_t)sub_8001FC90(rrj_s32(pause_asr(product << 4, 16) << 4), rrj_s32(complement));
-        diagonal[i] = square[i] + (uint32_t)sub_8001FC90(rrj_s32(cosine), rrj_s32(65536u - square[i]));
-    }
-    values[0] = diagonal[0];
-    values[1] = cross[2] + sine[2];
-    values[2] = cross[1] - sine[1];
-    values[3] = cross[2] - sine[2];
-    values[4] = diagonal[1];
-    values[5] = cross[0] + sine[0];
-    values[6] = cross[1] + sine[1];
-    values[7] = cross[0] - sine[0];
-    values[8] = diagonal[2];
-    for (i = 0; i < 9; ++i)
-    {
-        if (local_output)
-            local_output[i] = (uint16_t)pause_asr(values[i], 4);
-        else
-            rrj_put16(rrj_at(output + 2 * i, 2), pause_asr(values[i], 4));
-    }
-    return pause_asr(values[8], 4);
 }
 
 /* 80028034: attach the table-selected effect set using actual slot/list code. */
 uint32_t sub_80028034(uint32_t actor)
 {
+    uint32_t scalar_value_95;
+
     FUNCTION_MARKER(0x80028034u, "SLUS_010.53");
     uint32_t variant = 0, count, table, value, delta, id, slot, flags, stamp, i, kind, byte_value;
-    kind = (rrj_u16(rrj_at(rrj_read32(actor) + 14, 2)) & 120u) >> 3;
+    kind = (r_u16(r_u32(actor) + 14) & 120u) >> 3;
     if (kind == 2)
     {
-        value = rrj_read32(actor + 180);
+        value = r_u32(actor + 180);
         if (value < 18)
             return 1;
         delta = 20u - value;
-        variant = value + (pause_asr(value - 18u, 31) & (18u - value)) + (pause_asr(delta, 31) & delta) - 18u;
+        variant = value + (((scalar_value_95 = (value - 18u)), (((uint32_t)((!((uint32_t)(31))) ? (scalar_value_95) : ((scalar_value_95 >> ((uint32_t)(31))) | ((scalar_value_95 & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(31)))) : 0)))))) & (18u - value)) + (((uint32_t)((!((uint32_t)(31))) ? (((uint32_t)(delta))) : ((((uint32_t)(delta)) >> ((uint32_t)(31))) | ((((uint32_t)(delta)) & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(31)))) : 0)))) & delta) - 18u;
         count = 6;
         table = 0x800536dc;
     }
@@ -7306,7 +6916,7 @@ uint32_t sub_80028034(uint32_t actor)
         count = 4;
         table = 0x800536e8;
     }
-    if ((rrj_read32(actor + 36) >> 27) & 1u)
+    if ((r_u32(actor + 36) >> 27) & 1u)
         return 1;
     for (i = 0; i < count; ++i, table += 2)
     {
@@ -7314,45 +6924,47 @@ uint32_t sub_80028034(uint32_t actor)
         if (id == 0xffffffffu)
             continue;
         slot = 0x800d39b0 + 112u * id;
-        flags = (rrj_read32(slot) & 0xfffffc3fu) | 0x140u;
-        rrj_write32(slot, flags);
-        flags = rrj_read32(slot);
-        stamp = rrj_read32(rrj_read32(0x8005b2f8) + 16);
-        rrj_write32(slot + 36, 0);
-        rrj_write32(slot + 44, 0);
-        rrj_write32(slot + 40, 0);
+        flags = (r_u32(slot) & 0xfffffc3fu) | 0x140u;
+        w_u32(slot, flags);
+        flags = r_u32(slot);
+        stamp = r_u32(r_u32(0x8005b2f8) + 16);
+        w_u32(slot + 36, 0);
+        w_u32(slot + 44, 0);
+        w_u32(slot + 40, 0);
         w_u8(slot + 61, 0);
-        rrj_write32(slot + 48, stamp);
-        byte_value = material_byte(rrj_host_context(), table);
+        w_u32(slot + 48, stamp);
+        byte_value = (uint32_t)r_u8(table);
         w_u8(slot + 96, 5);
         flags = (flags & 0xffc03fffu) | (((byte_value + count * variant) & 255u) << 14);
-        rrj_write32(slot, flags);
-        byte_value = material_byte(rrj_host_context(), table + 1);
+        w_u32(slot, flags);
+        byte_value = (uint32_t)r_u8((table + 1));
         flags = (flags & 0xffffc3ffu) | 0x800u;
-        rrj_write32(slot, flags);
+        w_u32(slot, flags);
         w_u8(slot + 97, (uint8_t)byte_value);
         (void)sub_800271CC(actor, id);
     }
-    flags = rrj_read32(actor + 36) | 0x38000000u;
-    rrj_write32(actor + 36, flags);
+    flags = r_u32(actor + 36) | 0x38000000u;
+    w_u32(actor + 36, flags);
     return flags;
 }
 
 /* 8008BA18: eight world-space actor corners with class-specific offsets. */
 uint32_t sub_8008BA18(uint32_t actor)
 {
+    uint32_t scalar_value_97;
+
     FUNCTION_MARKER(0x8008BA18u, "RASHCDG.BIN");
-    uint32_t tag = rrj_u16(rrj_at(actor + 172, 2)), height = rrj_read32(actor + 312), width = rrj_read32(actor + 304);
+    uint32_t tag = r_u16(actor + 172), height = r_u32(actor + 312), width = r_u32(actor + 304);
     uint32_t depth, product, a[3], b[3], c[3], points[8][3], i, k, shift_all = 0, shift_top = 0;
-    if (!(tag >> 5) && rrj_read32(actor + 180) < 18u && rrj_read32(rrj_read32(actor + 852) + 604) >= 2u)
+    if (!(tag >> 5) && r_u32(actor + 180) < 18u && r_u32(r_u32(actor + 852) + 604) >= 2u)
     {
         product = 5u * height;
-        height = pause_asr(product + (rrj_s32(product) < 0 ? 7u : 0u), 3);
+        height = ((scalar_value_97 = (product + (((int32_t)(uint32_t)(product)) < 0 ? 7u : 0u))), (((uint32_t)((!((uint32_t)(3))) ? (scalar_value_97) : ((scalar_value_97 >> ((uint32_t)(3))) | ((scalar_value_97 & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(3)))) : 0))))));
     }
-    depth = rrj_read32(actor + 308);
-    (void)sub_8002EE50(width, rrj_at(actor + 432, 6), a);
-    (void)sub_8002EE50(height, rrj_at(actor + 438, 6), b);
-    (void)sub_8002EE50(depth, rrj_at(actor + 444, 6), c);
+    depth = r_u32(actor + 308);
+    (void)sub_8002EE50(width, xport_guest_ptr(actor + 432, 6), a);
+    (void)sub_8002EE50(height, xport_guest_ptr(actor + 438, 6), b);
+    (void)sub_8002EE50(depth, xport_guest_ptr(actor + 444, 6), c);
     for (k = 0; k < 3; ++k)
     {
         points[0][k] = 0u - a[k] - c[k];
@@ -7364,16 +6976,16 @@ uint32_t sub_8008BA18(uint32_t actor)
         points[6][k] = a[k] - b[k] + c[k];
         points[7][k] = 0u - a[k] - b[k] + c[k];
     }
-    tag = rrj_u16(rrj_at(actor + 172, 2));
+    tag = r_u16(actor + 172);
     if ((tag >> 5) == 3)
     {
         shift_top = 1;
-        (void)sub_8002EE50(0x2000, rrj_at(actor + 438, 6), b);
+        (void)sub_8002EE50(0x2000, xport_guest_ptr(actor + 438, 6), b);
     }
     else if ((tag >> 5) == 4 && (tag & 31u) >= 30u)
     {
         shift_all = 1;
-        (void)rrj_scale_long_local(rrj_host_context(), 0x8000, b);
+        (void)sub_8002E810(0x8000, b, b);
     }
     for (i = 0; i < 8; ++i)
     {
@@ -7381,36 +6993,85 @@ uint32_t sub_8008BA18(uint32_t actor)
             for (k = 0; k < 3; ++k)
                 points[i][k] += b[k];
         for (k = 0; k < 3; ++k)
-            rrj_write32(actor + 196 + 12 * i + 4 * k, points[i][k] + rrj_read32(actor + 184 + 4 * k));
+            w_u32(actor + 196 + 12 * i + 4 * k, points[i][k] + r_u32(actor + 184 + 4 * k));
     }
     return 0;
 }
 
-uint32_t sub_8003FA40(uint32_t left, uint32_t right, uint32_t output)
+uint16_t *sub_8003FA40(const uint16_t left[9], const uint16_t right[9], uint16_t output[9])
 {
-    FUNCTION_MARKER(0x8003FA40u, "SLUS_010.53");
-    return multiply_rotation(rrj_host_context(), left, right, NULL, NULL, output);
+    uint32_t first, second, last, column, x, y, z;
+    FUNCTION_MARKER(0x8003FA40, "SLUS_010.53");
+    first = (uint32_t)left[0] | ((uint32_t)left[1] << 16);
+    second = (uint32_t)left[2] | ((uint32_t)left[3] << 16);
+    xport_gte_write_control(0, first);
+    xport_gte_write_control(1, second);
+    first = (uint32_t)left[4] | ((uint32_t)left[5] << 16);
+    second = (uint32_t)left[6] | ((uint32_t)left[7] << 16);
+    /* Control4 consumes only the signed final halfword */
+    last = (uint32_t)(int32_t)(int16_t)left[8];
+    xport_gte_write_control(2, first);
+    xport_gte_write_control(3, second);
+    xport_gte_write_control(4, last);
+    for (column = 0; column < 3; ++column)
+    {
+        x = right[column];
+        y = right[column + 3];
+        z = right[column + 6];
+        xport_gte_write_data(9, x);
+        xport_gte_write_data(10, y);
+        xport_gte_write_data(11, z);
+        xport_gte_execute(0x49E012);
+        x = xport_gte_read_data(9);
+        y = xport_gte_read_data(10);
+        z = xport_gte_read_data(11);
+        output[column] = (uint16_t)x;
+        output[column + 3] = (uint16_t)y;
+        output[column + 6] = (uint16_t)z;
+    }
+    return output + 1;
 }
 
-uint32_t rrj_multiply_rotation_local(RRJMemory *m, uint32_t left, const uint16_t right[9], uint32_t output)
+uint32_t sub_8003FB34(const uint16_t axis[3], uint32_t angle, uint16_t output[9])
 {
-    return multiply_rotation(m, left, 0, right, NULL, output);
-}
-
-uint32_t sub_8003FB34(uint32_t axis, uint32_t angle, uint32_t output)
-{
-    FUNCTION_MARKER(0x8003FB34u, "SLUS_010.53");
-    return axis_rotation(rrj_host_context(), axis, angle, output, NULL);
-}
-
-uint32_t rrj_axis_rotation_local(RRJMemory *m, uint32_t axis, uint32_t angle, uint16_t output[9])
-{
-    return axis_rotation(m, axis, angle, 0, output);
+    FUNCTION_MARKER(0x8003FB34, "SLUS_010.53");
+    uint32_t vector[3], square[3], sine[3], cross[3], diagonal[3], values[9];
+    uint32_t cosine, sin_value, complement, product, i, j, k;
+    cosine = (uint32_t)r_s16(0x8005624C + 4 * (angle & 4095) + 2) << 4;
+    sin_value = (uint32_t)r_s16(0x8005624C + 4 * (angle & 4095)) << 4;
+    complement = 65536 - cosine;
+    for (i = 0; i < 3; ++i)
+        vector[i] = (uint32_t)(int32_t)(int16_t)axis[i];
+    for (i = 0; i < 3; ++i)
+    {
+        square[i] = (uint32_t)sub_8001FC90((int32_t)(vector[i] << 4), (int32_t)(vector[i] << 4));
+        sine[i] = (uint32_t)sub_8001FC90((int32_t)(vector[i] << 4), (int32_t)sin_value);
+        j = (i + 1) % 3;
+        k = (i + 2) % 3;
+        product = vector[j] * vector[k];
+        cross[i] = (uint32_t)sub_8001FC90((int32_t)((uint32_t)((int32_t)(product << 4) >> 16) << 4), (int32_t)complement);
+        diagonal[i] = square[i] + (uint32_t)sub_8001FC90((int32_t)cosine, (int32_t)(65536 - square[i]));
+    }
+    values[0] = diagonal[0];
+    values[1] = cross[2] + sine[2];
+    values[2] = cross[1] - sine[1];
+    values[3] = cross[2] - sine[2];
+    values[4] = diagonal[1];
+    values[5] = cross[0] + sine[0];
+    values[6] = cross[1] + sine[1];
+    values[7] = cross[0] - sine[0];
+    values[8] = diagonal[2];
+    for (i = 0; i < 9; ++i)
+        output[i] = (uint16_t)((int32_t)values[i] >> 4);
+    return (uint32_t)((int32_t)values[8] >> 4);
 }
 
 /* 8009432C: complete placement/activation flow; actual callees throughout. */
 uint32_t sub_8009432C(uint32_t actor)
 {
+    uint32_t scalar_shift_98;
+    uint32_t scalar_value_106;
+
     FUNCTION_MARKER(0x8009432Cu, "RASHCDG.BIN");
     uint32_t angle = (uint32_t)sub_8001FC90(0x3c0000, 11), flags = 0, lateral = 0, player = 0;
     uint32_t global, descriptor, secondary, tag, count, rank, value, other, side, piece, link, type, i, k, x, y, z, t, u, speed;
@@ -7419,72 +7080,72 @@ uint32_t sub_8009432C(uint32_t actor)
     uint8_t event[8] = {0};
     if (!actor)
         return angle;
-    global = rrj_read32(0x8005b2f8);
-    if (material_byte(rrj_host_context(), global + 4) == 44 && !material_byte(rrj_host_context(), global + 57))
-        rrj_put16(rrj_at(actor + 320, 2), 0);
-    if (!material_half(rrj_host_context(), actor + 320))
+    global = r_u32(0x8005b2f8);
+    if ((uint32_t)r_u8((global + 4)) == 44 && !(uint32_t)r_u8((global + 57)))
+        w_u16(actor + 320, 0);
+    if (!(uint32_t)r_s16((actor + 320)))
         return 0x80060000u;
-    global = rrj_read32(0x8005b2f8);
-    tag = rrj_u16(rrj_at(actor + 172, 2));
-    if ((material_byte(rrj_host_context(), global + 4) & 1u) && tag >= rrj_read32(global + 48) && material_byte(rrj_host_context(), rrj_read32(actor + 1084) + 39) == 254)
+    global = r_u32(0x8005b2f8);
+    tag = r_u16(actor + 172);
+    if (((uint32_t)r_u8((global + 4)) & 1u) && tag >= r_u32(global + 48) && (uint32_t)r_u8((r_u32(actor + 1084) + 39)) == 254)
     {
         flags = 61;
         angle = (uint32_t)sub_8001FC90(0xa0000, 11);
-        rrj_write32(actor + 560, rrj_read32(actor + 560) | 0x20000000u);
+        w_u32(actor + 560, r_u32(actor + 560) | 0x20000000u);
     }
     else
     {
-        global = rrj_read32(0x8005b2f8);
-        value = material_byte(rrj_host_context(), global + 57);
+        global = r_u32(0x8005b2f8);
+        value = (uint32_t)r_u8((global + 57));
         if (value == 1)
         {
-            flags = rrj_read32(rrj_read32(rrj_read32(0x8005b38c) + 1084) + 40) ? 67u : 123u;
-            lateral = rrj_read32(actor + 344);
-            angle = rrj_read32(actor + 292);
-            rrj_write32(actor + 924, 0);
+            flags = r_u32(r_u32(r_u32(0x8005b38c) + 1084) + 40) ? 67u : 123u;
+            lateral = r_u32(actor + 344);
+            angle = r_u32(actor + 292);
+            w_u32(actor + 924, 0);
         }
-        else if (value >= 3 && rrj_u16(rrj_at(actor + 172, 2)) >= rrj_read32(global + 48) && ((material_byte(rrj_host_context(), rrj_read32(actor + 1084) + 1) & 15u) == (material_byte(rrj_host_context(), rrj_read32(rrj_read32(0x8005b38c) + 1084) + 1) & 15u)))
+        else if (value >= 3 && r_u16(actor + 172) >= r_u32(global + 48) && (((uint32_t)r_u8((r_u32(actor + 1084) + 1)) & 15u) == ((uint32_t)r_u8((r_u32(r_u32(0x8005b38c) + 1084) + 1)) & 15u)))
         {
             flags = 85;
-            descriptor = rrj_read32(actor + 1084);
-            w_u8(descriptor, (uint8_t)(material_byte(rrj_host_context(), descriptor) | 16u));
+            descriptor = r_u32(actor + 1084);
+            w_u8(descriptor, (uint8_t)((uint32_t)r_u8(descriptor) | 16u));
             angle = (uint32_t)sub_8001FC90(0x9b0000, 11);
         }
         else
         {
-            secondary = rrj_read32(actor + 852);
+            secondary = r_u32(actor + 852);
             flags = 1;
-            if (rrj_read32(secondary + 604) >= 3 && material_half(rrj_host_context(), secondary + 320))
+            if (r_u32(secondary + 604) >= 3 && (uint32_t)r_s16((secondary + 320)))
                 flags = 161;
-            count = rrj_read32(rrj_read32(0x8005b2f8) + 48);
-            if (rrj_u16(rrj_at(actor + 172, 2)) >= count)
+            count = r_u32(r_u32(0x8005b2f8) + 48);
+            if (r_u16(actor + 172) >= count)
             {
                 if (count == 2)
                 {
-                    x = rrj_read32(0x8005b268);
-                    y = rrj_read32(0x8005b26c);
-                    player = rrj_read32(0x8005b268 + 4u * (rrj_s32(rrj_read32(y + 324)) < rrj_s32(rrj_read32(x + 324))));
+                    x = r_u32(0x8005b268);
+                    y = r_u32(0x8005b26c);
+                    player = r_u32(0x8005b268 + 4u * (((int32_t)(uint32_t)(r_u32(y + 324))) < ((int32_t)(uint32_t)(r_u32(x + 324)))));
                 }
                 else
-                    player = rrj_read32(0x8005b38c);
-                if (rrj_s32(rrj_read32(0x8005b1f8)) >= (int32_t)material_byte(rrj_host_context(), rrj_read32(player + 1084) + 39))
+                    player = r_u32(0x8005b38c);
+                if (((int32_t)(uint32_t)(r_u32(0x8005b1f8))) >= (int32_t)(uint32_t)r_u8((r_u32(player + 1084) + 39)))
                 {
-                    descriptor = rrj_read32(actor + 1084);
-                    if (rrj_read32(descriptor + 40))
+                    descriptor = r_u32(actor + 1084);
+                    if (r_u32(descriptor + 40))
                     {
-                        count = rrj_read32(rrj_read32(0x8005b2f8) + 48);
-                        rank = material_byte(rrj_host_context(), descriptor + 39);
-                        if (rrj_s32(pause_asr(8, (count - 1u) & 31u)) < (int32_t)rank)
+                        count = r_u32(r_u32(0x8005b2f8) + 48);
+                        rank = (uint32_t)r_u8((descriptor + 39));
+                        if (((int32_t)(uint32_t)(((scalar_shift_98 = ((count - 1u) & 31u)), (((uint32_t)((!scalar_shift_98) ? (((uint32_t)(8))) : ((((uint32_t)(8)) >> scalar_shift_98) | ((((uint32_t)(8)) & 0x80000000) ? (0xFFFFFFFFu << (32 - scalar_shift_98)) : 0)))))))) < (int32_t)rank)
                             flags = 0;
                         else
                         {
-                            value = rrj_read32(rrj_read32(0x800d6188) + 4);
-                            descriptor = rrj_read32(actor + 1084);
-                            rrj_write32(actor + 368, value);
-                            rank = material_byte(rrj_host_context(), descriptor + 39);
+                            value = r_u32(r_u32(0x800d6188) + 4);
+                            descriptor = r_u32(actor + 1084);
+                            w_u32(actor + 368, value);
+                            rank = (uint32_t)r_u8((descriptor + 39));
                             flags |= 60u;
-                            rrj_write32(actor + 560, rrj_read32(actor + 560) | 0x20000000u);
-                            rrj_write32(actor + 368, value + 196608u * (rank >> 1) * (1u - 2u * (rank & 1u)));
+                            w_u32(actor + 560, r_u32(actor + 560) | 0x20000000u);
+                            w_u32(actor + 368, value + 196608u * (rank >> 1) * (1u - 2u * (rank & 1u)));
                         }
                     }
                 }
@@ -7493,228 +7154,228 @@ uint32_t sub_8009432C(uint32_t actor)
     }
     if (!flags || !sub_8003A468(actor + 360, actor + 328))
     {
-        global = rrj_read32(0x8005b2f8);
-        tag = rrj_u16(rrj_at(actor + 172, 2));
-        rrj_put16(rrj_at(actor + 320, 2), 0);
-        if (tag < rrj_read32(global + 48))
+        global = r_u32(0x8005b2f8);
+        tag = r_u16(actor + 172);
+        w_u16(actor + 320, 0);
+        if (tag < r_u32(global + 48))
             return 1;
         goto ai_tail;
     }
-    link = sub_8003B4B0(rrj_read32(actor + 428), rrj_read32(rrj_read32(actor + 332) + 12));
+    link = sub_8003B4B0(r_u32(actor + 428), r_u32(r_u32(actor + 332) + 12));
     (void)sub_8003DE28(actor, 1, 0, 0xffffffffu);
     if (flags & 4u)
     {
-        global = rrj_read32(0x8005b2f8);
-        if (material_byte(rrj_host_context(), global + 57) >= 3)
+        global = r_u32(0x8005b2f8);
+        if ((uint32_t)r_u8((global + 57)) >= 3)
         {
-            side = ((rrj_u16(rrj_at(actor + 172, 2)) >> 1) - 1u) & 1u;
+            side = ((r_u16(actor + 172) >> 1) - 1u) & 1u;
             if (!side)
                 angle = 0u - angle;
         }
         else
-            side = rrj_read32(global + 48) == 2 && rrj_read32(rrj_read32(0x800d6188)) == 32;
-        value = 2u * rrj_read32(actor + 308);
-        value = side ? rrj_read32(actor + 412) - value : rrj_read32(actor + 400) + value;
-        rrj_write32(actor + 344, value);
-        rrj_write32(actor + 924, 0);
+            side = r_u32(global + 48) == 2 && r_u32(r_u32(0x800d6188)) == 32;
+        value = 2u * r_u32(actor + 308);
+        value = side ? r_u32(actor + 412) - value : r_u32(actor + 400) + value;
+        w_u32(actor + 344, value);
+        w_u32(actor + 924, 0);
     }
-    value = (material_byte(rrj_host_context(), actor + 946) ^ 128u) - 128u;
-    type = rrj_u16(rrj_at(actor + 956 + 8u * (value - 1u), 2));
+    value = ((uint32_t)r_u8((actor + 946)) ^ 128u) - 128u;
+    type = r_u16(actor + 956 + 8u * (value - 1u));
     if (flags & 2u)
-        rrj_write32(actor + 344, lateral);
+        w_u32(actor + 344, lateral);
     else
     {
-        global = rrj_read32(0x8005b2f8);
-        tag = rrj_u16(rrj_at(actor + 172, 2));
-        if (!(flags & 4u) && !(tag >= rrj_read32(global + 48) && (material_byte(rrj_host_context(), rrj_read32(actor + 1084) + 1) & 15u) == 2) && type != 1)
-            rrj_write32(actor + 344, 0);
-        else if (rrj_u16(rrj_at(actor + 172, 2)) >= rrj_read32(rrj_read32(0x8005b2f8) + 48) && (material_byte(rrj_host_context(), rrj_read32(actor + 1084) + 1) & 15u) == 2 && type == 1)
-            rrj_write32(actor + 344, rrj_read32(actor + (rrj_s32(rrj_read32(actor + 364)) > 0 ? 416u : 404u)));
+        global = r_u32(0x8005b2f8);
+        tag = r_u16(actor + 172);
+        if (!(flags & 4u) && !(tag >= r_u32(global + 48) && ((uint32_t)r_u8((r_u32(actor + 1084) + 1)) & 15u) == 2) && type != 1)
+            w_u32(actor + 344, 0);
+        else if (r_u16(actor + 172) >= r_u32(r_u32(0x8005b2f8) + 48) && ((uint32_t)r_u8((r_u32(actor + 1084) + 1)) & 15u) == 2 && type == 1)
+            w_u32(actor + 344, r_u32(actor + (((int32_t)(uint32_t)(r_u32(actor + 364))) > 0 ? 416u : 404u)));
     }
-    piece = rrj_read32(actor + 340);
-    (void)sub_8002EAD8(rrj_at(piece + 20, 12), rrj_at(piece + 14, 6), rrj_read32(actor + 348), rrj_at(actor + 184, 12));
-    (void)sub_8002EAD8(rrj_at(actor + 184, 12), rrj_at(piece + 2, 6), rrj_read32(actor + 344), rrj_at(actor + 184, 12));
-    x = rrj_read32(actor + 184);
-    y = rrj_read32(actor + 188);
-    z = rrj_read32(actor + 192);
-    rrj_write32(actor + 504, x);
-    rrj_write32(actor + 508, y);
-    rrj_write32(actor + 512, z);
-    rrj_write32(actor + 468, x);
-    rrj_write32(actor + 472, y);
-    rrj_write32(actor + 476, z);
+    piece = r_u32(actor + 340);
+    (void)sub_8002EAD8(xport_guest_ptr(piece + 20, 12), xport_guest_ptr(piece + 14, 6), r_u32(actor + 348), xport_guest_ptr(actor + 184, 12));
+    (void)sub_8002EAD8(xport_guest_ptr(actor + 184, 12), xport_guest_ptr(piece + 2, 6), r_u32(actor + 344), xport_guest_ptr(actor + 184, 12));
+    x = r_u32(actor + 184);
+    y = r_u32(actor + 188);
+    z = r_u32(actor + 192);
+    w_u32(actor + 504, x);
+    w_u32(actor + 508, y);
+    w_u32(actor + 512, z);
+    w_u32(actor + 468, x);
+    w_u32(actor + 472, y);
+    w_u32(actor + 476, z);
     (void)sub_80037450(actor);
     sub_8003DF54(actor, 1, 0xffffffffu);
     for (i = 0; i < 5; ++i)
-        rrj_put16(rrj_at(actor + 432 + 2 * i, 2), rrj_u16(rrj_at(piece + 2 + 2 * i, 2)));
-    x = rrj_u16(rrj_at(actor + 438, 2));
-    y = rrj_u16(rrj_at(piece + 12, 2));
-    rrj_put16(rrj_at(actor + 438, 2), 0u - x);
-    x = rrj_u16(rrj_at(actor + 440, 2));
-    rrj_put16(rrj_at(actor + 442, 2), y);
-    rrj_put16(rrj_at(actor + 442, 2), 0u - y);
-    rrj_put16(rrj_at(actor + 440, 2), 0u - x);
+        w_u16(actor + 432 + 2 * i, r_u16(piece + 2 + 2 * i));
+    x = r_u16(actor + 438);
+    y = r_u16(piece + 12);
+    w_u16(actor + 438, 0u - x);
+    x = r_u16(actor + 440);
+    w_u16(actor + 442, y);
+    w_u16(actor + 442, 0u - y);
+    w_u16(actor + 440, 0u - x);
     for (i = 0; i < 3; ++i)
-        rrj_put16(rrj_at(actor + 444 + 2 * i, 2), rrj_u16(rrj_at(piece + 14 + 2 * i, 2)));
+        w_u16(actor + 444 + 2 * i, r_u16(piece + 14 + 2 * i));
     if (link)
     {
-        rrj_write32(actor + 364, rrj_read32(link + 4));
-        if (rrj_s32(rrj_read32(link + 4)) < 0)
+        w_u32(actor + 364, r_u32(link + 4));
+        if (((int32_t)(uint32_t)(r_u32(link + 4))) < 0)
         {
             for (i = 0; i < 3; ++i)
-                rrj_put16(rrj_at(actor + 444 + 2 * i, 2), 0u - rrj_u16(rrj_at(actor + 444 + 2 * i, 2)));
+                w_u16(actor + 444 + 2 * i, 0u - r_u16(actor + 444 + 2 * i));
             for (i = 0; i < 3; ++i)
-                rrj_put16(rrj_at(actor + 432 + 2 * i, 2), 0u - rrj_u16(rrj_at(actor + 432 + 2 * i, 2)));
+                w_u16(actor + 432 + 2 * i, 0u - r_u16(actor + 432 + 2 * i));
         }
     }
     else
-        rrj_write32(actor + 364, 1);
-    global = rrj_read32(0x8005b2f8);
-    count = rrj_read32(global + 48);
-    if (rrj_u16(rrj_at(actor + 172, 2)) >= count && (material_byte(rrj_host_context(), rrj_read32(actor + 1084) + 1) & 15u) == 2)
+        w_u32(actor + 364, 1);
+    global = r_u32(0x8005b2f8);
+    count = r_u32(global + 48);
+    if (r_u16(actor + 172) >= count && ((uint32_t)r_u8((r_u32(actor + 1084) + 1)) & 15u) == 2)
     {
         if (count == 2)
         {
             for (i = 0; i < 2; ++i)
             {
-                other = rrj_read32(0x8005b268 + 4 * i);
-                x = material_half(rrj_host_context(), actor + 186) - material_half(rrj_host_context(), other + 186);
-                y = material_half(rrj_host_context(), actor + 194) - material_half(rrj_host_context(), other + 194);
-                t = pause_asr(x, 31);
+                other = r_u32(0x8005b268 + 4 * i);
+                x = (uint32_t)r_s16((actor + 186)) - (uint32_t)r_s16((other + 186));
+                y = (uint32_t)r_s16((actor + 194)) - (uint32_t)r_s16((other + 194));
+                t = ((uint32_t)((!((uint32_t)(31))) ? (((uint32_t)(x))) : ((((uint32_t)(x)) >> ((uint32_t)(31))) | ((((uint32_t)(x)) & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(31)))) : 0))));
                 x = (x + t) ^ t;
-                t = pause_asr(y, 31);
+                t = ((uint32_t)((!((uint32_t)(31))) ? (((uint32_t)(y))) : ((((uint32_t)(y)) >> ((uint32_t)(31))) | ((((uint32_t)(y)) & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(31)))) : 0))));
                 y = (y + t) ^ t;
-                if (rrj_s32(x) < rrj_s32(y))
+                if (((int32_t)(uint32_t)(x)) < ((int32_t)(uint32_t)(y)))
                 {
                     t = x;
                     x = y;
                     y = t;
                 }
-                t = y + pause_asr(y, 1);
-                distances[i] = x - pause_asr(x, 5) - pause_asr(x, 7) + pause_asr(t, 2) + pause_asr(t, 6);
+                t = y + ((uint32_t)((!((uint32_t)(1))) ? (((uint32_t)(y))) : ((((uint32_t)(y)) >> ((uint32_t)(1))) | ((((uint32_t)(y)) & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(1)))) : 0))));
+                distances[i] = x - ((uint32_t)((!((uint32_t)(5))) ? (((uint32_t)(x))) : ((((uint32_t)(x)) >> ((uint32_t)(5))) | ((((uint32_t)(x)) & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(5)))) : 0)))) - ((uint32_t)((!((uint32_t)(7))) ? (((uint32_t)(x))) : ((((uint32_t)(x)) >> ((uint32_t)(7))) | ((((uint32_t)(x)) & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(7)))) : 0)))) + ((uint32_t)((!((uint32_t)(2))) ? (((uint32_t)(t))) : ((((uint32_t)(t)) >> ((uint32_t)(2))) | ((((uint32_t)(t)) & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(2)))) : 0)))) + ((uint32_t)((!((uint32_t)(6))) ? (((uint32_t)(t))) : ((((uint32_t)(t)) >> ((uint32_t)(6))) | ((((uint32_t)(t)) & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(6)))) : 0))));
             }
-            player = rrj_read32(0x8005b268 + 4u * (rrj_s32(distances[1]) < rrj_s32(distances[0])));
+            player = r_u32(0x8005b268 + 4u * (((int32_t)(uint32_t)(distances[1])) < ((int32_t)(uint32_t)(distances[0]))));
         }
         else
-            player = rrj_read32(0x8005b38c);
-        if (rrj_read32(player + 360) == rrj_read32(actor + 360) && rrj_s32(rrj_read32(actor + 364) ^ rrj_read32(player + 364)) < 0)
+            player = r_u32(0x8005b38c);
+        if (r_u32(player + 360) == r_u32(actor + 360) && ((int32_t)(uint32_t)(r_u32(actor + 364) ^ r_u32(player + 364))) < 0)
         {
             for (i = 0; i < 3; ++i)
-                rrj_put16(rrj_at(actor + 444 + 2 * i, 2), 0u - rrj_u16(rrj_at(actor + 444 + 2 * i, 2)));
+                w_u16(actor + 444 + 2 * i, 0u - r_u16(actor + 444 + 2 * i));
             for (i = 0; i < 3; ++i)
-                rrj_put16(rrj_at(actor + 432 + 2 * i, 2), 0u - rrj_u16(rrj_at(actor + 432 + 2 * i, 2)));
-            rrj_write32(actor + 364, 0u - rrj_read32(actor + 364));
+                w_u16(actor + 432 + 2 * i, 0u - r_u16(actor + 432 + 2 * i));
+            w_u32(actor + 364, 0u - r_u32(actor + 364));
         }
     }
     if (flags & 16u)
     {
-        (void)rrj_axis_rotation_local(rrj_host_context(), piece + 8, angle, matrix);
-        (void)rrj_multiply_rotation_local(rrj_host_context(), actor + 432, matrix, actor + 432);
+        (void)sub_8003FB34((const uint16_t[3]){r_u16(piece + 8), r_u16(piece + 10), r_u16(piece + 12)}, angle, matrix);
+        (void)sub_8003FA40(xport_guest_cptr(actor + 432, 18), matrix, xport_guest_ptr(actor + 432, 18));
     }
     for (i = 0; i < 9; ++i)
-        axes[i] = rrj_u16(rrj_at(actor + 432 + 2 * i, 2));
+        axes[i] = r_u16(actor + 432 + 2 * i);
     for (i = 0; i < 9; ++i)
-        rrj_put16(rrj_at(actor + 516 + 2 * i, 2), axes[i]);
+        w_u16(actor + 516 + 2 * i, axes[i]);
     (void)sub_8002090C(actor);
     if (flags & 136u)
     {
-        value = rrj_read32(actor + 668);
+        value = r_u32(actor + 668);
         if (flags & 8u)
         {
-            rrj_write32(actor + 636, 28595);
-            rrj_write32(actor + 652, value + 28595u);
+            w_u32(actor + 636, 28595);
+            w_u32(actor + 652, value + 28595u);
         }
         else
         {
-            rrj_write32(actor + 652, 102943);
-            rrj_write32(actor + 636, 102943u - value);
+            w_u32(actor + 652, 102943);
+            w_u32(actor + 636, 102943u - value);
         }
-        (void)rrj_axis_rotation_local(rrj_host_context(), actor + 444, pause_asr(652u * rrj_read32(actor + 652), 16), matrix);
-        (void)rrj_multiply_rotation_local(rrj_host_context(), actor + 432, matrix, actor + 432);
-        rrj_write32(actor + 568, rrj_read32(actor + 568) | 256u);
+        (void)sub_8003FB34((const uint16_t[3]){r_u16(actor + 444), r_u16(actor + 446), r_u16(actor + 448)}, ((scalar_value_106 = (652u * r_u32(actor + 652))), (((uint32_t)((!((uint32_t)(16))) ? (scalar_value_106) : ((scalar_value_106 >> ((uint32_t)(16))) | ((scalar_value_106 & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(16)))) : 0)))))), matrix);
+        (void)sub_8003FA40(xport_guest_cptr(actor + 432, 18), matrix, xport_guest_ptr(actor + 432, 18));
+        w_u32(actor + 568, r_u32(actor + 568) | 256u);
     }
     if (flags & 32u)
-        (void)sub_80068D20(actor, rrj_read32(actor + 852), 0);
+        (void)sub_80068D20(actor, r_u32(actor + 852), 0);
     (void)sub_8008BA18(actor);
-    value = sub_80020018(material_half(rrj_host_context(), actor + 444) << 4, material_half(rrj_host_context(), actor + 448) << 4);
-    rrj_write32(actor + 292, value);
-    x = material_half(rrj_host_context(), 0x8005624c + 4 * (value & 4095u) + 2);
-    value = rrj_read32(actor + 292);
+    value = sub_80020018((uint32_t)r_s16((actor + 444)) << 4, (uint32_t)r_s16((actor + 448)) << 4);
+    w_u32(actor + 292, value);
+    x = (uint32_t)r_s16((0x8005624c + 4 * (value & 4095u) + 2));
+    value = r_u32(actor + 292);
     y = 0x8005624c + 4 * (value & 4095u);
-    z = rrj_read32(actor + 308);
-    rrj_write32(actor + 296, x << 4);
-    rrj_write32(actor + 300, material_half(rrj_host_context(), y) << 4);
-    (void)sub_8002EAD8(rrj_at(actor + 184, 12), rrj_at(actor + 528, 6), 2u * z, rrj_at(actor + 880, 12));
+    z = r_u32(actor + 308);
+    w_u32(actor + 296, x << 4);
+    w_u32(actor + 300, (uint32_t)r_s16(y) << 4);
+    (void)sub_8002EAD8(xport_guest_ptr(actor + 184, 12), xport_guest_ptr(actor + 528, 6), 2u * z, xport_guest_ptr(actor + 880, 12));
     for (i = 0; i < 3; ++i)
     {
-        axes[i] = rrj_u16(rrj_at(actor + 444 + 2 * i, 2));
-        axes[i + 3] = rrj_u16(rrj_at(actor + 432 + 2 * i, 2));
+        axes[i] = r_u16(actor + 444 + 2 * i);
+        axes[i + 3] = r_u16(actor + 432 + 2 * i);
     }
-    speed = rrj_read32(actor + 924);
-    rrj_put16(rrj_at(actor + 450, 2), axes[0]);
-    rrj_write32(actor + 480, speed);
-    rrj_write32(actor + 576, speed);
-    rrj_put16(rrj_at(actor + 452, 2), axes[1]);
-    rrj_put16(rrj_at(actor + 454, 2), axes[2]);
+    speed = r_u32(actor + 924);
+    w_u16(actor + 450, axes[0]);
+    w_u32(actor + 480, speed);
+    w_u32(actor + 576, speed);
+    w_u16(actor + 452, axes[1]);
+    w_u16(actor + 454, axes[2]);
     for (i = 0; i < 3; ++i)
-        rrj_put16(rrj_at(actor + 814 + 2 * i, 2), axes[i + 3]);
-    w_u8(actor + 849, (uint8_t)(rrj_s32(speed) > 655360 ? material_byte(rrj_host_context(), rrj_read32(actor + 556) + 444) - 1u : 0u));
-    if ((flags & 64u) && rrj_u16(rrj_at(actor + 956, 2)) == 1)
+        w_u16(actor + 814 + 2 * i, axes[i + 3]);
+    w_u8(actor + 849, (uint8_t)(((int32_t)(uint32_t)(speed)) > 655360 ? (uint32_t)r_u8((r_u32(actor + 556) + 444)) - 1u : 0u));
+    if ((flags & 64u) && r_u16(actor + 956) == 1)
     {
-        value = rrj_read32(actor + 564);
-        rrj_put16(rrj_at(actor + 960, 2), 1);
-        rrj_write32(actor + 564, value & ~512u);
+        value = r_u32(actor + 564);
+        w_u16(actor + 960, 1);
+        w_u32(actor + 564, value & ~512u);
     }
     if (!(flags & 32u))
     {
-        secondary = rrj_read32(actor + 852);
-        (void)sub_8001E0B4(secondary + 328, actor + 328, 32);
+        secondary = r_u32(actor + 852);
+        (void)sub_8001E0B4(xport_guest_ptr(secondary + 328, 32), xport_guest_ptr(actor + 328, 1), 32);
         for (k = 0; k < 2; ++k)
             for (i = 0; i < 3; ++i)
-                rrj_write32(secondary + (k ? 468u : 184u) + 4 * i, rrj_read32(actor + 184 + 4 * i));
-        value = rrj_u16(rrj_at(actor + 320, 2));
-        rrj_write32(secondary + 552, 0);
-        rrj_put16(rrj_at(secondary + 320, 2), value);
+                w_u32(secondary + (k ? 468u : 184u) + 4 * i, r_u32(actor + 184 + 4 * i));
+        value = r_u16(actor + 320);
+        w_u32(secondary + 552, 0);
+        w_u16(secondary + 320, value);
         if (!(flags & 8u))
             (void)sub_8007EC30(actor);
         (void)sub_80012838(actor, secondary, 2, 0);
-        speed = rrj_read32(actor + 924);
+        speed = r_u32(actor + 924);
         w_u8(actor + 72, 0);
-        rrj_write32(actor + 480, speed);
-        rrj_write32(actor + 576, speed);
-        value = (uint32_t)sub_8001FC90(rrj_s32(speed), rrj_s32(speed));
-        speed = rrj_read32(actor + 480);
-        rrj_write32(actor + 580, value);
-        w_u8(actor + 849, (uint8_t)(rrj_s32(speed) > 655360 ? material_byte(rrj_host_context(), rrj_read32(actor + 556) + 444) - 1u : 0u));
+        w_u32(actor + 480, speed);
+        w_u32(actor + 576, speed);
+        value = (uint32_t)sub_8001FC90(((int32_t)(uint32_t)(speed)), ((int32_t)(uint32_t)(speed)));
+        speed = r_u32(actor + 480);
+        w_u32(actor + 580, value);
+        w_u8(actor + 849, (uint8_t)(((int32_t)(uint32_t)(speed)) > 655360 ? (uint32_t)r_u8((r_u32(actor + 556) + 444)) - 1u : 0u));
         for (k = 0; k < 3; ++k)
             for (i = 0; i < 3; ++i)
             {
                 value = 444u - 6u * k + 2u * i;
-                rrj_put16(rrj_at(secondary + value, 2), rrj_u16(rrj_at(actor + value, 2)));
+                w_u16(secondary + value, r_u16(actor + value));
             }
-        global = rrj_read32(0x8005b2f8);
-        if (rrj_u16(rrj_at(actor + 172, 2)) >= rrj_read32(global + 48) && (material_byte(rrj_host_context(), rrj_read32(actor + 1084) + 1) & 15u) == 2 && !rrj_read32(secondary + 540))
-            rrj_write32(secondary + 540, sub_80012884(0x800ce170, secondary));
-        (void)sub_80012858(rrj_read32(secondary + 540), rrj_read32(0x800ce190));
-        global = rrj_read32(0x8005b2f8);
+        global = r_u32(0x8005b2f8);
+        if (r_u16(actor + 172) >= r_u32(global + 48) && ((uint32_t)r_u8((r_u32(actor + 1084) + 1)) & 15u) == 2 && !r_u32(secondary + 540))
+            w_u32(secondary + 540, sub_80012884(0x800ce170, secondary));
+        (void)sub_80012858(r_u32(secondary + 540), r_u32(0x800ce190));
+        global = r_u32(0x8005b2f8);
         value = 11;
         u = 1;
-        if (rrj_u16(rrj_at(actor + 172, 2)) >= rrj_read32(global + 48) && (material_byte(rrj_host_context(), rrj_read32(actor + 1084) + 1) & 15u) == 2 && !(material_byte(rrj_host_context(), actor + 928) & 16u))
+        if (r_u16(actor + 172) >= r_u32(global + 48) && ((uint32_t)r_u8((r_u32(actor + 1084) + 1)) & 15u) == 2 && !((uint32_t)r_u8((actor + 928)) & 16u))
         {
             value = 4;
             u = 0;
         }
-        rrj_write32(secondary + 604, u);
+        w_u32(secondary + 604, u);
         (void)sub_800C4550(value, secondary, 1);
     }
-    rrj_write32(actor + 568, rrj_read32(actor + 568) | 0x08000000u);
+    w_u32(actor + 568, r_u32(actor + 568) | 0x08000000u);
 ai_tail:
-    if (rrj_u16(rrj_at(actor + 172, 2)) < rrj_read32(rrj_read32(0x8005b2f8) + 48))
+    if (r_u16(actor + 172) < r_u32(r_u32(0x8005b2f8) + 48))
         return 1;
-    value = material_byte(rrj_host_context(), rrj_read32(actor + 1084) + 1) & 15u;
+    value = (uint32_t)r_u8((r_u32(actor + 1084) + 1)) & 15u;
     if (value != 2)
         return value;
-    if (material_half(rrj_host_context(), actor + 320) && (material_byte(rrj_host_context(), actor + 928) & 16u))
+    if ((uint32_t)r_s16((actor + 320)) && ((uint32_t)r_u8((actor + 928)) & 16u))
     {
         (void)sub_800BCD10(actor);
         type = 4;
@@ -7722,15 +7383,15 @@ ai_tail:
     else
     {
         (void)sub_8009DAF8(1);
-        w_u8(actor + 928, (uint8_t)((material_byte(rrj_host_context(), actor + 928) | 16u) & 223u));
+        w_u8(actor + 928, (uint8_t)(((uint32_t)r_u8((actor + 928)) | 16u) & 223u));
         sub_8003AF9C(actor + 172, 0, player);
-        rrj_write32(rrj_read32(actor + 1084) + 40, 0);
+        w_u32(r_u32(actor + 1084) + 40, 0);
         (void)sub_800BCD10(actor);
-        type = material_half(rrj_host_context(), actor + 320) ? 1u : 4u;
+        type = (uint32_t)r_s16((actor + 320)) ? 1u : 4u;
     }
-    rrj_put16(event, type);
-    rrj_put16(event + 2, 224);
-    (void)rrj_enqueue_actor_event_local(rrj_host_context(), event, 1, actor);
+    xport_store_le16(event, type);
+    xport_store_le16(event + 2, 224);
+    (void)sub_800BCA68(event, 1, actor);
     return sub_80028034(actor);
 }
 
@@ -7738,354 +7399,370 @@ ai_tail:
  * intermediates retain the MIPS wrapping sign masks at integer extremes. */
 uint32_t sub_800723FC(uint32_t actor)
 {
+    uint32_t scalar_value_107;
+    uint32_t scalar_value_108;
+
     FUNCTION_MARKER(0x800723FCu, "RASHCDG.BIN");
-    uint32_t flags = rrj_read32(actor + 0x238), secondary = rrj_read32(actor + 0x354);
+    uint32_t flags = r_u32(actor + 0x238), secondary = r_u32(actor + 0x354);
     uint32_t angle, rate, target, scale, value, sign, dot, linked;
-    rrj_write32(actor + 0x3A4, 0);
-    rrj_write32(actor + 0x2E8, 0);
-    rrj_write32(actor + 0x234, rrj_read32(actor + 0x234) & 0xC0018200u);
+    w_u32(actor + 0x3A4, 0);
+    w_u32(actor + 0x2E8, 0);
+    w_u32(actor + 0x234, r_u32(actor + 0x234) & 0xC0018200u);
     if (flags & 0x40)
     {
-        angle = rrj_read32(actor + 0x28C);
-        rrj_write32(actor + 0x2D4, 0);
-        rrj_write32(actor + 0x2AC, 0);
-        rrj_write32(actor + 0x298, angle);
-        target = rrj_s32(angle) > 0 ? 0x1921Fu : 0u - 0x1921Fu;
-        if (rrj_read32(actor + 0x238) & 0x18000)
+        angle = r_u32(actor + 0x28C);
+        w_u32(actor + 0x2D4, 0);
+        w_u32(actor + 0x2AC, 0);
+        w_u32(actor + 0x298, angle);
+        target = ((int32_t)(uint32_t)(angle)) > 0 ? 0x1921Fu : 0u - 0x1921Fu;
+        if (r_u32(actor + 0x238) & 0x18000)
         {
-            rrj_write32(actor + 0x248, 0);
+            w_u32(actor + 0x248, 0);
             scale = 0x1AAAA;
             rate = (uint32_t)r_u8(0x800531F1) << 10;
             if (rate < 0x3333)
                 rate = 0x3333;
-            sign = (rrj_read32(actor + 0x238) >> 15) & 1;
-            if ((sign && rrj_s32(angle) > 0) || (!sign && rrj_s32(angle) < 0))
+            sign = (r_u32(actor + 0x238) >> 15) & 1;
+            if ((sign && ((int32_t)(uint32_t)(angle)) > 0) || (!sign && ((int32_t)(uint32_t)(angle)) < 0))
             {
-                if (rrj_s32(angle) < 0)
+                if (((int32_t)(uint32_t)(angle)) < 0)
                     rate = 0u - rate;
             }
             else if (!angle)
                 rate = ((0u - sign) & (2u * rate)) - rate;
-            else if (rrj_s32(angle) > 0)
+            else if (((int32_t)(uint32_t)(angle)) > 0)
                 rate = 0u - rate;
-            rrj_write32(actor + 0x290, rate);
-            rrj_write32(actor + 0x294, rrj_s32(rate) < 0 ? 0xFFFF0000u : 0x10000u);
-            rrj_write32(actor + 0x2A8, 0);
-            rrj_write32(actor + 0x2B0, target);
+            w_u32(actor + 0x290, rate);
+            w_u32(actor + 0x294, ((int32_t)(uint32_t)(rate)) < 0 ? 0xFFFF0000u : 0x10000u);
+            w_u32(actor + 0x2A8, 0);
+            w_u32(actor + 0x2B0, target);
         }
         else
         {
             scale = 0x35555;
-            value = (uint32_t)sub_8001FC90(rrj_s32(2u * (target - angle)), 0xB1C71);
-            rrj_write32(actor + 0x294, value);
-            rrj_write32(actor + 0x290, 0);
-            if (rrj_read32(actor + 0x238) & 0x20000)
+            value = (uint32_t)sub_8001FC90(((int32_t)(uint32_t)(2u * (target - angle))), 0xB1C71);
+            w_u32(actor + 0x294, value);
+            w_u32(actor + 0x290, 0);
+            if (r_u32(actor + 0x238) & 0x20000)
             {
-                rrj_write32(actor + 0x2B0, target);
-                value = (uint32_t)sub_8001FC90(rrj_s32(target - rrj_read32(actor + 0x2A4)), 0x35555);
-                rrj_write32(actor + 0x2A8, value);
+                w_u32(actor + 0x2B0, target);
+                value = (uint32_t)sub_8001FC90(((int32_t)(uint32_t)(target - r_u32(actor + 0x2A4))), 0x35555);
+                w_u32(actor + 0x2A8, value);
             }
         }
-        value = (uint32_t)sub_8001FC90(rrj_s32(rrj_read32(actor + 0x1E8)), rrj_s32(scale));
-        rrj_write32(actor + 0x248, 0u - value);
-        value = (uint32_t)sub_8001FC90(rrj_s32(rrj_read32(actor + 0x268)), rrj_s32(scale));
-        rrj_write32(actor + 0x26C, 0u - value);
+        value = (uint32_t)sub_8001FC90(((int32_t)(uint32_t)(r_u32(actor + 0x1E8))), ((int32_t)(uint32_t)(scale)));
+        w_u32(actor + 0x248, 0u - value);
+        value = (uint32_t)sub_8001FC90(((int32_t)(uint32_t)(r_u32(actor + 0x268))), ((int32_t)(uint32_t)(scale)));
+        w_u32(actor + 0x26C, 0u - value);
     }
     else if (flags & 0x20)
     {
-        angle = rrj_read32(actor + 0x2A4);
+        angle = r_u32(actor + 0x2A4);
         target = 0x1921F;
-        if (rrj_read32(actor + 0x358) && rrj_s32(angle) > 0)
+        if (r_u32(actor + 0x358) && ((int32_t)(uint32_t)(angle)) > 0)
             target += angle - 0x138C3;
-        if (rrj_s32(angle) < 0 || (!angle && rrj_s32(rrj_read32(actor + 0x28C)) <= 0))
+        if (((int32_t)(uint32_t)(angle)) < 0 || (!angle && ((int32_t)(uint32_t)(r_u32(actor + 0x28C))) <= 0))
             target = 0u - target;
-        rrj_write32(actor + 0x2B0, target);
-        rate = rrj_read32(actor + 0x2A8);
-        if (rrj_s32(rate ^ target) < 0)
+        w_u32(actor + 0x2B0, target);
+        rate = r_u32(actor + 0x2A8);
+        if (((int32_t)(uint32_t)(rate ^ target)) < 0)
             rate = 0u - rate;
-        sign = rrj_s32(target) > 0;
+        sign = ((int32_t)(uint32_t)(target)) > 0;
         if (!rate)
             rate = (sign << 18) - 0x20000;
         rate *= 4;
-        if (rrj_s32(rate) < 0)
+        if (((int32_t)(uint32_t)(rate)) < 0)
         {
-            if (rrj_s32(rate) > -0x20000)
+            if (((int32_t)(uint32_t)(rate)) > -0x20000)
                 rate = 0xFFFE0000;
         }
         else if (rate < 0x20000)
             rate = 0x20000;
-        value = angle + (pause_asr(angle + 0x1921F, 31) & (0u - 0x1921F - angle));
-        value += pause_asr(0x1921F - angle, 31) & (0x1921F - angle);
-        rrj_write32(actor + 0x2A4, value);
-        dot = pause_asr(value, 31);
+        value = angle + (((scalar_value_107 = (angle + 0x1921F)), (((uint32_t)((!((uint32_t)(31))) ? (scalar_value_107) : ((scalar_value_107 >> ((uint32_t)(31))) | ((scalar_value_107 & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(31)))) : 0)))))) & (0u - 0x1921F - angle));
+        value += ((scalar_value_108 = (0x1921F - angle)), (((uint32_t)((!((uint32_t)(31))) ? (scalar_value_108) : ((scalar_value_108 >> ((uint32_t)(31))) | ((scalar_value_108 & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(31)))) : 0)))))) & (0x1921F - angle);
+        w_u32(actor + 0x2A4, value);
+        dot = ((uint32_t)((!((uint32_t)(31))) ? (((uint32_t)(value))) : ((((uint32_t)(value)) >> ((uint32_t)(31))) | ((((uint32_t)(value)) & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(31)))) : 0))));
         dot = (value + dot) ^ dot;
-        if (rrj_s32(dot) > 0x1921E)
+        if (((int32_t)(uint32_t)(dot)) > 0x1921E)
             rate = 0;
-        rrj_write32(actor + 0x2A8, rate);
-        rrj_write32(actor + 0x2AC, 0);
-        value = rrj_read32(actor + 0x27C);
-        if (!value || (rrj_read32(actor + 0x358) && rrj_s32(value) > 0))
-            rrj_write32(actor + 0x27C, sign ? 0x41u : 0u - 0x41u);
-        rrj_write32(actor + 0x238, rrj_read32(actor + 0x238) & 0xFFFDFFFFu);
+        w_u32(actor + 0x2A8, rate);
+        w_u32(actor + 0x2AC, 0);
+        value = r_u32(actor + 0x27C);
+        if (!value || (r_u32(actor + 0x358) && ((int32_t)(uint32_t)(value)) > 0))
+            w_u32(actor + 0x27C, sign ? 0x41u : 0u - 0x41u);
+        w_u32(actor + 0x238, r_u32(actor + 0x238) & 0xFFFDFFFFu);
     }
     else if (flags & 0x80)
     {
-        value = rrj_read32(actor + 0x27C);
-        sign = pause_asr(value, 31);
+        value = r_u32(actor + 0x27C);
+        sign = ((uint32_t)((!((uint32_t)(31))) ? (((uint32_t)(value))) : ((((uint32_t)(value)) >> ((uint32_t)(31))) | ((((uint32_t)(value)) & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(31)))) : 0))));
         value = (value + sign) ^ sign;
-        rrj_write32(actor + 0x2D4, rrj_s32(value) > 0x8000 ? 0xCCCu : 0u);
-        rrj_write32(actor + 0x2AC, 0);
-        rrj_write32(actor + 0x2B0, 0);
-        rrj_write32(actor + 0x2A8, 0u - rrj_read32(actor + 0x2A4));
-        if (rrj_read32(secondary + 0x25C) < 2)
+        w_u32(actor + 0x2D4, ((int32_t)(uint32_t)(value)) > 0x8000 ? 0xCCCu : 0u);
+        w_u32(actor + 0x2AC, 0);
+        w_u32(actor + 0x2B0, 0);
+        w_u32(actor + 0x2A8, 0u - r_u32(actor + 0x2A4));
+        if (r_u32(secondary + 0x25C) < 2)
         {
-            rrj_put16(rrj_at(secondary + 0x1C8, 2), rrj_u16(rrj_at(actor + 0x1C2, 2)));
-            rrj_put16(rrj_at(secondary + 0x1CA, 2), rrj_u16(rrj_at(actor + 0x1C4, 2)));
-            value = rrj_u16(rrj_at(actor + 0x1C6, 2));
-            rrj_write32(secondary + 0x228, rrj_read32(secondary + 0x228) | 0x208000);
-            rrj_put16(rrj_at(secondary + 0x1CC, 2), (uint16_t)value);
+            w_u16(secondary + 0x1C8, r_u16(actor + 0x1C2));
+            w_u16(secondary + 0x1CA, r_u16(actor + 0x1C4));
+            value = r_u16(actor + 0x1C6);
+            w_u32(secondary + 0x228, r_u32(secondary + 0x228) | 0x208000);
+            w_u16(secondary + 0x1CC, (uint16_t)value);
         }
     }
     else if (flags & 0x100)
     {
-        rrj_write32(actor + 0x2AC, 0);
-        dot = sub_8002E698(rrj_at(actor + 0x210, 6), rrj_at(rrj_read32(actor + 0x154) + 2, 6));
-        if (rrj_read32(actor + 0x238) & 0x400000)
+        w_u32(actor + 0x2AC, 0);
+        dot = sub_8002E698(xport_guest_ptr(actor + 0x210, 6), xport_guest_ptr(r_u32(actor + 0x154) + 2, 6));
+        if (r_u32(actor + 0x238) & 0x400000)
             dot = 0u - dot;
-        rrj_write32(actor + 0x2A8, rrj_s32(dot) > 0 ? 0xFFFFC000u : 0x4000u);
-        angle = rrj_read32(actor + 0x28C);
-        rrj_write32(actor + 0x268, 0);
-        rrj_write32(actor + 0x26C, 0);
-        rrj_write32(actor + 0x270, 0);
-        linked = rrj_read32(actor + 0x358);
-        rrj_write32(actor + 0x28C, rrj_s32(angle) > 0 ? 0x1921Fu : 0u - 0x1921Fu);
-        rrj_write32(actor + 0x290, 0);
-        rrj_write32(actor + 0x294, 0);
-        rrj_write32(actor + 0x280, 0);
-        rrj_write32(actor + 0x1E8, 0);
-        rrj_write32(actor + 0x248, 0);
+        w_u32(actor + 0x2A8, ((int32_t)(uint32_t)(dot)) > 0 ? 0xFFFFC000u : 0x4000u);
+        angle = r_u32(actor + 0x28C);
+        w_u32(actor + 0x268, 0);
+        w_u32(actor + 0x26C, 0);
+        w_u32(actor + 0x270, 0);
+        linked = r_u32(actor + 0x358);
+        w_u32(actor + 0x28C, ((int32_t)(uint32_t)(angle)) > 0 ? 0x1921Fu : 0u - 0x1921Fu);
+        w_u32(actor + 0x290, 0);
+        w_u32(actor + 0x294, 0);
+        w_u32(actor + 0x280, 0);
+        w_u32(actor + 0x1E8, 0);
+        w_u32(actor + 0x248, 0);
         if (linked)
-            rrj_write32(linked + 0x1E8, 0);
-        value = rrj_read32(actor + 0x1E0);
-        rrj_write32(actor + 0x2C0, 0);
-        rrj_write32(actor + 0x25C, 0);
-        rrj_write32(actor + 0x2D4, 0x30000);
-        (void)sub_8002EE50(value, rrj_at(actor + 0x1C2, 6), rrj_at(actor + 0x1C8, 12));
-        rrj_write32(actor + 0x238, rrj_read32(actor + 0x238) & 0xEFFFFFFFu);
+            w_u32(linked + 0x1E8, 0);
+        value = r_u32(actor + 0x1E0);
+        w_u32(actor + 0x2C0, 0);
+        w_u32(actor + 0x25C, 0);
+        w_u32(actor + 0x2D4, 0x30000);
+        (void)sub_8002EE50(value, xport_guest_ptr(actor + 0x1C2, 6), xport_guest_ptr(actor + 0x1C8, 12));
+        w_u32(actor + 0x238, r_u32(actor + 0x238) & 0xEFFFFFFFu);
     }
-    value = rrj_read32(actor + 0x238) & 0xFFFFF7FFu;
-    rrj_write32(actor + 0x238, value);
+    value = r_u32(actor + 0x238) & 0xFFFFF7FFu;
+    w_u32(actor + 0x238, value);
     return value;
 }
 
-uint32_t rrj_multiply_rotation_local_left(RRJMemory *m, const uint16_t left[9], uint32_t right, uint32_t output)
+uint16_t *sub_8004D2A4(const uint16_t angles[3], uint16_t output[9])
 {
-    return multiply_rotation(m, 0, right, NULL, left, output);
-}
-
-/* 8004D2A4/P0043: negative angles use the positive-index table with sine
- * negation. Preserve low-word multiplication and negate BEFORE sra 12. */
-static void euler_sincos(RRJMemory *m, uint16_t raw, uint32_t *sine, uint32_t *cosine)
-{
-    int32_t angle = (int32_t)(int16_t)raw;
-    uint32_t index = (angle < 0 ? 0u - (uint32_t)angle : (uint32_t)angle) & 4095u;
-    *sine = material_half(m, 0x8005624C + 4 * index);
-    *cosine = material_half(m, 0x8005624E + 4 * index);
+    uint32_t sx, cx, sy, cy, sz, cz, packed, index, product, first, second, cross;
+    int32_t angle, z_angle;
+    FUNCTION_MARKER(0x8004D2A4, "SLUS_010.53");
+    angle = (int16_t)xport_load_le16(angles);
+    index = (angle < 0 ? 0 - (uint32_t)angle : (uint32_t)angle) & 4095;
+    packed = r_u32(0x8005624C + 4 * index);
+    sx = (uint32_t)(int32_t)(int16_t)packed;
     if (angle < 0)
-        *sine = 0u - *sine;
-}
-
-static void euler_store(RRJMemory *m, uint32_t output, uint16_t *local, unsigned index, uint32_t value)
-{
-    if (local)
-        local[index] = (uint16_t)value;
-    else
-        rrj_put16(rrj_at(output + 2 * index, 2), value);
-}
-
-static void euler_rotation(RRJMemory *m, const uint16_t angles[3], uint32_t output, uint16_t *local)
-{
-    uint32_t sx, cx, sy, cy, sz, cz, czn, szn;
-    euler_sincos(m, angles[0], &sx, &cx);
-    euler_sincos(m, angles[1], &sy, &cy);
-    euler_store(m, output, local, 2, sy);
-    euler_store(m, output, local, 5, pause_asr(0u - cy * sx, 12));
-    euler_store(m, output, local, 8, pause_asr(cy * cx, 12));
-    euler_sincos(m, angles[2], &sz, &cz);
-    euler_store(m, output, local, 0, pause_asr(cz * cy, 12));
-    euler_store(m, output, local, 1, pause_asr(0u - sz * cy, 12));
-    czn = pause_asr(cz * (0u - sy), 12);
-    euler_store(m, output, local, 3, pause_asr(sz * cx, 12) - pause_asr(czn * sx, 12));
-    euler_store(m, output, local, 6, pause_asr(sz * sx, 12) + pause_asr(czn * cx, 12));
-    szn = pause_asr(sz * (0u - sy), 12);
-    euler_store(m, output, local, 4, pause_asr(cz * cx, 12) + pause_asr(szn * sx, 12));
-    euler_store(m, output, local, 7, pause_asr(cz * sx, 12) - pause_asr(szn * cx, 12));
-}
-
-uint32_t sub_8004D2A4(uint32_t angles, uint32_t output)
-{
-    FUNCTION_MARKER(0x8004D2A4u, "SLUS_010.53");
-    uint16_t captured[3];
-    unsigned i;
-    for (i = 0; i < 3; ++i)
-        captured[i] = rrj_u16(rrj_at(angles + 2 * i, 2));
-    euler_rotation(rrj_host_context(), captured, output, NULL);
+        sx = 0 - sx;
+    cx = (uint32_t)((int32_t)packed >> 16);
+    angle = (int16_t)xport_load_le16(angles + 1);
+    index = (angle < 0 ? 0 - (uint32_t)angle : (uint32_t)angle) & 4095;
+    packed = r_u32(0x8005624C + 4 * index);
+    sy = (uint32_t)(int32_t)(int16_t)packed;
+    if (angle < 0)
+        sy = 0 - sy;
+    cy = (uint32_t)((int32_t)packed >> 16);
+    z_angle = (int16_t)xport_load_le16(angles + 2);
+    xport_store_le16(output + 2, (uint16_t)sy);
+    product = 0 - cy * sx;
+    xport_store_le16(output + 5, (uint16_t)((int32_t)product >> 12));
+    product = cy * cx;
+    xport_store_le16(output + 8, (uint16_t)((int32_t)product >> 12));
+    index = (z_angle < 0 ? 0 - (uint32_t)z_angle : (uint32_t)z_angle) & 4095;
+    packed = r_u32(0x8005624C + 4 * index);
+    sz = (uint32_t)(int32_t)(int16_t)packed;
+    if (z_angle < 0)
+        sz = 0 - sz;
+    cz = (uint32_t)((int32_t)packed >> 16);
+    product = cz * cy;
+    xport_store_le16(output, (uint16_t)((int32_t)product >> 12));
+    product = 0 - sz * cy;
+    xport_store_le16(output + 1, (uint16_t)((int32_t)product >> 12));
+    product = cz * (0 - sy);
+    cross = (uint32_t)((int32_t)product >> 12);
+    product = cross * sx;
+    first = (uint32_t)((int32_t)product >> 12);
+    product = sz * cx;
+    second = (uint32_t)((int32_t)product >> 12);
+    xport_store_le16(output + 3, (uint16_t)(second - first));
+    product = cross * cx;
+    first = (uint32_t)((int32_t)product >> 12);
+    product = sz * sx;
+    second = (uint32_t)((int32_t)product >> 12);
+    xport_store_le16(output + 6, (uint16_t)(second + first));
+    product = sz * (0 - sy);
+    cross = (uint32_t)((int32_t)product >> 12);
+    product = cross * sx;
+    first = (uint32_t)((int32_t)product >> 12);
+    product = cz * cx;
+    second = (uint32_t)((int32_t)product >> 12);
+    xport_store_le16(output + 4, (uint16_t)(second + first));
+    product = cross * cx;
+    first = (uint32_t)((int32_t)product >> 12);
+    product = cz * sx;
+    second = (uint32_t)((int32_t)product >> 12);
+    xport_store_le16(output + 7, (uint16_t)(second - first));
     return output;
-}
-
-void rrj_euler_rotation_local(RRJMemory *m, const uint16_t angles[3], uint16_t output[9])
-{
-    uint16_t captured[3];
-    unsigned i;
-    for (i = 0; i < 3; ++i)
-        captured[i] = angles[i];
-    euler_rotation(m, captured, 0, output);
-}
-
-/* GTE OP sf=1,lm=0 result consumed by 80071D24. All sources are captured
- * before writes. Persistent GTE registers are audited separately at callers. */
-static void motion_outer_product(RRJMemory *, uint32_t, uint32_t, uint32_t);
-
-static void motion_outer_product_ref(RRJMemory *m, uint32_t left, const uint16_t *local_left, uint32_t right, uint32_t output)
-{
-    int32_t a[3], b[3];
-    int64_t v;
-    unsigned i, j, k;
-    for (i = 0; i < 3; ++i)
-    {
-        a[i] = local_left ? (int16_t)local_left[i] : rrj_s32(material_half(m, left + 2 * i));
-        b[i] = rrj_s32(material_half(m, right + 2 * i));
-    }
-    for (i = 0; i < 3; ++i)
-    {
-        j = (i + 1) % 3;
-        k = (i + 2) % 3;
-        v = (int64_t)a[j] * b[k] - (int64_t)a[k] * b[j];
-        v = v / 4096 - (v < 0 && v % 4096 != 0);
-        if (v > 32767)
-            v = 32767;
-        if (v < -32768)
-            v = -32768;
-        rrj_put16(rrj_at(output + 2 * i, 2), (uint32_t)v);
-    }
 }
 
 uint32_t sub_80071D24(uint32_t actor)
 {
+
     FUNCTION_MARKER(0x80071D24u, "RASHCDG.BIN");
     static const uint16_t clear[] = {0x290, 0x304, 0x26C, 0x270, 0x280, 0x2AC, 0x248, 0x2E8, 0x300, 0x260, 0x2A8};
-    uint32_t value = rrj_read32(actor + 0x1E0), a, b, c, sign, n, d, np, dp, dot, secondary;
+    uint32_t value = r_u32(actor + 0x1E0), a, b, c, sign, n, d, np, dp, dot, secondary;
     unsigned i;
+    uint32_t diagonal[3], direction[3], product[3];
     uint16_t angles[3], matrix[9], copied[6];
     for (i = 0; i < sizeof(clear) / sizeof(clear[0]); ++i)
-        rrj_write32(actor + clear[i], 0);
-    (void)sub_8002EE50(value, rrj_at(actor + 0x1C2, 6), rrj_at(actor + 0x1C8, 12));
-    if (rrj_read32(actor + 0x238) & 0x400)
+        w_u32(actor + clear[i], 0);
+    (void)sub_8002EE50(value, xport_guest_ptr(actor + 0x1C2, 6), xport_guest_ptr(actor + 0x1C8, 12));
+    if (r_u32(actor + 0x238) & 0x400)
     {
-        a = sub_8001FF3C(0u - (material_half(rrj_host_context(), actor + 0x1BE) << 4));
-        if (rrj_u16(rrj_at(0x8005624E + 4 * (a & 4095u), 2)))
+        a = sub_8001FF3C(0u - ((uint32_t)r_s16((actor + 0x1BE)) << 4));
+        if (r_u16(0x8005624E + 4 * (a & 4095u)))
         {
-            b = sub_80020018(material_half(rrj_host_context(), actor + 0x1BC) << 4, material_half(rrj_host_context(), actor + 0x1C0) << 4);
-            c = sub_80020018(material_half(rrj_host_context(), actor + 0x1B2) << 4, material_half(rrj_host_context(), actor + 0x1B8) << 4);
+            b = sub_80020018((uint32_t)r_s16((actor + 0x1BC)) << 4, (uint32_t)r_s16((actor + 0x1C0)) << 4);
+            c = sub_80020018((uint32_t)r_s16((actor + 0x1B2)) << 4, (uint32_t)r_s16((actor + 0x1B8)) << 4);
         }
         else
         {
-            b = sub_80020018(material_half(rrj_host_context(), actor + 0x210) << 4, material_half(rrj_host_context(), actor + 0x214) << 4);
-            c = pause_asr(652u * rrj_read32(actor + 0x27C), 16);
+            b = sub_80020018((uint32_t)r_s16((actor + 0x210)) << 4, (uint32_t)r_s16((actor + 0x214)) << 4);
+            c = (uint32_t)((int32_t)(652 * r_u32(actor + 0x27C)) >> 16);
         }
-        sign = pause_asr(c, 31);
+        sign = (uint32_t)((int32_t)c >> 31);
         value = (c + sign) ^ sign;
-        if (rrj_s32(value) > 0x400)
+        if (((int32_t)(uint32_t)(value)) > 0x400)
         {
-            a = (rrj_s32(a) < 0 ? 0xFFFFF800u : 0x800u) - a;
-            b += rrj_s32(b) > 0 ? 0xFFFFF800u : 0x800u;
-            c += rrj_s32(c) > 0 ? 0xFFFFF800u : 0x800u;
+            a = (((int32_t)(uint32_t)(a)) < 0 ? 0xFFFFF800u : 0x800u) - a;
+            b += ((int32_t)(uint32_t)(b)) > 0 ? 0xFFFFF800u : 0x800u;
+            c += ((int32_t)(uint32_t)(c)) > 0 ? 0xFFFFF800u : 0x800u;
         }
-        rrj_write32(actor + 0x268, pause_asr(25736u * a, 8));
-        rrj_write32(actor + 0x2B4, pause_asr(25736u * b, 8));
-        rrj_write32(actor + 0x27C, pause_asr(25736u * c, 8));
-        value = material_half(rrj_host_context(), actor + 0x1C4) << 4;
-        sign = pause_asr(value, 31);
+        w_u32(actor + 0x268, (uint32_t)((int32_t)(25736 * a) >> 8));
+        w_u32(actor + 0x2B4, (uint32_t)((int32_t)(25736 * b) >> 8));
+        w_u32(actor + 0x27C, (uint32_t)((int32_t)(25736 * c) >> 8));
+        value = (uint32_t)r_s16((actor + 0x1C4)) << 4;
+        sign = (uint32_t)((int32_t)value >> 31);
         value = (value + sign) ^ sign;
         d = 0x1E0000;
-        if (rrj_s32(value) <= 0xB4FC)
-            d = (uint32_t)sub_8001FC90(rrj_s32(value), 0x279A9D) + 0x20000;
-        value = rrj_read32(actor + 0x1CC);
-        n = (uint32_t)sub_8001FC90(rrj_s32(value), rrj_s32(value));
-        np = rrj_s32(n) > 0;
-        dp = rrj_s32(d) > 0;
-        value = sub_80010028(np ? n : 0u - n, dp ? d : 0u - d);
+        if (((int32_t)(uint32_t)(value)) <= 0xB4FC)
+            d = (uint32_t)sub_8001FC90(((int32_t)(uint32_t)(value)), 0x279A9D) + 0x20000;
+        value = r_u32(actor + 0x1CC);
+        n = (uint32_t)sub_8001FC90(((int32_t)(uint32_t)(value)), ((int32_t)(uint32_t)(value)));
+        np = (int32_t)n > 0;
+        dp = (int32_t)d > 0;
+        value = r_u32(actor + 0x1CC);
+        n = (uint32_t)sub_8001FC90((int32_t)value, (int32_t)value);
+        value = sub_80010028(np ? n : 0 - n, dp ? d : 0 - d);
         if (np != dp)
             value = 0u - value;
-        if (rrj_s32(value) <= 0x9D086)
-            value = 0x9D087;
-        rrj_write32(actor + 0x1E4, value);
+        w_u32(actor + 0x1E4, value);
+        if ((int32_t)value <= 0x9D086)
+            w_u32(actor + 0x1E4, 0x9D087);
     }
     else
     {
-        value = rrj_read32(actor + 0x268);
-        rrj_write32(actor + 0x25C, 0);
-        rrj_write32(actor + 0x2F4, 0);
-        angles[0] = (uint16_t)(0u - pause_asr(652u * value, 16));
+        value = r_u32(actor + 0x268);
+        w_u32(actor + 0x25C, 0);
+        w_u32(actor + 0x2F4, 0);
+        angles[0] = (uint16_t)(0 - (uint32_t)((int32_t)(652 * value) >> 16));
         angles[1] = 0;
-        angles[2] = (uint16_t)(0u - pause_asr(652u * rrj_read32(actor + 0x28C), 16));
-        rrj_euler_rotation_local(rrj_host_context(), angles, matrix);
-        (void)rrj_multiply_rotation_local_left(rrj_host_context(), matrix, actor + 0x204, actor + 0x1B0);
-        dot = sub_8002E698(rrj_at(actor + 0x1BC, 6), rrj_at(actor + 0x31C, 6));
-        sign = pause_asr(dot, 31);
+        angles[2] = (uint16_t)(0 - (uint32_t)((int32_t)(652 * r_u32(actor + 0x28C)) >> 16));
+        (void)sub_8004D2A4(angles, matrix);
+        (void)sub_8003FA40(matrix, xport_guest_cptr(actor + 0x204, 18), xport_guest_ptr(actor + 0x1B0, 18));
+        dot = sub_8002E698(xport_guest_ptr(actor + 0x1BC, 6), xport_guest_ptr(actor + 0x31C, 6));
+        sign = (uint32_t)((int32_t)dot >> 31);
         value = (dot + sign) ^ sign;
-        if (rrj_s32(value) > 0xF0A3)
+        if (((int32_t)(uint32_t)(value)) > 0xF0A3)
         {
             for (i = 0; i < 3; ++i)
-                copied[i] = rrj_u16(rrj_at(actor + 0x1B6 + 2 * i, 2));
+                copied[i] = r_u16(actor + 0x1B6 + 2 * i);
             for (i = 0; i < 3; ++i)
-                rrj_put16(rrj_at(actor + 0x322 + 2 * i, 2), copied[i]);
+                w_u16(actor + 0x322 + 2 * i, copied[i]);
         }
         else
         {
-            motion_outer_product(rrj_host_context(), actor + 0x1BC, actor + 0x31C, actor + 0x322);
-            (void)sub_8002E468(actor + 0x322);
+            diagonal[0] = (uint32_t)(int32_t)r_s16(actor + 0x1BC);
+            diagonal[1] = (uint32_t)(int32_t)r_s16(actor + 0x1BC + 2);
+            xport_gte_write_control(0, diagonal[0]);
+            diagonal[2] = (uint32_t)(int32_t)r_s16(actor + 0x1BC + 4);
+            xport_gte_write_control(2, diagonal[1]);
+            xport_gte_write_control(4, diagonal[2]);
+            direction[0] = (uint32_t)(int32_t)r_s16(actor + 0x31C);
+            direction[1] = (uint32_t)(int32_t)r_s16(actor + 0x31C + 2);
+            direction[2] = (uint32_t)(int32_t)r_s16(actor + 0x31C + 4);
+            xport_gte_write_data(9, direction[0]);
+            xport_gte_write_data(10, direction[1]);
+            xport_gte_write_data(11, direction[2]);
+            xport_gte_execute(0x178000C);
+            product[0] = xport_gte_read_data(9);
+            product[1] = xport_gte_read_data(10);
+            product[2] = xport_gte_read_data(11);
+            w_u16(actor + 0x322, (uint16_t)product[0]);
+            w_u16(actor + 0x322 + 2, (uint16_t)product[1]);
+            w_u16(actor + 0x322 + 4, (uint16_t)product[2]);
+            (void)sub_8002E468(xport_guest_ptr(actor + 0x322, 6));
         }
-        motion_outer_product(rrj_host_context(), actor + 0x31C, actor + 0x322, actor + 0x328);
+        diagonal[0] = (uint32_t)(int32_t)r_s16(actor + 0x31C);
+        diagonal[1] = (uint32_t)(int32_t)r_s16(actor + 0x31C + 2);
+        xport_gte_write_control(0, diagonal[0]);
+        diagonal[2] = (uint32_t)(int32_t)r_s16(actor + 0x31C + 4);
+        xport_gte_write_control(2, diagonal[1]);
+        xport_gte_write_control(4, diagonal[2]);
+        direction[0] = (uint32_t)(int32_t)r_s16(actor + 0x322);
+        direction[1] = (uint32_t)(int32_t)r_s16(actor + 0x322 + 2);
+        direction[2] = (uint32_t)(int32_t)r_s16(actor + 0x322 + 4);
+        xport_gte_write_data(9, direction[0]);
+        xport_gte_write_data(10, direction[1]);
+        xport_gte_write_data(11, direction[2]);
+        xport_gte_execute(0x178000C);
+        product[0] = xport_gte_read_data(9);
+        product[1] = xport_gte_read_data(10);
+        product[2] = xport_gte_read_data(11);
+        w_u16(actor + 0x328, (uint16_t)product[0]);
+        w_u16(actor + 0x328 + 2, (uint16_t)product[1]);
+        w_u16(actor + 0x328 + 4, (uint16_t)product[2]);
         value = sub_8001FF3C(dot);
         for (i = 0; i < 3; ++i)
-        {
-            copied[i] = rrj_u16(rrj_at(actor + 0x328 + 2 * i, 2));
-            copied[i + 3] = rrj_u16(rrj_at(actor + 0x322 + 2 * i, 2));
-        }
-        rrj_write32(actor + 0x2B4, pause_asr(25736u * value, 8));
-        rrj_write32(actor + 0x268, 0);
+            copied[i] = r_u16(actor + 0x328 + 2 * i);
         for (i = 0; i < 3; ++i)
-            rrj_put16(rrj_at(actor + 0x26C + 2 * i, 2), copied[i]);
+            copied[i + 3] = r_u16(actor + 0x322 + 2 * i);
+        w_u32(actor + 0x2B4, (uint32_t)((int32_t)(25736 * value) >> 8));
+        w_u32(actor + 0x268, 0);
         for (i = 0; i < 3; ++i)
-            rrj_put16(rrj_at(actor + 0x274 + 2 * i, 2), copied[i + 3]);
-        value = sub_8001FF3C(sub_8002E698(rrj_at(actor + 0x1B6, 6), rrj_at(actor + 0x322, 6)));
-        rrj_write32(actor + 0x2C4, pause_asr(25736u * (0x400u - value), 8));
-        secondary = rrj_read32(actor + 0x354);
-        value = rrj_read32(secondary + 0x228);
-        if (rrj_read32(secondary + 0x25C) < 2)
+            w_u16(actor + 0x26C + 2 * i, copied[i]);
+        for (i = 0; i < 3; ++i)
+            w_u16(actor + 0x274 + 2 * i, copied[i + 3]);
+        value = sub_8001FF3C(sub_8002E698(xport_guest_ptr(actor + 0x1B6, 6), xport_guest_ptr(actor + 0x322, 6)));
+        w_u32(actor + 0x2C4, (uint32_t)((int32_t)(25736 * (0x400 - value)) >> 8));
+        secondary = r_u32(actor + 0x354);
+        value = r_u32(secondary + 0x228);
+        if (r_u32(secondary + 0x25C) < 2)
             value |= 0x18000;
-        rrj_write32(secondary + 0x228, value);
-        if (r_u8(rrj_read32(actor + 0x354) + 0x23C) & 16)
+        w_u32(secondary + 0x228, value);
+        if (r_u8(r_u32(actor + 0x354) + 0x23C) & 16)
         {
-            secondary = rrj_read32(rrj_read32(actor + 0x358) + 0x354);
-            value = rrj_read32(secondary + 0x228);
-            if (rrj_read32(secondary + 0x25C) < 2)
+            secondary = r_u32(r_u32(actor + 0x358) + 0x354);
+            value = r_u32(secondary + 0x228);
+            if (r_u32(secondary + 0x25C) < 2)
                 value |= 0x18000;
-            rrj_write32(secondary + 0x228, value);
+            w_u32(secondary + 0x228, value);
         }
-        rrj_write32(actor + 0x2D4, 0);
+        w_u32(actor + 0x2D4, 0);
     }
-    (void)sub_8002EAD8(rrj_at(actor + 0xB8, 12), rrj_at(actor + 0x1B6, 6), 0u - 0x570A, rrj_at(actor + 0x310, 12));
-    if (rrj_read32(actor + 0x358) && rrj_read32(actor + 0x440))
-        (void)sub_8002EAD8(rrj_at(actor + 0x310, 12), rrj_at(actor + 0x1B0, 6), 2u * rrj_read32(actor + 0x130), rrj_at(actor + 0x310, 12));
-    rrj_write32(actor + 0x238, rrj_read32(actor + 0x238) & 0xEFC7F7FFu);
+    for (i = 0; i < 3; ++i)
+    {
+        int64_t placement = (int64_t)((int32_t)r_s16(actor + 0x1B6 + 2 * i) * 16) * -0x570A;
+        w_u32(actor + 0x310 + 4 * i, (uint32_t)((uint64_t)placement >> 16) + r_u32(actor + 0xB8 + 4 * i));
+    }
+    if (r_u32(actor + 0x358) && r_u32(actor + 0x440))
+        (void)sub_8002EAD8(xport_guest_ptr(actor + 0x310, 12), xport_guest_ptr(actor + 0x1B0, 6), 2u * r_u32(actor + 0x130), xport_guest_ptr(actor + 0x310, 12));
+    w_u32(actor + 0x238, r_u32(actor + 0x238) & 0xEFC7F7FFu);
     (void)sub_8002076C(actor);
-    value = rrj_read32(actor + 0x234);
-    secondary = rrj_read32(actor + 0x354);
-    rrj_write32(actor + 0x234, value & 0xE7CE0383u);
-    value = rrj_read32(secondary + 0x228) & 0xFFFFDFFFu;
-    rrj_write32(secondary + 0x228, value);
+    value = r_u32(actor + 0x234);
+    secondary = r_u32(actor + 0x354);
+    w_u32(actor + 0x234, value & 0xE7CE0383u);
+    value = r_u32(secondary + 0x228) & 0xFFFFDFFFu;
+    w_u32(secondary + 0x228, value);
     return value;
 }
 
@@ -8094,491 +7771,430 @@ uint32_t sub_80071D24(uint32_t actor)
 uint32_t sub_8007F0BC(uint32_t actor, uint32_t delta)
 {
     FUNCTION_MARKER(0x8007F0BCu, "RASHCDG.BIN");
-    uint32_t flags = rrj_read32(actor + 0x238), speed = rrj_read32(actor + 0x240), old = rrj_read32(actor + 0x1E0);
+    uint32_t flags = r_u32(actor + 0x238), speed = r_u32(actor + 0x240), old = r_u32(actor + 0x1E0);
     uint32_t road_local, inhibit, special, normal, rotation_delta, rate, value, limit, road, sum, index, cosine, sine;
     unsigned i, j;
-    if (!(flags & 0x600 ? old : speed) && !(rrj_read32(actor + 0x234) & 0x8000) && !(flags & 15) && !rrj_read32(actor + 0x1E8) && !rrj_read32(actor + 0x2A4))
+    if (!(flags & 0x600 ? old : speed) && !(r_u32(actor + 0x234) & 0x8000) && !(flags & 15) && !r_u32(actor + 0x1E8) && !r_u32(actor + 0x2A4))
         return 0;
     if (flags & 0x600)
     {
-        if (rrj_read32(actor + 0x238) & 0x800)
+        if (r_u32(actor + 0x238) & 0x800)
         {
             (void)sub_80071D24(actor);
-            rrj_write32(actor + 0x238, rrj_read32(actor + 0x238) | 0x08000000);
-            rrj_write32(actor + 0x234, rrj_read32(actor + 0x234) | 0x00800000);
+            w_u32(actor + 0x238, r_u32(actor + 0x238) | 0x08000000);
+            w_u32(actor + 0x234, r_u32(actor + 0x234) | 0x00800000);
         }
-        (void)sub_8002E570(actor + 0x310, actor + 0x1C8, delta, actor + 0x310);
-        (void)sub_8002EAD8(rrj_at(actor + 0x310, 12), rrj_at(actor + 0x1B6, 6), 0x570A, rrj_at(actor + 0xB8, 12));
-        if (rrj_read32(actor + 0x358) && rrj_read32(actor + 0x440))
-            (void)sub_8002EAD8(rrj_at(actor + 0xB8, 12), rrj_at(actor + 0x1B0, 6), 0u - 2u * rrj_read32(actor + 0x130), rrj_at(actor + 0xB8, 12));
+        (void)sub_8002E570(xport_guest_ptr(actor + 0x310, 12), xport_guest_ptr(actor + 0x1C8, 12), delta, xport_guest_ptr(actor + 0x310, 12));
+        (void)sub_8002EAD8(xport_guest_ptr(actor + 0x310, 12), xport_guest_ptr(actor + 0x1B6, 6), 0x570A, xport_guest_ptr(actor + 0xB8, 12));
+        if (r_u32(actor + 0x358) && r_u32(actor + 0x440))
+            (void)sub_8002EAD8(xport_guest_ptr(actor + 0xB8, 12), xport_guest_ptr(actor + 0x1B0, 6), 0u - 2u * r_u32(actor + 0x130), xport_guest_ptr(actor + 0xB8, 12));
     }
     else
     {
         for (i = 0; i < 3; ++i)
-            rrj_write32(actor + 0x31C + 4 * i, rrj_read32(actor + 0xB8 + 4 * i) - rrj_read32(actor + 0x1F8 + 4 * i));
-        (void)sub_8002EE50(speed, rrj_at(actor + 0x1C2, 6), rrj_at(actor + 0x1C8, 12));
-        flags = rrj_read32(actor + 0x238);
+            w_u32(actor + 0x31C + 4 * i, r_u32(actor + 0xB8 + 4 * i) - r_u32(actor + 0x1F8 + 4 * i));
+        (void)sub_8002EE50(speed, xport_guest_ptr(actor + 0x1C2, 6), xport_guest_ptr(actor + 0x1C8, 12));
+        flags = r_u32(actor + 0x238);
         if ((flags & 0x800) && (flags & 0x1E0))
         {
             (void)sub_800723FC(actor);
-            rrj_write32(actor + 0x238, rrj_read32(actor + 0x238) | 0x08000000);
+            w_u32(actor + 0x238, r_u32(actor + 0x238) | 0x08000000);
         }
-        flags = rrj_read32(actor + 0x234);
+        flags = r_u32(actor + 0x234);
         road_local = (flags >> 18) & 1;
-        if ((rrj_read32(actor + 0x238) & 15) || (flags & 8))
+        if ((r_u32(actor + 0x238) & 15) || (flags & 8))
         {
-            (void)sub_8002E570(actor + 0x310, actor + 0x1C8, delta, actor + 0x310);
-            (void)sub_8002EAD8(rrj_at(actor + 0x310, 12), rrj_at(actor + 0x210, 6), 0u - rrj_read32(actor + 0x134), rrj_at(actor + 0x1F8, 12));
+            (void)sub_8002E570(xport_guest_ptr(actor + 0x310, 12), xport_guest_ptr(actor + 0x1C8, 12), delta, xport_guest_ptr(actor + 0x310, 12));
+            (void)sub_8002EAD8(xport_guest_ptr(actor + 0x310, 12), xport_guest_ptr(actor + 0x210, 6), 0u - r_u32(actor + 0x134), xport_guest_ptr(actor + 0x1F8, 12));
         }
         else if (road_local)
         {
             for (j = 0; j < 2; ++j)
             {
-                road = rrj_read32(actor + 0x340);
+                road = r_u32(actor + 0x340);
                 sum = 0;
                 for (i = 0; i < 3; ++i)
-                    sum += (uint32_t)sub_8001FC90(rrj_s32(rrj_read32(actor + 0x1C8 + 4 * i)), rrj_s32(material_half(rrj_host_context(), road + 0x104 + 12 * j + 2 * i) << 4));
-                value = (uint32_t)sub_8001FC90(rrj_s32(sum), rrj_s32(delta));
-                rrj_write32(actor + 0x308 + 4 * j, rrj_read32(actor + 0x308 + 4 * j) + value);
+                    sum += (uint32_t)sub_8001FC90(((int32_t)(uint32_t)(r_u32(actor + 0x1C8 + 4 * i))), ((int32_t)(uint32_t)((uint32_t)r_s16((road + 0x104 + 12 * j + 2 * i)) << 4)));
+                value = (uint32_t)sub_8001FC90(((int32_t)(uint32_t)(sum)), ((int32_t)(uint32_t)(delta)));
+                w_u32(actor + 0x308 + 4 * j, r_u32(actor + 0x308 + 4 * j) + value);
             }
         }
         else
-            (void)sub_8002E570(actor + 0x1F8, actor + 0x1C8, delta, actor + 0x1F8);
-        flags = rrj_read32(actor + 0x238);
+            (void)sub_8002E570(xport_guest_ptr(actor + 0x1F8, 12), xport_guest_ptr(actor + 0x1C8, 12), delta, xport_guest_ptr(actor + 0x1F8, 12));
+        flags = r_u32(actor + 0x238);
         inhibit = (flags >> 14) & 1;
         for (i = 0; i < 3; ++i)
-            rrj_write32(actor + 0xB8 + 4 * i, rrj_read32(actor + 0x1F8 + 4 * i) + rrj_read32(actor + 0x31C + 4 * i));
-        special = ((flags & 31) || (rrj_read32(actor + 0x234) & 0x3400)) && !inhibit;
-        normal = (!(rrj_read32(actor + 0x238) & 0x600) && rrj_read32(actor + 0x240)) || inhibit || road_local || rrj_read32(actor + 0x1E8) || rrj_read32(actor + 0x2A4);
+            w_u32(actor + 0xB8 + 4 * i, r_u32(actor + 0x1F8 + 4 * i) + r_u32(actor + 0x31C + 4 * i));
+        special = ((flags & 31) || (r_u32(actor + 0x234) & 0x3400)) && !inhibit;
+        normal = (!(r_u32(actor + 0x238) & 0x600) && r_u32(actor + 0x240)) || inhibit || road_local || r_u32(actor + 0x1E8) || r_u32(actor + 0x2A4);
         rotation_delta = delta;
-        if ((rrj_read32(actor + 0x238) & 15) && !inhibit)
+        if ((r_u32(actor + 0x238) & 15) && !inhibit)
         {
-            value = rrj_read32(actor + 0x2D4) + delta;
-            limit = rrj_read32(actor + 0x2D8);
-            rrj_write32(actor + 0x2D4, value);
-            if (rrj_s32(limit) < rrj_s32(value))
+            value = r_u32(actor + 0x2D4) + delta;
+            limit = r_u32(actor + 0x2D8);
+            w_u32(actor + 0x2D4, value);
+            if (((int32_t)(uint32_t)(limit)) < ((int32_t)(uint32_t)(value)))
                 rotation_delta = delta + limit - value;
         }
         if (special)
         {
-            rate = rrj_read32(actor + 0x2E8);
+            rate = r_u32(actor + 0x2E8);
             if (!rate)
-                rate = rrj_read32(actor + 0x1E8);
+                rate = r_u32(actor + 0x1E8);
             if (rate)
             {
-                value = (uint32_t)sub_8001FC90(rrj_s32(rate), rrj_s32(rotation_delta));
+                value = (uint32_t)sub_8001FC90(((int32_t)(uint32_t)(rate)), ((int32_t)(uint32_t)(rotation_delta)));
                 index = ((163u * value) >> 14) & 4095;
-                cosine = material_half(rrj_host_context(), 0x8005624E + 4 * index) << 4;
-                sine = material_half(rrj_host_context(), 0x8005624C + 4 * index) << 4;
-                (void)sub_8002EB78(actor + 0x210, actor + 0x204, actor + 0x210, cosine, sine);
+                cosine = (uint32_t)r_s16((0x8005624E + 4 * index)) << 4;
+                sine = (uint32_t)r_s16((0x8005624C + 4 * index)) << 4;
+                (void)sub_8002EB78(xport_guest_ptr(actor + 0x210, 6), xport_guest_ptr(actor + 0x204, 6), xport_guest_ptr(actor + 0x210, 6), cosine, sine);
             }
         }
         else if (normal)
         {
-            if (rrj_s32(rrj_read32(actor + 0x24C)) <= 0 && rrj_s32(rrj_read32(actor + 0x240)) < 0x3334 && !(rrj_read32(actor + 0x230) & 0x300))
-                rrj_write32(actor + 0x240, 0);
-            if (rrj_read32(actor + 0x1E8) || rrj_read32(actor + 0x2A4) || road_local)
+            if (((int32_t)(uint32_t)(r_u32(actor + 0x24C))) <= 0 && ((int32_t)(uint32_t)(r_u32(actor + 0x240))) < 0x3334 && !(r_u32(actor + 0x230) & 0x300))
+                w_u32(actor + 0x240, 0);
+            if (r_u32(actor + 0x1E8) || r_u32(actor + 0x2A4) || road_local)
             {
-                rate = rrj_read32(actor + 0x1E8) + rrj_read32(actor + 0x2E8);
-                value = (uint32_t)sub_8001FC90(rrj_s32(rate), rrj_s32(delta)) + rrj_read32(actor + 0x2A4);
+                rate = r_u32(actor + 0x1E8) + r_u32(actor + 0x2E8);
+                value = (uint32_t)sub_8001FC90(((int32_t)(uint32_t)(rate)), ((int32_t)(uint32_t)(delta))) + r_u32(actor + 0x2A4);
                 index = ((163u * value) >> 14) & 4095;
-                cosine = material_half(rrj_host_context(), 0x8005624E + 4 * index) << 4;
-                sine = material_half(rrj_host_context(), 0x8005624C + 4 * index) << 4;
-                (void)sub_8002EB78(actor + 0x1C2, actor + 0x32E, actor + 0x210, cosine, sine);
+                cosine = (uint32_t)r_s16((0x8005624E + 4 * index)) << 4;
+                sine = (uint32_t)r_s16((0x8005624C + 4 * index)) << 4;
+                (void)sub_8002EB78(xport_guest_ptr(actor + 0x1C2, 6), xport_guest_ptr(actor + 0x32E, 6), xport_guest_ptr(actor + 0x210, 6), cosine, sine);
             }
         }
-        (void)sub_8002EAD8(rrj_at(actor + 0x1F8, 12), rrj_at(actor + 0x210, 6), 0u - rrj_read32(actor + 0x134), rrj_at(actor + 0x1F8, 12));
+        (void)sub_8002EAD8(xport_guest_ptr(actor + 0x1F8, 12), xport_guest_ptr(actor + 0x210, 6), 0u - r_u32(actor + 0x134), xport_guest_ptr(actor + 0x1F8, 12));
     }
-    value = rrj_read32(0x1F800000);
-    rrj_write32(value, actor);
-    value = rrj_read32(0x1F800000) + 4;
-    rrj_write32(0x1F800000, value);
+    value = r_u32(0x1F800000);
+    w_u32(value, actor);
+    value = r_u32(0x1F800000) + 4;
+    w_u32(0x1F800000, value);
     return value;
 }
 
-/* 800B6E08: strict convex polygon containment on two projected axes. */
-static uint32_t polygon_contains(RRJMemory *m, RRJTrackWords point, RRJTrackWords vertices, uint32_t count, uint32_t axis)
+uint32_t sub_800B6E08(const uint32_t point[3], const uint32_t *vertices, uint32_t count, uint32_t axis)
 {
-    uint32_t x = axis + 1, y, prior = count - 1, i, current = 0, previous, px, py, dx, dy, first, second;
-    x = rrj_s32(x) < 3 ? x : 0;
+    uint32_t x = axis + 1, y, prior = count - 1, index, px, py, dx, dy, first, second;
+    FUNCTION_MARKER(0x800B6E08, "RASHCDG.BIN");
+    x = (int32_t)x < 3 ? x : 0;
     y = x + 1;
-    y = rrj_s32(y) < 3 ? y : 0;
-    x <<= 2;
-    y <<= 2;
-    if (rrj_s32(count) <= 0)
+    y = (int32_t)y < 3 ? y : 0;
+    if ((int32_t)count <= 0)
         return 1;
-    for (i = 0; rrj_s32(i) < rrj_s32(count); ++i, current += 12)
+    for (index = 0; (int32_t)index < (int32_t)count; ++index)
     {
-        previous = 12u * prior;
-        py = track_read(m, vertices, previous + y);
-        px = track_read(m, vertices, previous + x);
-        dy = track_read(m, vertices, current + y) - py;
-        dx = track_read(m, vertices, current + x) - px;
-        first = (uint32_t)sub_8001FC90(rrj_s32(dy), rrj_s32(track_read(m, point, x) - px));
-        second = (uint32_t)sub_8001FC90(rrj_s32(dx), rrj_s32(track_read(m, point, y) - track_read(m, vertices, previous + y)));
-        if (rrj_s32(first - second) >= 0)
+        py = vertices[3 * prior + y];
+        px = vertices[3 * prior + x];
+        dy = vertices[3 * index + y] - py;
+        dx = vertices[3 * index + x] - px;
+        first = (uint32_t)sub_8001FC90((int32_t)dy, (int32_t)(point[x] - px));
+        second = (uint32_t)sub_8001FC90((int32_t)dx, (int32_t)(point[y] - vertices[3 * prior + y]));
+        if ((int32_t)(first - second) >= 0)
             return 0;
-        prior = i;
+        prior = index;
     }
     return 1;
 }
 
-uint32_t sub_800B6E08(uint32_t point, uint32_t vertices, uint32_t count, uint32_t axis)
+uint32_t sub_800B6844(const uint32_t *vertices, uint32_t count, uint16_t output[3])
 {
-    FUNCTION_MARKER(0x800B6E08u, "RASHCDG.BIN");
-    return polygon_contains(rrj_host_context(), track_ram(point), track_ram(vertices), count, axis);
-}
-
-uint32_t rrj_polygon_contains_local(RRJMemory *m, uint32_t point[3], uint32_t *vertices, uint32_t count, uint32_t axis)
-{
-    return polygon_contains(m, track_local(point), track_local(vertices), count, axis);
-}
-
-/* 800B6844: wrapped fixed-point Newell sum, rescale, normalize, narrow. */
-static uint32_t polygon_normal(RRJMemory *m, RRJTrackWords vertices, uint32_t count, uint16_t output[3])
-{
-    uint32_t vector[3] = {0, 0, 0}, i = 0, j, a, b, x, y, sign, large;
-    if (rrj_s32(count - 1) > 0)
+    uint32_t vector[3] = {0}, index = 0, axis, a, b, x, y, sign, large;
+    FUNCTION_MARKER(0x800B6844, "RASHCDG.BIN");
+    if ((int32_t)(count - 1) > 0)
+    {
         do
         {
-            a = 12u * i;
-            b = a + 12;
-            for (j = 0; j < 3; ++j)
+            a = 3 * index;
+            b = a + 3;
+            for (axis = 0; axis < 3; ++axis)
             {
-                x = ((j + 1) % 3) * 4;
-                y = ((j + 2) % 3) * 4;
-                vector[j] += (uint32_t)sub_8001FC90(rrj_s32(track_read(m, vertices, a + x) - track_read(m, vertices, b + x)), rrj_s32(track_read(m, vertices, a + y) + track_read(m, vertices, b + y)));
+                x = (axis + 1) % 3;
+                y = (axis + 2) % 3;
+                vector[axis] += (uint32_t)sub_8001FC90((int32_t)(vertices[a + x] - vertices[b + x]), (int32_t)(vertices[a + y] + vertices[b + y]));
             }
-            ++i;
-        } while (rrj_s32(i) < rrj_s32(count - 1));
-    a = 12u * i;
-    for (j = 0; j < 3; ++j)
+            ++index;
+        } while ((int32_t)index < (int32_t)(count - 1));
+    }
+    a = 3 * index;
+    for (axis = 0; axis < 3; ++axis)
     {
-        x = ((j + 1) % 3) * 4;
-        y = ((j + 2) % 3) * 4;
-        vector[j] += (uint32_t)sub_8001FC90(rrj_s32(track_read(m, vertices, a + x) - track_read(m, vertices, x)), rrj_s32(track_read(m, vertices, a + y) + track_read(m, vertices, y)));
+        x = (axis + 1) % 3;
+        y = (axis + 2) % 3;
+        vector[axis] += (uint32_t)sub_8001FC90((int32_t)(vertices[a + x] - vertices[x]), (int32_t)(vertices[a + y] + vertices[y]));
     }
     for (;;)
     {
         large = 0;
-        for (j = 0; j < 3; ++j)
+        for (axis = 0; axis < 3; ++axis)
         {
-            sign = pause_asr(vector[j], 31);
-            if (rrj_s32((sign + vector[j]) ^ sign) > 0x5A8000)
+            sign = (uint32_t)((int32_t)vector[axis] >> 31);
+            if ((int32_t)((vector[axis] + sign) ^ sign) > 0x5A8000)
                 large = 1;
         }
         if (!large)
             break;
-        for (j = 0; j < 3; ++j)
-            vector[j] = pause_asr(vector[j], 1);
+        for (axis = 0; axis < 3; ++axis)
+            vector[axis] = (uint32_t)((int32_t)vector[axis] >> 1);
     }
-    (void)rrj_normalize_vector32(m, vector);
-    for (j = 0; j < 3; ++j)
-        output[j] = (uint16_t)pause_asr(vector[j], 4);
-    return pause_asr(vector[2], 4);
+    (void)sub_8002E14C(vector);
+    for (axis = 0; axis < 3; ++axis)
+        output[axis] = (uint16_t)((int32_t)vector[axis] >> 4);
+    return (uint32_t)((int32_t)vector[2] >> 4);
 }
 
-uint32_t sub_800B6844(uint32_t vertices, uint32_t count, uint32_t output)
-{
-    FUNCTION_MARKER(0x800B6844u, "RASHCDG.BIN");
-    uint16_t normal[3];
-    uint32_t i, result = polygon_normal(rrj_host_context(), track_ram(vertices), count, normal);
-    for (i = 0; i < 3; ++i)
-        rrj_put16(rrj_at(output + 2 * i, 2), normal[i]);
-    return result;
-}
 
-uint32_t rrj_polygon_normal_local(RRJMemory *m, uint32_t *vertices, uint32_t count, uint16_t output[3])
+uint32_t sub_800A8498(uint32_t position, uint32_t direction, uint32_t *geometry, uint32_t *vertex_output, uint32_t origin[3], uint32_t *selection)
 {
-    return polygon_normal(m, track_local(vertices), count, output);
-}
-
-static uint32_t surface_div(uint32_t v, uint32_t bits)
-{
-    return pause_asr(v + (rrj_s32(v) < 0 ? ((1u << bits) - 1u) : 0), bits);
-}
-
-static uint32_t surface_abs(uint32_t v)
-{
-    uint32_t sign = pause_asr(v, 31);
-    return (v + sign) ^ sign;
-}
-
-static uint32_t surface_geometry(RRJMemory *m, uint32_t position, uint32_t direction, RRJTrackWords geometry, RRJTrackWords vertex_output, RRJTrackWords origin, RRJTrackWords selection)
-{
-    uint32_t bank = (track_read(m, selection, 0) & 0x80000000u) ? 12u : 0u, end = bank + 12;
-    uint32_t slot = track_read(m, selection, 0) & 63u, attempt, handle, header, indices, group, tries, count, i, j;
-    uint32_t point[3], vertices[18], minimum[2], maximum[2], start, index, v, best, chosen, x, z, tmp, distance, edge[3], normal[3], dot, cross, entry, offset, base, upper;
+    uint32_t bank, end, slot, attempt, handle, header, indices, group, tries, count, i, j;
+    uint32_t point[3], vertices[18], minimum[2], maximum[2], start, index, value, best, chosen;
+    uint32_t x, z, sign, temporary, distance, edge[3], normal[3], dot, cross, entry, offset, base, upper;
+    int64_t product;
+    FUNCTION_MARKER(0x800A8498, "RASHCDG.BIN");
+    bank = (*selection & 0x80000000) ? 12 : 0;
+    end = bank + 12;
+    slot = *selection & 63;
     for (attempt = bank; attempt < end; ++attempt, ++slot)
     {
         if (slot < bank || slot >= end)
             slot = bank;
-        handle = 0x800D87EC + 112u * slot;
-        if (rrj_read32(handle - 4) == 0xffffffffu)
+        handle = 0x800D87EC + 112 * slot;
+        if (r_u32(handle - 4) == UINT32_MAX)
             continue;
-        header = rrj_read32(handle);
-        track_write(m, vertex_output, 0, rrj_read32(header + 52) + 4);
-        header = rrj_read32(handle);
-        indices = rrj_read32(header + 44);
-        track_write(m, origin, 0, rrj_read32(header + 8) << 10);
-        track_write(m, origin, 4, rrj_read32(rrj_read32(handle) + 12) << 10);
-        track_write(m, origin, 8, rrj_read32(rrj_read32(handle) + 16) << 10);
+        header = r_u32(handle);
+        *vertex_output = r_u32(header + 52) + 4;
+        header = r_u32(handle);
+        indices = r_u32(header + 44);
+        origin[0] = r_u32(header + 8) << 10;
+        origin[1] = r_u32(r_u32(handle) + 12) << 10;
+        origin[2] = r_u32(r_u32(handle) + 16) << 10;
         for (i = 0; i < 3; ++i)
-            point[i] = rrj_read32(position + 4 * i) - track_read(m, origin, 4 * i);
-        group = (track_read(m, selection, 0) >> 6) & 7u;
-        header = rrj_read32(handle);
-        for (tries = 0; tries < rrj_u16(rrj_at(header + 6, 2)); ++tries, ++group)
+            point[i] = r_u32(position + 4 * i) - origin[i];
+        group = (*selection >> 6) & 7;
+        header = r_u32(handle);
+        for (tries = 0; tries < r_u16(header + 6); ++tries, ++group)
         {
-            if (group >= rrj_u16(rrj_at(header + 6, 2)))
+            if (group >= r_u16(header + 6))
                 group = 0;
-            start = material_half(m, indices + 2 * group + 2);
-            count = material_half(m, indices + 2 * group + 4) - start;
-            minimum[0] = minimum[1] = 0x3fff0000;
-            maximum[0] = maximum[1] = 0xc0010000;
-            /* Original storage is six vertices; valid hulls contain edge pairs. */
-            if (rrj_s32(count) > 6 || (rrj_s32(count) > 0 && (count & 1u)))
+            start = (uint32_t)r_s16(indices + 2 * group + 2);
+            count = (uint32_t)r_s16(indices + 2 * group + 4) - start;
+            minimum[0] = minimum[1] = 0x3FFF0000;
+            maximum[0] = maximum[1] = 0xC0010000;
+            /* TODO Retain the existing bound check until malformed hull handling is resolved */
+            if ((int32_t)count > 6 || ((int32_t)count > 0 && (count & 1)))
                 abort();
-            for (i = 0; rrj_s32(i) < rrj_s32(count); ++i)
+            for (i = 0; (int32_t)i < (int32_t)count; ++i)
             {
-                index = material_half(m, indices + 2 * (material_half(m, indices + 2 * group + 2) + i));
+                index = (uint32_t)r_s16(indices + 2 * ((uint32_t)r_s16(indices + 2 * group + 2) + i));
                 for (j = 0; j < 3; ++j)
-                    vertices[3 * (count - 1 - i) + j] = material_half(m, track_read(m, vertex_output, 0) + 8 * index + 2 * j) << 10;
+                    vertices[3 * (count - 1 - i) + j] = (uint32_t)r_s16(*vertex_output + 8 * index + 2 * j) << 10;
                 for (j = 0; j < 2; ++j)
                 {
-                    v = vertices[3 * (count - 1 - i) + 2 * j];
-                    if (rrj_s32(v) < rrj_s32(minimum[j]))
-                        minimum[j] = v;
-                    if (rrj_s32(v) > rrj_s32(maximum[j]))
-                        maximum[j] = v;
+                    value = vertices[3 * (count - 1 - i) + 2 * j];
+                    if ((int32_t)value < (int32_t)minimum[j])
+                        minimum[j] = value;
+                    if ((int32_t)value > (int32_t)maximum[j])
+                        maximum[j] = value;
                 }
             }
-            if (rrj_s32(point[0]) >= rrj_s32(minimum[0]) && rrj_s32(point[0]) <= rrj_s32(maximum[0]) && rrj_s32(point[2]) >= rrj_s32(minimum[1]) && rrj_s32(point[2]) <= rrj_s32(maximum[1]) && rrj_polygon_contains_local(m, point, vertices, count, 1))
+            if ((int32_t)point[0] >= (int32_t)minimum[0] && (int32_t)point[0] <= (int32_t)maximum[0] &&
+                (int32_t)point[2] >= (int32_t)minimum[1] && (int32_t)point[2] <= (int32_t)maximum[1] && sub_800B6E08(point, vertices, count, 1))
             {
-                track_write(m, selection, 0, (track_read(m, selection, 0) & 0xfffff800u) | slot | (group << 6));
+                *selection = (*selection & 0xFFFFF800) | slot | (group << 6);
                 chosen = 0;
-                best = 0x3fff0000;
+                best = 0x3FFF0000;
                 for (i = 0; i < count; i += 2)
                 {
-                    x = surface_abs(point[0] - surface_div(vertices[3 * i] + vertices[3 * (i + 1)], 1));
-                    z = surface_abs(point[2] - surface_div(vertices[3 * i + 2] + vertices[3 * (i + 1) + 2], 1));
-                    if (rrj_s32(x) < rrj_s32(z))
+                    x = point[0] - (uint32_t)((int32_t)(vertices[3 * i] + vertices[3 * (i + 1)]) / 2);
+                    sign = (uint32_t)((int32_t)x >> 31);
+                    x = (x + sign) ^ sign;
+                    z = point[2] - (uint32_t)((int32_t)(vertices[3 * i + 2] + vertices[3 * (i + 1) + 2]) / 2);
+                    sign = (uint32_t)((int32_t)z >> 31);
+                    z = (z + sign) ^ sign;
+                    if ((int32_t)x < (int32_t)z)
                     {
-                        tmp = x;
-                        x = z;
-                        z = tmp;
+                        temporary = x; x = z; z = temporary;
                     }
-                    tmp = z + pause_asr(z, 1);
-                    distance = x - pause_asr(x, 5) - pause_asr(x, 7) + pause_asr(tmp, 2) + pause_asr(tmp, 6);
-                    if (rrj_s32(distance) < rrj_s32(best))
+                    temporary = z + (uint32_t)((int32_t)z >> 1);
+                    distance = x - (uint32_t)((int32_t)x >> 5) - (uint32_t)((int32_t)x >> 7) +
+                        (uint32_t)((int32_t)temporary >> 2) + (uint32_t)((int32_t)temporary >> 6);
+                    if ((int32_t)distance < (int32_t)best)
                     {
-                        chosen = surface_div(count - i - 1, 1);
+                        chosen = (uint32_t)((int32_t)(count - i - 1) / 2);
                         best = distance;
                     }
                 }
-                track_write(m, selection, 0, track_read(m, selection, 0) | (chosen << 9));
+                *selection |= chosen << 9;
                 index = count - 2 * chosen;
                 for (i = 0; i < 3; ++i)
                 {
-                    edge[i] = surface_div(vertices[3 * (index - 2) + i] - vertices[3 * (index - 1) + i], 2);
-                    normal[i] = material_half(m, direction + 2 * i) << 4;
+                    edge[i] = (uint32_t)((int32_t)(vertices[3 * (index - 2) + i] - vertices[3 * (index - 1) + i]) / 4);
+                    normal[i] = (uint32_t)((int32_t)r_s16(direction + 2 * i) * 16);
                 }
                 dot = 0;
                 for (i = 0; i < 3; ++i)
-                    dot += (uint32_t)sub_8001FC90(rrj_s32(edge[i]), rrj_s32(normal[i]));
-                cross = (uint32_t)sub_8001FC90(rrj_s32(edge[2]), rrj_s32(normal[0])) - (uint32_t)sub_8001FC90(rrj_s32(edge[0]), rrj_s32(normal[2]));
-                v = track_read(m, selection, 0);
-                if (rrj_s32(cross) < 0)
-                    v |= 0x2000;
-                track_write(m, selection, 0, v | (pause_asr(dot, 31) & 0x1000));
-                upper = 0;
-                if (track_read(m, selection, 0) & 0x800u)
                 {
-                    header = rrj_read32(handle);
-                    base = rrj_read32(header + 60);
+                    product = (int64_t)(int32_t)edge[i] * (int32_t)normal[i];
+                    dot += (uint32_t)((uint64_t)product >> 16);
+                }
+                product = (int64_t)(int32_t)edge[2] * (int32_t)normal[0];
+                cross = (uint32_t)((uint64_t)product >> 16);
+                product = (int64_t)(int32_t)edge[0] * (int32_t)normal[2];
+                cross -= (uint32_t)((uint64_t)product >> 16);
+                value = *selection;
+                if ((int32_t)cross < 0)
+                    value |= 0x2000;
+                *selection = value | ((uint32_t)((int32_t)dot >> 31) & 0x1000);
+                upper = 0;
+                if (*selection & 0x800)
+                {
+                    header = r_u32(handle);
+                    base = r_u32(header + 60);
                     if (base)
                     {
-                        offset = rrj_u16(rrj_at(header + 4, 2)) + rrj_u16(rrj_at(header + 6, 2));
-                        entry = rrj_read32(header + 40) + 12u * (offset + group);
-                        track_write(m, geometry, 0, base + rrj_read32(entry));
+                        offset = r_u16(header + 4) + r_u16(header + 6);
+                        entry = r_u32(header + 40) + 12 * (offset + group);
+                        *geometry = base + r_u32(entry);
                         upper = 1;
                     }
                 }
                 if (!upper)
                 {
-                    if (!rrj_read32(rrj_read32(handle) + 56))
+                    if (!r_u32(r_u32(handle) + 56))
                         goto missing;
-                    track_write(m, selection, 0, track_read(m, selection, 0) & 0xfffff7ffu);
-                    header = rrj_read32(handle);
-                    offset = rrj_u16(rrj_at(header + 4, 2));
-                    entry = rrj_read32(header + 40) + 12u * (offset + group);
-                    v = rrj_read32(entry);
-                    base = rrj_read32(header + 56);
-                    track_write(m, geometry, 0, base + v);
+                    *selection &= 0xFFFFF7FF;
+                    header = r_u32(handle);
+                    offset = r_u16(header + 4);
+                    entry = r_u32(header + 40) + 12 * (offset + group);
+                    value = r_u32(entry);
+                    base = r_u32(header + 56);
+                    *geometry = base + value;
                 }
-                header = rrj_read32(handle);
-                offset = rrj_u16(rrj_at(header + 4, 2));
+                header = r_u32(handle);
+                offset = r_u16(header + 4);
                 if (upper)
-                    offset += rrj_u16(rrj_at(header + 6, 2));
-                entry = rrj_read32(header + 40) + 12u * (offset + group);
-                return rrj_read32(entry + 4) | (rrj_read32(entry + 8) << 16);
+                    offset += r_u16(header + 6);
+                entry = r_u32(header + 40) + 12 * (offset + group);
+                return r_u32(entry + 4) | (r_u32(entry + 8) << 16);
             }
-            header = rrj_read32(handle);
+            header = r_u32(handle);
         }
     }
 missing:
-    track_write(m, selection, 0, 0);
+    *selection = 0;
     return 0;
 }
 
-uint32_t sub_800A8498(uint32_t position, uint32_t direction, uint32_t geometry, uint32_t vertices, uint32_t origin, uint32_t selection)
+uint32_t sub_800A7BF8(uint32_t actor, uint32_t position, uint32_t output[3], uint16_t normal_out[3], uint32_t prior)
 {
-    FUNCTION_MARKER(0x800A8498u, "RASHCDG.BIN");
-    return surface_geometry(rrj_host_context(), position, direction, track_ram(geometry), track_ram(vertices), track_ram(origin), track_ram(selection));
-}
-
-uint32_t rrj_surface_geometry_local(RRJMemory *m, uint32_t position, uint32_t direction, uint32_t *geometry, uint32_t *vertices, uint32_t origin[3], uint32_t *selection)
-{
-    return surface_geometry(m, position, direction, track_local(geometry), track_local(vertices), track_local(origin), track_local(selection));
-}
-
-static uint32_t surface_range_byte(const uint8_t ranges[6], uint32_t index)
-{
-    if (index >= 6)
-        abort();
-    return ranges[index];
-}
-
-static uint32_t surface_hit(RRJMemory *m, uint32_t actor, uint32_t position, RRJTrackWords output, uint32_t normal_address, uint16_t *normal_local, uint32_t prior)
-{
-    uint32_t geometry = 0, vertex_base = 0, origin[3], selection = prior & 0x7ffu, distance = rrj_read32(actor + 44), reply;
+    uint32_t geometry = 0, vertex_base = 0, origin[3], selection = prior & 0x7ff, distance = r_u32(actor + 44), reply;
     uint32_t point[3], vertices[12], table, offset, same, i, j, n, value, category, index, last, finish, step, group_step, limit, iterations = 0, status;
     uint32_t bounds_min[2], bounds_max[2], quad, face, face_index, small, point_index, normal_start = 0;
     uint8_t ranges[6];
-    uint16_t normal[3];
+    FUNCTION_MARKER(0x800A7BF8, "RASHCDG.BIN");
     if (!position)
         position = actor + 184;
-    if (rrj_read32(rrj_read32(0x8005B2F8) + 48) >= 2 && rrj_s32(rrj_read32(actor + 48)) < rrj_s32(distance))
+    if (r_u32(r_u32(0x8005B2F8) + 48) >= 2 && ((int32_t)(uint32_t)(r_u32(actor + 48))) < ((int32_t)(uint32_t)(distance)))
     {
-        distance = rrj_read32(actor + 48);
-        selection |= 0x80000000u;
+        distance = r_u32(actor + 48);
+        selection |= 0x80000000;
     }
-    if (rrj_s32(distance) < 1280)
+    if (((int32_t)(uint32_t)(distance)) < 1280)
         selection |= 0x800;
-    reply = rrj_surface_geometry_local(m, position, actor + 450, &geometry, &vertex_base, origin, &selection);
-    selection &= 0x7fffffffu;
+    reply = sub_800A8498(position, actor + 450, &geometry, &vertex_base, origin, &selection);
+    selection &= 0x7fffffff;
     if (!reply)
-        return 0xffffffffu;
+        return 0xffffffff;
     for (i = 0; i < 3; ++i)
-        point[i] = rrj_read32(position + 4 * i) - origin[i];
-    same = ((selection ^ prior) & 0xfffu) == 0;
-    offset = same ? ((prior >> 14) & 1023u) : 0xffffffffu;
-    table = rrj_read32(rrj_read32(0x800D87EC + 112u * (selection & 63u)) + 48);
+        point[i] = r_u32(position + 4 * i) - origin[i];
+    same = ((selection ^ prior) & 0xfff) == 0;
+    offset = same ? ((prior >> 14) & 1023) : 0xffffffff;
+    table = r_u32(r_u32(0x800D87EC + 112 * (selection & 63)) + 48);
     if (offset >= 512)
     {
-        n = material_byte(m, table + ((selection >> 11) & 1u));
+        n = (uint32_t)r_u8((table + ((selection >> 11) & 1)));
         offset = 2;
         for (i = 0; i < n; ++i)
         {
-            value = material_byte(m, table + offset);
-            if ((value >> 7) == ((selection >> 11) & 1u) && ((value >> 4) & 7u) == ((selection >> 6) & 7u) && ((value >> 2) & 3u) == ((selection >> 9) & 3u))
+            value = (uint32_t)r_u8((table + offset));
+            if ((value >> 7) == ((selection >> 11) & 1) && ((value >> 4) & 7) == ((selection >> 6) & 7) && ((value >> 2) & 3) == ((selection >> 9) & 3))
                 break;
-            offset += 2 + material_byte(m, table + offset + 1);
+            offset += 2 + (uint32_t)r_u8((table + offset + 1));
         }
         if (i == n)
-            return 0xffffffffu;
+            return 0xffffffff;
     }
     table += offset;
-    n = material_byte(m, table + 1);
+    n = (uint32_t)r_u8((table + 1));
     if (!n)
-        return (offset << 14) | (selection & 0xfffu) | 0xff000000u;
-    index = (prior >> 24) & 127u;
-    category = (prior >> 12) & 3u;
+        return (offset << 14) | (selection & 0xfff) | 0xff000000;
+    index = (prior >> 24) & 127;
+    category = (prior >> 12) & 3;
     ranges[0] = 2;
     ranges[1] = (uint8_t)(n + 1);
     ranges[2] = (uint8_t)(n + 4);
-    value = (uint32_t)ranges[2] + material_byte(m, table + ranges[2] - 1);
+    value = (uint32_t)ranges[2] + (uint32_t)r_u8((table + ranges[2] - 1));
     ranges[3] = (uint8_t)(value - 1);
     ranges[4] = (uint8_t)(value + 2);
-    ranges[5] = (uint8_t)(ranges[4] + (material_byte(m, table + ranges[4] - 1) & (0u - ((selection >> 11) & 1u))) - 1);
-    step = 1 - ((selection >> 11) & 2u);
-    group_step = 1 - ((selection >> 12) & 2u);
+    ranges[5] = (uint8_t)(ranges[4] + ((uint32_t)r_u8((table + ranges[4] - 1)) & (0 - ((selection >> 11) & 1))) - 1);
+    step = 1 - ((selection >> 11) & 2);
+    group_step = 1 - ((selection >> 12) & 2);
     if (category == 3 || ranges[2 * category + 1] < ranges[2 * category])
         category = 0;
     if (!same || index == 127 || index < 2)
-        index = surface_range_byte(ranges, 2 * category + (step >> 31));
-    last = surface_range_byte(ranges, 2 * category + (rrj_s32(step) < 0 ? step + 1 : step));
-    finish = group_step == 1 ? ((selection >> 11) & 1u) + 1 : 0;
+        index = ranges[2 * category + (step >> 31)];
+    last = ranges[2 * category + (((int32_t)(uint32_t)(step)) < 0 ? step + 1 : step)];
+    finish = group_step == 1 ? ((selection >> 11) & 1) + 1 : 0;
     while (finish && ranges[2 * finish + 1] < ranges[2 * finish])
         --finish;
-    limit = (uint32_t)ranges[1] - ranges[0] + ranges[3] - ranges[2] + ((0u - ((selection >> 11) & 1u)) & ((uint32_t)ranges[5] - ranges[4] + 1)) + 2;
+    limit = (uint32_t)ranges[1] - ranges[0] + ranges[3] - ranges[2] + ((0 - ((selection >> 11) & 1)) & ((uint32_t)ranges[5] - ranges[4] + 1)) + 2;
     do
     {
         bounds_min[0] = bounds_min[1] = 0x3fff0000;
         bounds_max[0] = bounds_max[1] = 0xc0010000;
-        face_index = material_byte(m, table + index);
-        small = reply & 65535u;
+        face_index = (uint32_t)r_u8((table + index));
+        small = reply & 65535;
         quad = face_index >= small;
         face_index -= quad ? small : 0;
-        face = geometry + 14 + 20u * (quad ? small : face_index) + (quad ? 2u * (12u * face_index + 1) : 0);
+        face = geometry + 14 + 20 * (quad ? small : face_index) + (quad ? 2 * (12 * face_index + 1) : 0);
         n = 3 + quad;
         for (i = 0; i < n; ++i)
         {
             for (j = 0; j < 3; ++j)
-                vertices[3 * i + j] = material_half(m, vertex_base + 8u * rrj_u16(rrj_at(face + 2 * i, 2)) + 2 * j) << 10;
+                vertices[3 * i + j] = (uint32_t)r_s16((vertex_base + 8 * r_u16(face + 2 * i) + 2 * j)) << 10;
             for (j = 0; j < 2; ++j)
             {
                 value = vertices[3 * i + 2 * j];
-                if (rrj_s32(value) < rrj_s32(bounds_min[j]))
+                if (((int32_t)(uint32_t)(value)) < ((int32_t)(uint32_t)(bounds_min[j])))
                     bounds_min[j] = value;
-                if (rrj_s32(value) > rrj_s32(bounds_max[j]))
+                if (((int32_t)(uint32_t)(value)) > ((int32_t)(uint32_t)(bounds_max[j])))
                     bounds_max[j] = value;
             }
         }
-        if (rrj_s32(point[0]) >= rrj_s32(bounds_min[0]) && rrj_s32(point[0]) <= rrj_s32(bounds_max[0]) && rrj_s32(point[2]) >= rrj_s32(bounds_min[1]) && rrj_s32(point[2]) <= rrj_s32(bounds_max[1]) && rrj_polygon_contains_local(m, point, vertices, n, 1))
+        if (((int32_t)(uint32_t)(point[0])) >= ((int32_t)(uint32_t)(bounds_min[0])) && ((int32_t)(uint32_t)(point[0])) <= ((int32_t)(uint32_t)(bounds_max[0])) && ((int32_t)(uint32_t)(point[2])) >= ((int32_t)(uint32_t)(bounds_min[1])) && ((int32_t)(uint32_t)(point[2])) <= ((int32_t)(uint32_t)(bounds_max[1])) && sub_800B6E08(point, vertices, n, 1))
         {
             normal_start = 0;
             point_index = 0;
             if (quad)
             {
                 point_index = 3;
-                if (rrj_polygon_contains_local(m, point, vertices + 3, 3, 1))
+                if (sub_800B6E08(point, vertices + 3, 3, 1))
                     normal_start = 3;
                 else
                     for (i = 0; i < 3; ++i)
                         vertices[6 + i] = vertices[9 + i];
             }
-            (void)rrj_polygon_normal_local(m, vertices + normal_start, 3, normal);
-            /* Original stores the normal, then negates its halfwords before point writes. */
-            for (i = 0; i < 3; ++i)
+            (void)sub_800B6844(vertices + normal_start, 3, normal_out);
             {
-                if (normal_local)
-                    normal_local[i] = normal[i];
-                else
-                    rrj_put16(rrj_at(normal_address + 2 * i, 2), normal[i]);
-            }
-            {
-                uint16_t nx = normal_local ? normal_local[0] : rrj_u16(rrj_at(normal_address, 2));
-                uint16_t nz = normal_local ? normal_local[2] : rrj_u16(rrj_at(normal_address + 4, 2));
-                uint16_t ny;
-                if (normal_local)
-                    normal_local[0] = (uint16_t)(0u - nx);
-                else
-                    rrj_put16(rrj_at(normal_address, 2), (uint16_t)(0u - nx));
-                ny = normal_local ? normal_local[1] : rrj_u16(rrj_at(normal_address + 2, 2));
-                if (normal_local)
-                {
-                    normal_local[2] = (uint16_t)(0u - nz);
-                    normal_local[1] = (uint16_t)(0u - ny);
-                }
-                else
-                {
-                    rrj_put16(rrj_at(normal_address + 4, 2), (uint16_t)(0u - nz));
-                    rrj_put16(rrj_at(normal_address + 2, 2), (uint16_t)(0u - ny));
-                }
+                uint16_t nx = normal_out[0], nz = normal_out[2], ny;
+                normal_out[0] = (uint16_t)(0 - nx);
+                ny = normal_out[1];
+                normal_out[2] = (uint16_t)(0 - nz);
+                normal_out[1] = (uint16_t)(0 - ny);
             }
             for (i = 0; i < 3; ++i)
-                track_write(m, output, 4 * i, vertices[point_index + i] + origin[i]);
-            w_u8(actor + 534, (uint8_t)(rrj_u16(rrj_at(face - (quad ? 14 : 12), 2)) >> 12));
+                output[i] = vertices[point_index + i] + origin[i];
+            w_u8(actor + 534, (uint8_t)(r_u16(face - (quad ? 14 : 12)) >> 12));
             status = 2;
         }
         else
@@ -8592,142 +8208,135 @@ static uint32_t surface_hit(RRJMemory *m, uint32_t actor, uint32_t position, RRJ
                 {
                     category += group_step;
                     value = 2 * category + (step >> 31);
-                    index = surface_range_byte(ranges, value);
-                    last = surface_range_byte(ranges, value + step);
+                    index = ranges[value];
+                    last = ranges[value + step];
                 }
             }
             else
                 index += step;
         }
         ++iterations;
-        if (rrj_s32(limit) < rrj_s32(iterations))
+        if (((int32_t)(uint32_t)(limit)) < ((int32_t)(uint32_t)(iterations)))
             break;
     } while (!status);
     if (status == 2)
-        return (index << 24) | (offset << 14) | (category << 12) | (selection & 0xfffu);
-    return ((0u - status) & (((offset << 14) | (selection & 0xfffu) | 0xff000000u) + 1)) - 1;
-}
-
-uint32_t sub_800A7BF8(uint32_t actor, uint32_t position, uint32_t output, uint32_t normal, uint32_t prior)
-{
-    FUNCTION_MARKER(0x800A7BF8u, "RASHCDG.BIN");
-    return surface_hit(rrj_host_context(), actor, position, track_ram(output), normal, NULL, prior);
-}
-
-uint32_t rrj_surface_hit_local(RRJMemory *m, uint32_t actor, uint32_t position, uint32_t output[3], uint16_t normal[3], uint32_t prior)
-{
-    return surface_hit(m, actor, position, track_local(output), 0, normal, prior);
+        return (index << 24) | (offset << 14) | (category << 12) | (selection & 0xfff);
+    return ((0 - status) & (((offset << 14) | (selection & 0xfff) | 0xff000000) + 1)) - 1;
 }
 
 /* 80075628: contact-triggered mode transition and direction adjustment. */
 uint32_t sub_80075628(uint32_t actor, uint32_t normal, uint32_t distance)
 {
+    uint32_t scalar_value_148;
+    uint32_t scalar_value_151;
+    uint32_t scalar_value_152;
+    uint32_t scalar_value_153;
+    uint32_t scalar_value_154;
+
     FUNCTION_MARKER(0x80075628u, "RASHCDG.BIN");
     uint32_t queried, trigger = 0, speed, dot, value, modified, angles[2], owner, sign, target, offset, x, z, y, sum, numerator, ratio, scale;
-    if ((rrj_read32(actor + 564) & 0x61D800u) || (rrj_read32(actor + 568) & 0x7FFu))
+    if ((r_u32(actor + 564) & 0x61D800u) || (r_u32(actor + 568) & 0x7FFu))
         return 0;
-    queried = rrj_read32(actor + 388) & 1u;
-    if ((rrj_s32(distance) > 32768 && rrj_s32(rrj_read32(actor + 480)) > 732430) || material_byte(rrj_host_context(), actor + 534) == 4)
+    queried = r_u32(actor + 388) & 1u;
+    if ((((int32_t)(uint32_t)(distance)) > 32768 && ((int32_t)(uint32_t)(r_u32(actor + 480))) > 732430) || (uint32_t)r_u8((actor + 534)) == 4)
     {
         trigger = 1;
         queried = 1;
     }
     else if (queried)
     {
-        dot = sub_8002E698(rrj_at(normal, 6), rrj_at(actor + 450, 6));
-        if (rrj_s32(dot) <= 0)
+        dot = sub_8002E698(xport_guest_ptr(normal, 6), xport_guest_ptr(actor + 450, 6));
+        if (((int32_t)(uint32_t)(dot)) <= 0)
         {
-            value = (uint32_t)sub_8001FC90(rrj_s32(dot), rrj_s32(material_half(rrj_host_context(), normal + 2) << 4));
-            modified = (material_half(rrj_host_context(), actor + 452) - pause_asr(value << 12, 16)) << 4;
+            value = (uint32_t)sub_8001FC90(((int32_t)(uint32_t)(dot)), ((int32_t)(uint32_t)((uint32_t)r_s16((normal + 2)) << 4)));
+            modified = ((uint32_t)r_s16((actor + 452)) - ((scalar_value_148 = (value << 12)), (((uint32_t)((!((uint32_t)(16))) ? (scalar_value_148) : ((scalar_value_148 >> ((uint32_t)(16))) | ((scalar_value_148 & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(16)))) : 0))))))) << 4;
             /* Inline MIPS uses the same table/interpolation as 8001FF3C. */
-            angles[0] = sub_8001FF3C(material_half(rrj_host_context(), actor + 452) << 4);
+            angles[0] = sub_8001FF3C((uint32_t)r_s16((actor + 452)) << 4);
             angles[1] = sub_8001FF3C(modified);
-            trigger = rrj_s32(angles[1] - angles[0]) >= rrj_s32(rrj_read32(rrj_read32(actor + 556) + 440));
+            trigger = ((int32_t)(uint32_t)(angles[1] - angles[0])) >= ((int32_t)(uint32_t)(r_u32(r_u32(actor + 556) + 440)));
         }
     }
-    else if (rrj_read32(actor + 828))
+    else if (r_u32(actor + 828))
     {
-        dot = sub_8002E698(rrj_at(rrj_read32(actor + 340) + 14, 6), rrj_at(actor + 450, 6));
-        owner = material_half(rrj_host_context(), rrj_read32(actor + 828) + 50);
-        if (rrj_s32(owner ^ rrj_read32(actor + 364)) >= 0)
+        dot = sub_8002E698(xport_guest_ptr(r_u32(actor + 340) + 14, 6), xport_guest_ptr(actor + 450, 6));
+        owner = (uint32_t)r_s16((r_u32(actor + 828) + 50));
+        if (((int32_t)(uint32_t)(owner ^ r_u32(actor + 364))) >= 0)
         {
-            sign = pause_asr(owner, 31);
+            sign = ((uint32_t)((!((uint32_t)(31))) ? (((uint32_t)(owner))) : ((((uint32_t)(owner)) >> ((uint32_t)(31))) | ((((uint32_t)(owner)) & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(31)))) : 0))));
             value = (owner + sign) ^ sign;
-            if (rrj_s32(value) < rrj_s32(material_half(rrj_host_context(), actor + 482)))
+            if (((int32_t)(uint32_t)(value)) < ((int32_t)(uint32_t)((uint32_t)r_s16((actor + 482)))))
             {
-                sign = pause_asr(dot, 31);
-                trigger = rrj_s32((dot + sign) ^ sign) > 46333;
+                sign = ((uint32_t)((!((uint32_t)(31))) ? (((uint32_t)(dot))) : ((((uint32_t)(dot)) >> ((uint32_t)(31))) | ((((uint32_t)(dot)) & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(31)))) : 0))));
+                trigger = ((int32_t)(uint32_t)((dot + sign) ^ sign)) > 46333;
             }
         }
     }
     if (!trigger)
         return 0;
-    rrj_write32(actor + 568, rrj_read32(actor + 568) | 0xC00u);
+    w_u32(actor + 568, r_u32(actor + 568) | 0xC00u);
     if (queried)
         return 1;
-    speed = rrj_read32(actor + 480);
-    target = material_half(rrj_host_context(), actor + 452) << 4;
-    if (rrj_s32(speed) <= 3515664)
+    speed = r_u32(actor + 480);
+    target = (uint32_t)r_s16((actor + 452)) << 4;
+    if (((int32_t)(uint32_t)(speed)) <= 3515664)
     {
-        offset = rrj_s32(speed) > 2343776 ? pause_asr((uint32_t)sub_8001FC90(80629, rrj_s32(3515665 - speed)), 16) : 22;
+        offset = ((int32_t)(uint32_t)(speed)) > 2343776 ? ((scalar_value_151 = ((uint32_t)sub_8001FC90(80629, ((int32_t)(uint32_t)(3515665 - speed))))), (((uint32_t)((!((uint32_t)(16))) ? (scalar_value_151) : ((scalar_value_151 >> ((uint32_t)(16))) | ((scalar_value_151 & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(16)))) : 0)))))) : 22;
         value = ((offset + 1024 - sub_8001FF3C(target)) & 4095) * 4;
-        target = material_half(rrj_host_context(), 0x8005624C + (value | 2u)) << 4;
+        target = (uint32_t)r_s16((0x8005624C + (value | 2u))) << 4;
     }
     target >>= 4;
-    speed = rrj_read32(actor + 576);
-    if (rrj_s32(speed) > 29032446)
+    speed = r_u32(actor + 576);
+    if (((int32_t)(uint32_t)(speed)) > 29032446)
     {
         value = (0u - sub_80010028(29032446, speed)) >> 4;
-        if (rrj_s32(value << 16) < rrj_s32(target << 16))
+        if (((int32_t)(uint32_t)(value << 16)) < ((int32_t)(uint32_t)(target << 16)))
             value = target;
         target = value;
     }
-    y = pause_asr(target << 16, 16);
-    if (y == material_half(rrj_host_context(), actor + 452))
+    y = ((scalar_value_152 = (target << 16)), (((uint32_t)((!((uint32_t)(16))) ? (scalar_value_152) : ((scalar_value_152 >> ((uint32_t)(16))) | ((scalar_value_152 & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(16)))) : 0))))));
+    if (y == (uint32_t)r_s16((actor + 452)))
         return 1;
-    x = material_half(rrj_host_context(), actor + 450) << 4;
-    z = material_half(rrj_host_context(), actor + 454) << 4;
-    rrj_put16(rrj_at(actor + 452, 2), (uint16_t)target);
+    x = (uint32_t)r_s16((actor + 450)) << 4;
+    z = (uint32_t)r_s16((actor + 454)) << 4;
+    w_u16(actor + 452, (uint16_t)target);
     y <<= 4;
-    sum = (uint32_t)sub_8001FC90(rrj_s32(x), rrj_s32(x)) + (uint32_t)sub_8001FC90(rrj_s32(z), rrj_s32(z));
-    if (rrj_s32(sum) < 6)
+    sum = (uint32_t)sub_8001FC90(((int32_t)(uint32_t)(x)), ((int32_t)(uint32_t)(x))) + (uint32_t)sub_8001FC90(((int32_t)(uint32_t)(z)), ((int32_t)(uint32_t)(z)));
+    if (((int32_t)(uint32_t)(sum)) < 6)
     {
         x = 0;
         z = 655;
         sum = 6;
     }
-    numerator = 65536 - (uint32_t)sub_8001FC90(rrj_s32(y), rrj_s32(y));
-    ratio = rrj_s32(numerator) > 0 ? sub_80010028(numerator, sum) : 0u - sub_80010028(0u - numerator, sum);
+    numerator = 65536 - (uint32_t)sub_8001FC90(((int32_t)(uint32_t)(y)), ((int32_t)(uint32_t)(y)));
+    ratio = ((int32_t)(uint32_t)(numerator)) > 0 ? sub_80010028(numerator, sum) : 0u - sub_80010028(0u - numerator, sum);
     scale = sub_8004CF74(ratio) << 2;
-    rrj_put16(rrj_at(actor + 450, 2), (uint16_t)pause_asr((uint32_t)sub_8001FC90(rrj_s32(scale), rrj_s32(x)), 4));
-    rrj_put16(rrj_at(actor + 454, 2), (uint16_t)pause_asr((uint32_t)sub_8001FC90(rrj_s32(scale), rrj_s32(z)), 4));
+    w_u16(actor + 450, (uint16_t)((scalar_value_153 = ((uint32_t)sub_8001FC90(((int32_t)(uint32_t)(scale)), ((int32_t)(uint32_t)(x))))), (((uint32_t)((!((uint32_t)(4))) ? (scalar_value_153) : ((scalar_value_153 >> ((uint32_t)(4))) | ((scalar_value_153 & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(4)))) : 0)))))));
+    w_u16(actor + 454, (uint16_t)((scalar_value_154 = ((uint32_t)sub_8001FC90(((int32_t)(uint32_t)(scale)), ((int32_t)(uint32_t)(z))))), (((uint32_t)((!((uint32_t)(4))) ? (scalar_value_154) : ((scalar_value_154 >> ((uint32_t)(4))) | ((scalar_value_154 & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(4)))) : 0)))))));
     return 1;
-}
-
-static void motion_outer_product(RRJMemory *m, uint32_t left, uint32_t right, uint32_t output)
-{
-    motion_outer_product_ref(m, left, NULL, right, output);
 }
 
 /* 80075B08: contact deflection with signed16-truncated products. */
 uint32_t sub_80075B08(uint32_t actor, uint32_t normal)
 {
+    uint32_t scalar_value_155;
+    uint32_t scalar_value_156;
+
     FUNCTION_MARKER(0x80075B08u, "RASHCDG.BIN");
     uint32_t x, z, value;
-    if ((rrj_read32(actor + 568) & 0x60Fu) || (rrj_read32(actor + 564) & 0x400u))
+    if ((r_u32(actor + 568) & 0x60Fu) || (r_u32(actor + 564) & 0x400u))
         return 0;
-    if (rrj_s32(material_half(rrj_host_context(), normal + 2)) >= 2633)
+    if (((int32_t)(uint32_t)((uint32_t)r_s16((normal + 2)))) >= 2633)
         return 0;
-    x = material_half(rrj_host_context(), actor + 450) * material_half(rrj_host_context(), normal);
-    z = material_half(rrj_host_context(), actor + 454) * material_half(rrj_host_context(), normal + 4);
-    value = pause_asr(x << 4, 16) + pause_asr(z << 4, 16);
-    if (rrj_s32(value) <= 0)
+    x = (uint32_t)r_s16((actor + 450)) * (uint32_t)r_s16(normal);
+    z = (uint32_t)r_s16((actor + 454)) * (uint32_t)r_s16((normal + 4));
+    value = ((scalar_value_155 = (x << 4)), (((uint32_t)((!((uint32_t)(16))) ? (scalar_value_155) : ((scalar_value_155 >> ((uint32_t)(16))) | ((scalar_value_155 & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(16)))) : 0)))))) + ((scalar_value_156 = (z << 4)), (((uint32_t)((!((uint32_t)(16))) ? (scalar_value_156) : ((scalar_value_156 >> ((uint32_t)(16))) | ((scalar_value_156 & 0x80000000) ? (0xFFFFFFFFu << (32 - ((uint32_t)(16)))) : 0))))));
+    if (((int32_t)(uint32_t)(value)) <= 0)
         return 0;
-    rrj_put16(rrj_at(actor + 820, 2), (uint16_t)(0u - rrj_u16(rrj_at(normal, 2))));
-    rrj_put16(rrj_at(actor + 822, 2), 0);
-    rrj_put16(rrj_at(actor + 824, 2), (uint16_t)(0u - rrj_u16(rrj_at(normal + 4, 2))));
-    (void)sub_8002E468(actor + 820);
-    rrj_write32(actor + 564, rrj_read32(actor + 564) | 0x400000u);
+    w_u16(actor + 820, (uint16_t)(0u - r_u16(normal)));
+    w_u16(actor + 822, 0);
+    w_u16(actor + 824, (uint16_t)(0u - r_u16(normal + 4)));
+    (void)sub_8002E468(xport_guest_ptr(actor + 820, 6));
+    w_u32(actor + 564, r_u32(actor + 564) | 0x400000u);
     return 1;
 }
 
@@ -8739,11 +8348,11 @@ int64_t sub_8002ECB8(const uint16_t left[3], const uint16_t right[3], uint32_t o
     FUNCTION_MARKER(0x8002ECB8, "SLUS_010.53");
     for (axis = 0; axis < 3; ++axis)
     {
-        uint32_t component = (uint32_t)(int32_t)(int16_t)rrj_u16((const uint8_t *)left + 2u * axis) << 4;
-        uint32_t first = (uint32_t)sub_8001FC90(rrj_s32(scale_left), rrj_s32(component));
-        component = (uint32_t)(int32_t)(int16_t)rrj_u16((const uint8_t *)right + 2u * axis) << 4;
-        result = sub_8001FC90(rrj_s32(scale_right), rrj_s32(component));
-        rrj_put32((uint8_t *)output + 4u * axis, first + (uint32_t)result);
+        uint32_t component = (uint32_t)(int32_t)(int16_t)xport_load_le16((const uint8_t *)left + 2u * axis) << 4;
+        uint32_t first = (uint32_t)sub_8001FC90(((int32_t)(uint32_t)(scale_left)), ((int32_t)(uint32_t)(component)));
+        component = (uint32_t)(int32_t)(int16_t)xport_load_le16((const uint8_t *)right + 2u * axis) << 4;
+        result = sub_8001FC90(((int32_t)(uint32_t)(scale_right)), ((int32_t)(uint32_t)(component)));
+        xport_store_le32((uint8_t *)output + 4u * axis, first + (uint32_t)result);
     }
     return result;
 }
@@ -8751,427 +8360,584 @@ int64_t sub_8002ECB8(const uint16_t left[3], const uint16_t right[3], uint32_t o
 /* 8007504C: project actor motion onto road or queried geometry; update child. */
 uint32_t sub_8007504C(uint32_t actor, uint32_t position)
 {
+
     FUNCTION_MARKER(0x8007504Cu, "RASHCDG.BIN");
-    uint32_t first_point[3], second_point[3], difference[3], queried = rrj_read32(actor + 388) & 1u;
+    uint32_t first_point[3], second_point[3], difference[3], queried = r_u32(actor + 388) & 1u;
     uint32_t saved_material = 0, result, reply, normal_address, flags, i, dot = 0, linked, road, other_road;
     uint16_t normal_local[3], captured[3];
     int local_normal = 0;
-    RRJTrackWords plane;
+    const uint8_t *plane;
     if (queried)
     {
-        plane = track_local(first_point);
+        plane = (const uint8_t *)first_point;
         normal_address = actor + 268;
-        reply = surface_hit(rrj_host_context(), actor, position, plane, normal_address, NULL, rrj_read32(actor + 536));
-        flags = rrj_read32(actor + 388);
-        if (reply == rrj_read32(actor + 536))
+        reply = sub_800A7BF8(actor, position, first_point, xport_guest_ptr(normal_address, 6), r_u32(actor + 536));
+        flags = r_u32(actor + 388);
+        if (reply == r_u32(actor + 536))
             flags &= ~64u;
         else
         {
-            rrj_write32(actor + 536, reply);
+            w_u32(actor + 536, reply);
             flags |= 64u;
         }
-        rrj_write32(actor + 388, flags);
-        saved_material = material_byte(rrj_host_context(), actor + 534);
+        w_u32(actor + 388, flags);
+        saved_material = (uint32_t)r_u8((actor + 534));
     }
     else
     {
-        road = rrj_read32(actor + 340);
+        road = r_u32(actor + 340);
         reply = 0;
-        rrj_write32(actor + 536, 0);
-        plane = track_ram(road + 20);
+        w_u32(actor + 536, 0);
+        plane = xport_guest_cptr(road + 20, 12);
         normal_address = road + 8;
-        w_u8(actor + 534, (uint8_t)(rrj_read32(actor + 372) ? material_byte(rrj_host_context(), actor + 394) : 1));
+        w_u8(actor + 534, (uint8_t)(r_u32(actor + 372) ? (uint32_t)r_u8((actor + 394)) : 1));
     }
-    if (rrj_s32(reply) >= 0 && rrj_s32(material_half(rrj_host_context(), normal_address + 2)) < -615)
+    if (((int32_t)(uint32_t)(reply)) >= 0 && ((int32_t)(uint32_t)((uint32_t)r_s16((normal_address + 2)))) < -615)
     {
         for (i = 0; i < 3; ++i)
-            rrj_put16(rrj_at(actor + 274 + 2 * i, 2), (uint16_t)(0u - rrj_u16(rrj_at(normal_address + 2 * i, 2))));
+            w_u16(actor + 274 + 2 * i, (uint16_t)(0u - r_u16(normal_address + 2 * i)));
     }
     else
     {
         for (i = 0; i < 3; ++i)
-            captured[i] = rrj_u16(rrj_at(actor + 522 + 2 * i, 2));
-        plane = track_ram(actor + 504);
+            captured[i] = r_u16(actor + 522 + 2 * i);
+        plane = xport_guest_cptr(actor + 504, 12);
         for (i = 0; i < 3; ++i)
-            rrj_put16(rrj_at(actor + 274 + 2 * i, 2), captured[i]);
-        if (!rrj_read32(actor + 480) && material_byte(rrj_host_context(), rrj_read32(actor + 1084) + 39) != 255)
+            w_u16(actor + 274 + 2 * i, captured[i]);
+        if (!r_u32(actor + 480) && (uint32_t)r_u8((r_u32(actor + 1084) + 39)) != 255)
         {
-            rrj_write32(actor + 480, 117188);
-            (void)sub_8002EE50(117188, rrj_at(actor + 450, 6), rrj_at(actor + 456, 12));
+            w_u32(actor + 480, 117188);
+            (void)sub_8002EE50(117188, xport_guest_ptr(actor + 450, 6), xport_guest_ptr(actor + 456, 12));
         }
     }
     for (i = 0; i < 3; ++i)
-        difference[i] = track_read(rrj_host_context(), plane, 4 * i) - rrj_read32(position + 4 * i);
+        difference[i] = xport_load_le32(plane + 4 * i) - r_u32(position + 4 * i);
     for (i = 0; i < 3; ++i)
-        dot += (uint32_t)sub_8001FC90(rrj_s32(difference[i]), rrj_s32(material_half(rrj_host_context(), actor + 274 + 2 * i) << 4));
+    {
+        int64_t product = (int64_t)(int32_t)difference[i] * ((int32_t)r_s16(actor + 274 + 2 * i) * 16);
+        dot += (uint32_t)((uint64_t)product >> 16);
+    }
     for (i = 0; i < 3; ++i)
-        rrj_write32(actor + 504 + 4 * i, (uint32_t)sub_8001FC90(rrj_s32(material_half(rrj_host_context(), actor + 274 + 2 * i) << 4), rrj_s32(dot)) + rrj_read32(position + 4 * i));
-    rrj_write32(actor + 260, dot);
+    {
+        int64_t product = (int64_t)((int32_t)r_s16(actor + 274 + 2 * i) * 16) * (int32_t)dot;
+        w_u32(actor + 504 + 4 * i, (uint32_t)((uint64_t)product >> 16) + r_u32(position + 4 * i));
+    }
+    w_u32(actor + 260, dot);
     if (queried)
     {
-        reply = surface_hit(rrj_host_context(), actor, actor + 244, track_local(second_point), actor + 268, NULL, rrj_read32(actor + 572));
-        flags = rrj_read32(actor + 564) & 0xfdffffffu;
-        rrj_write32(actor + 564, flags);
-        if (rrj_s32(reply) < 0)
+        reply = sub_800A7BF8(actor, actor + 244, second_point, xport_guest_ptr(actor + 268, 6), r_u32(actor + 572));
+        flags = r_u32(actor + 564) & 0xfdffffffu;
+        w_u32(actor + 564, flags);
+        if (((int32_t)(uint32_t)(reply)) < 0)
         {
             for (i = 0; i < 3; ++i)
-                captured[i] = rrj_u16(rrj_at(actor + 274 + 2 * i, 2));
+                captured[i] = r_u16(actor + 274 + 2 * i);
             for (i = 0; i < 3; ++i)
-                rrj_put16(rrj_at(actor + 268 + 2 * i, 2), captured[i]);
+                w_u16(actor + 268 + 2 * i, captured[i]);
             for (i = 0; i < 3; ++i)
-                rrj_write32(actor + 280 + 4 * i, track_read(rrj_host_context(), plane, 4 * i));
+                w_u32(actor + 280 + 4 * i, xport_load_le32(plane + 4 * i));
         }
         else
         {
-            if (reply != rrj_read32(actor + 572))
-                rrj_write32(actor + 564, flags | 0x02000000u);
-            captured[0] = rrj_u16(rrj_at(actor + 268, 2));
-            captured[2] = rrj_u16(rrj_at(actor + 272, 2));
-            rrj_put16(rrj_at(actor + 268, 2), (uint16_t)(0u - captured[0]));
-            captured[1] = rrj_u16(rrj_at(actor + 270, 2));
-            rrj_put16(rrj_at(actor + 272, 2), (uint16_t)(0u - captured[2]));
-            rrj_put16(rrj_at(actor + 270, 2), (uint16_t)(0u - captured[1]));
+            if (reply != r_u32(actor + 572))
+                w_u32(actor + 564, flags | 0x02000000u);
+            captured[0] = r_u16(actor + 268);
+            captured[2] = r_u16(actor + 272);
+            w_u16(actor + 268, (uint16_t)(0u - captured[0]));
+            captured[1] = r_u16(actor + 270);
+            w_u16(actor + 272, (uint16_t)(0u - captured[2]));
+            w_u16(actor + 270, (uint16_t)(0u - captured[1]));
             for (i = 0; i < 3; ++i)
-                rrj_write32(actor + 280 + 4 * i, second_point[i]);
+                w_u32(actor + 280 + 4 * i, second_point[i]);
         }
-        result = material_byte(rrj_host_context(), actor + 534);
-        rrj_write32(actor + 572, reply);
+        result = (uint32_t)r_u8((actor + 534));
+        w_u32(actor + 572, reply);
         w_u8(actor + 534, (uint8_t)saved_material);
     }
     else
     {
-        road = rrj_read32(actor + 256);
-        rrj_write32(actor + 572, 0);
+        road = r_u32(actor + 256);
+        w_u32(actor + 572, 0);
         for (i = 0; i < 2; ++i)
-            rrj_put16(rrj_at(actor + 268 + 2 * i, 2), (uint16_t)(0u - rrj_u16(rrj_at(road + 8 + 2 * i, 2))));
-        captured[2] = rrj_u16(rrj_at(road + 12, 2));
-        other_road = rrj_read32(actor + 340);
-        rrj_put16(rrj_at(actor + 272, 2), (uint16_t)(0u - captured[2]));
+            w_u16(actor + 268 + 2 * i, (uint16_t)(0u - r_u16(road + 8 + 2 * i)));
+        captured[2] = r_u16(road + 12);
+        other_road = r_u32(actor + 340);
+        w_u16(actor + 272, (uint16_t)(0u - captured[2]));
         for (i = 0; i < 3; ++i)
-            rrj_write32(actor + 280 + 4 * i, rrj_read32(road + 20 + 4 * i));
-        flags = rrj_read32(actor + 564);
+            w_u32(actor + 280 + 4 * i, r_u32(road + 20 + 4 * i));
+        flags = r_u32(actor + 564);
         flags = other_road == road ? flags & 0xfdffffffu : flags | 0x02000000u;
-        rrj_write32(actor + 564, flags);
-        result = rrj_read32(actor + 372) ? material_byte(rrj_host_context(), actor + 394) : 1;
+        w_u32(actor + 564, flags);
+        result = r_u32(actor + 372) ? (uint32_t)r_u8((actor + 394)) : 1;
     }
     w_u8(actor + 535, (uint8_t)result);
-    linked = rrj_read32(actor + 856);
+    linked = r_u32(actor + 856);
     if (!linked)
         return result;
-    result = rrj_read32(actor + 1088);
+    result = r_u32(actor + 1088);
     if (!result)
         return result;
-    rrj_write32(linked + 44, rrj_read32(actor + 44));
-    flags = rrj_read32(linked + 388) & 1u;
-    rrj_write32(linked + 48, rrj_read32(actor + 48));
+    w_u32(linked + 44, r_u32(actor + 44));
+    flags = r_u32(linked + 388) & 1u;
+    w_u32(linked + 48, r_u32(actor + 48));
     if (flags)
     {
-        plane = track_local(first_point);
+        plane = (const uint8_t *)first_point;
         local_normal = 1;
-        reply = surface_hit(rrj_host_context(), linked, 0, plane, 0, normal_local, rrj_read32(linked + 536));
-        rrj_write32(linked + 536, reply);
+        reply = sub_800A7BF8(linked, 0, first_point, normal_local, r_u32(linked + 536));
+        w_u32(linked + 536, reply);
     }
     else
     {
         reply = 0;
-        w_u8(linked + 534, (uint8_t)(rrj_read32(linked + 372) ? material_byte(rrj_host_context(), linked + 394) : 1));
-        rrj_write32(linked + 536, 0);
+        w_u8(linked + 534, (uint8_t)(r_u32(linked + 372) ? (uint32_t)r_u8((linked + 394)) : 1));
+        w_u32(linked + 536, 0);
     }
-    if (rrj_s32(reply) <= 0)
+    if (((int32_t)(uint32_t)(reply)) <= 0)
     {
-        road = rrj_read32(linked + 340);
-        plane = track_ram(road + 20);
+        road = r_u32(linked + 340);
+        plane = xport_guest_cptr(road + 20, 12);
         normal_address = road + 8;
         local_normal = 0;
-        if (rrj_s32(reply) < 0)
+        if (((int32_t)(uint32_t)(reply)) < 0)
         {
-            if (rrj_read32(linked + 480))
+            if (r_u32(linked + 480))
                 return 65536;
-            rrj_write32(linked + 480, 117188);
-            return (uint32_t)sub_8002EE50(117188, rrj_at(linked + 450, 6), rrj_at(linked + 456, 12));
+            w_u32(linked + 480, 117188);
+            return (uint32_t)sub_8002EE50(117188, xport_guest_ptr(linked + 450, 6), xport_guest_ptr(linked + 456, 12));
         }
     }
-    result = local_normal ? (uint32_t)(int32_t)(int16_t)normal_local[1] : material_half(rrj_host_context(), normal_address + 2);
-    result = rrj_s32(result) < -614;
+    result = local_normal ? (uint32_t)(int32_t)(int16_t)normal_local[1] : (uint32_t)r_s16((normal_address + 2));
+    result = ((int32_t)(uint32_t)(result)) < -614;
     if (!result)
         return result;
     for (i = 0; i < 3; ++i)
-        rrj_put16(rrj_at(linked + 814 + 2 * i, 2), (uint16_t)(0u - (local_normal ? normal_local[i] : rrj_u16(rrj_at(normal_address + 2 * i, 2)))));
+        w_u16(linked + 814 + 2 * i, (uint16_t)(0u - (local_normal ? normal_local[i] : r_u16(normal_address + 2 * i))));
     for (i = 0; i < 3; ++i)
     {
-        result = track_read(rrj_host_context(), plane, 4 * i);
-        rrj_write32(linked + 784 + 4 * i, result);
+        result = xport_load_le32(plane + 4 * i);
+        w_u32(linked + 784 + 4 * i, result);
     }
     return result;
 }
 
-static uint32_t contact_signed_ratio(uint32_t numerator, uint32_t denominator)
-{
-    int np = rrj_s32(numerator) > 0, dp = rrj_s32(denominator) > 0;
-    uint32_t value = sub_80010028(np ? numerator : 0u - numerator, dp ? denominator : 0u - denominator);
-    return np == dp ? value : 0u - value;
-}
-
-static void wheel_rate(RRJMemory *m, uint32_t actor, uint32_t step)
-{
-    uint32_t value = material_half(m, actor + 840);
-    if (rrj_s32(value) >= 23)
-        rrj_put16(rrj_at(actor + 840, 2), (uint16_t)(value - 34));
-    else if (!value)
-        rrj_put16(rrj_at(actor + 840, 2), (uint16_t)step);
-}
-
-static void wheel_wrap(RRJMemory *m, uint32_t address)
-{
-    while (rrj_s32(material_half(m, address)) < -4096)
-        rrj_put16(rrj_at(address, 2), (uint16_t)(rrj_u16(rrj_at(address, 2)) + 4096));
-}
-
-/* 800807F0: wheel phase, bounds, linked placement and heading. */
 uint32_t sub_800807F0(uint32_t actor, uint32_t delta)
 {
     FUNCTION_MARKER(0x800807F0u, "RASHCDG.BIN");
-    uint32_t linked = rrj_read32(actor + 856) != 0, step, x, z, other, value, i;
-    if ((int8_t)material_byte(rrj_host_context(), actor + 8) < 2)
+    uint32_t linked = r_u32(actor + 856) != 0, step, x, z, other, value;
+    if ((int8_t)r_s8((actor + 8)) < 2)
     {
-        step = pause_asr(2608u * (uint32_t)sub_8001FC90(rrj_s32(rrj_read32(actor + 480)), rrj_s32(delta)), 16);
-        if (rrj_read32(actor + 568) & 0x7FFu)
+        step = (uint32_t)((int32_t)(2608 * (uint32_t)sub_8001FC90((int32_t)r_u32(actor + 480), (int32_t)delta)) >> 16);
+        if (r_u32(actor + 568) & 0x7FFu)
         {
-            wheel_rate(rrj_host_context(), actor, step);
-            step = rrj_u16(rrj_at(actor + 840, 2));
-            x = rrj_u16(rrj_at(actor + 836, 2)) - step;
-            z = rrj_u16(rrj_at(actor + 838, 2)) - step;
-            rrj_put16(rrj_at(actor + 836, 2), (uint16_t)x);
-            rrj_put16(rrj_at(actor + 838, 2), (uint16_t)z);
+            value = (uint32_t)(int32_t)r_s16(actor + 840);
+            if ((int32_t)value >= 23)
+                w_u16(actor + 840, (uint16_t)(value - 34));
+            else if (!value)
+                w_u16(actor + 840, (uint16_t)step);
+            step = r_u16(actor + 840);
+            x = r_u16(actor + 836) - step;
+            z = r_u16(actor + 838) - step;
+            w_u16(actor + 836, (uint16_t)x);
+            w_u16(actor + 838, (uint16_t)z);
             if (linked)
             {
-                other = rrj_read32(actor + 856);
-                rrj_put16(rrj_at(other + 836, 2), (uint16_t)(rrj_u16(rrj_at(other + 836, 2)) - step));
+                other = r_u32(actor + 856);
+                w_u16(other + 836, (uint16_t)(r_u16(other + 836) - step));
             }
         }
         else
         {
-            x = rrj_u16(rrj_at(actor + 836, 2));
-            z = rrj_u16(rrj_at(actor + 838, 2));
-            if (rrj_read32(actor + 564) & 0x08000000u)
+            x = r_u16(actor + 836);
+            z = r_u16(actor + 838);
+            if (r_u32(actor + 564) & 0x08000000u)
             {
                 x -= step;
                 z -= 170;
             }
             else
             {
-                value = rrj_read32(actor + 616);
-                x -= rrj_s32(value) > 0 ? 22 : step;
-                z -= rrj_s32(value) < 0 ? 22 : step;
+                value = r_u32(actor + 616);
+                x -= ((int32_t)(uint32_t)(value)) > 0 ? 22 : step;
+                z -= ((int32_t)(uint32_t)(value)) < 0 ? 22 : step;
             }
-            rrj_put16(rrj_at(actor + 836, 2), (uint16_t)x);
-            rrj_put16(rrj_at(actor + 838, 2), (uint16_t)z);
+            w_u16(actor + 836, (uint16_t)x);
+            w_u16(actor + 838, (uint16_t)z);
             if (linked)
             {
-                value = rrj_read32(actor + 636);
-                if (rrj_s32(value) < 0)
+                value = r_u32(actor + 636);
+                if (((int32_t)(uint32_t)(value)) < 0)
                 {
-                    wheel_rate(rrj_host_context(), actor, step);
-                    step = rrj_u16(rrj_at(actor + 840, 2));
+                    uint32_t rate = (uint32_t)(int32_t)r_s16(actor + 840);
+                    if ((int32_t)rate >= 23)
+                        w_u16(actor + 840, (uint16_t)(rate - 34));
+                    else if (!rate)
+                        w_u16(actor + 840, (uint16_t)step);
+                    step = r_u16(actor + 840);
                 }
-                other = rrj_read32(actor + 856);
-                rrj_put16(rrj_at(other + 836, 2), (uint16_t)(rrj_u16(rrj_at(other + 836, 2)) - step));
-                if (rrj_s32(value) >= 0)
-                    rrj_put16(rrj_at(actor + 840, 2), 0);
-                /* Unlike the flagged path, this branch wraps the linked wheel. */
-                while (rrj_s32(material_half(rrj_host_context(), rrj_read32(actor + 856) + 836)) < -4096)
+                other = r_u32(actor + 856);
+                w_u16(other + 836, (uint16_t)(r_u16(other + 836) - step));
+                if (((int32_t)(uint32_t)(value)) >= 0)
+                    w_u16(actor + 840, 0);
+                /* This branch also normalizes the linked wheel phase */
+                while (((int32_t)(uint32_t)((uint32_t)r_s16((r_u32(actor + 856) + 836)))) < -4096)
                 {
-                    other = rrj_read32(actor + 856);
-                    rrj_put16(rrj_at(other + 836, 2), (uint16_t)(rrj_u16(rrj_at(other + 836, 2)) + 4096));
+                    other = r_u32(actor + 856);
+                    w_u16(other + 836, (uint16_t)(r_u16(other + 836) + 4096));
                 }
             }
         }
-        wheel_wrap(rrj_host_context(), actor + 836);
-        wheel_wrap(rrj_host_context(), actor + 838);
+        value = (uint32_t)(int32_t)r_s16(actor + 836);
+        while ((int32_t)value < -4096)
+        {
+            value = (uint32_t)(int32_t)(int16_t)(value + 4096);
+            w_u16(actor + 836, (uint16_t)value);
+        }
+        value = (uint32_t)(int32_t)r_s16(actor + 838);
+        while ((int32_t)value < -4096)
+        {
+            value = (uint32_t)(int32_t)(int16_t)(value + 4096);
+            w_u16(actor + 838, (uint16_t)value);
+        }
     }
     (void)sub_8008BA18(actor);
     if (linked)
     {
-        other = rrj_read32(actor + 856) + 432;
-        /* Actual 8003FA18 with count9: sequential halfword copy, including overlap. */
-        for (i = 0; i < 9; ++i)
-            rrj_put16(rrj_at(other + 2 * i, 2), rrj_u16(rrj_at(actor + 432 + 2 * i, 2)));
-        other = rrj_read32(actor + 856);
-        value = rrj_read32(actor + 304) + rrj_read32(other + 304);
-        (void)sub_8002EAD8(rrj_at(actor + 184, 12), rrj_at(actor + 432, 6), value, rrj_at(other + 184, 12));
-        (void)sub_8008BA18(rrj_read32(actor + 856));
+        other = r_u32(actor + 856) + 432;
+        (void)sub_8003FA18(9, xport_guest_cptr(actor + 432, 18), xport_guest_ptr(other, 18));
+        other = r_u32(actor + 856);
+        value = r_u32(actor + 304) + r_u32(other + 304);
+        (void)sub_8002EAD8(xport_guest_ptr(actor + 184, 12), xport_guest_ptr(actor + 432, 6), value, xport_guest_ptr(other + 184, 12));
+        (void)sub_8008BA18(r_u32(actor + 856));
     }
-    value = sub_80020018(material_half(rrj_host_context(), actor + 528) << 4, material_half(rrj_host_context(), actor + 532) << 4);
-    rrj_write32(actor + 292, value);
-    x = material_half(rrj_host_context(), 0x8005624C + (((value & 4095) * 4) | 2)) << 4;
-    value = 0x8005624C + 4 * (rrj_read32(actor + 292) & 4095);
-    rrj_write32(actor + 296, x);
-    value = material_half(rrj_host_context(), value) << 4;
-    rrj_write32(actor + 300, value);
+    value = sub_80020018((uint32_t)r_s16((actor + 528)) << 4, (uint32_t)r_s16((actor + 532)) << 4);
+    w_u32(actor + 292, value);
+    x = (uint32_t)r_s16((0x8005624C + (((value & 4095) * 4) | 2))) << 4;
+    value = 0x8005624C + 4 * (r_u32(actor + 292) & 4095);
+    w_u32(actor + 296, x);
+    value = (uint32_t)r_s16(value) << 4;
+    w_u32(actor + 300, value);
     return value;
 }
 
 /* 8007FA4C: contact response, orientation and final position commit. */
 uint32_t sub_8007FA4C(uint32_t actor)
 {
+
+
     FUNCTION_MARKER(0x8007FA4Cu, "RASHCDG.BIN");
-    uint32_t special = (rrj_read32(actor + 568) & 0x600u) != 0, distance = rrj_read32(actor + 260);
-    uint32_t flags = rrj_read32(actor + 564), mode = rrj_read32(actor + 568), queried, allowed, reply = 0;
-    uint32_t vector[3], cross[3], axis[3], i, j, k, dot, ratio, scale, linked, owner, x, y, z, correction;
+    uint32_t special = (r_u32(actor + 568) & 0x600u) != 0, distance = r_u32(actor + 260);
+    uint32_t flags = r_u32(actor + 564), mode = r_u32(actor + 568), queried, allowed, reply = 0;
+    uint32_t vector[3], cross[3], axis[3], i, dot, ratio, scale, linked, owner, x, y, z, correction;
+    uint32_t denominator, numerator_positive, denominator_positive, sign, magnitude[3], maximum, bit, shift, sum, table, entry, expanded;
+    uint32_t normalized[3], diagonal[3], direction[3], product[3];
+    uint64_t squared;
     uint16_t average[3], captured[3];
     int use_actor_normal = 0, orientation_done = 0;
-    rrj_write32(actor + 564, flags & 0xFFBFFFFFu);
+    w_u32(actor + 564, flags & 0xFFBFFFFFu);
     if (!(mode & 0x600u))
     {
-        flags = rrj_read32(actor + 388);
+        flags = r_u32(actor + 388);
         queried = flags & 1u;
         allowed = (mode & 0x80000Fu) == 0;
         if ((flags & 64u) && allowed)
-            reply = queried && rrj_s32(distance) < 0 ? sub_80075B08(actor, actor + 274) : sub_80075628(actor, actor + 274, rrj_read32(actor + 260));
+            reply = queried && ((int32_t)(uint32_t)(distance)) < 0 ? sub_80075B08(actor, actor + 274) : sub_80075628(actor, actor + 274, r_u32(actor + 260));
         distance = 0;
         if (reply)
             goto finish;
         for (i = 0; i < 3; ++i)
-            vector[i] = rrj_read32(actor + 280 + 4 * i) - rrj_read32(actor + 244 + 4 * i);
+            vector[i] = r_u32(actor + 280 + 4 * i) - r_u32(actor + 244 + 4 * i);
         dot = 0;
         for (i = 0; i < 3; ++i)
-            dot += (uint32_t)sub_8001FC90(rrj_s32(vector[i]), rrj_s32(material_half(rrj_host_context(), actor + 268 + 2 * i) << 4));
-        if ((rrj_read32(actor + 564) & 0x02000000u) && allowed)
-            reply = queried && rrj_s32(dot) < 0 ? sub_80075B08(actor, actor + 268) : sub_80075628(actor, actor + 268, dot);
+        {
+            int64_t projection = (int64_t)(int32_t)vector[i] * ((int32_t)r_s16(actor + 268 + 2 * i) * 16);
+            dot += (uint32_t)((uint64_t)projection >> 16);
+        }
+        if ((r_u32(actor + 564) & 0x02000000u) && allowed)
+            reply = queried && ((int32_t)(uint32_t)(dot)) < 0 ? sub_80075B08(actor, actor + 268) : sub_80075628(actor, actor + 268, dot);
         if (reply)
             goto finish;
         for (i = 0; i < 3; ++i)
-            captured[i] = rrj_u16(rrj_at(actor + 274 + 2 * i, 2));
+            captured[i] = r_u16(actor + 274 + 2 * i);
         for (i = 0; i < 3; ++i)
-            rrj_put16(rrj_at(actor + 522 + 2 * i, 2), captured[i]);
+            w_u16(actor + 522 + 2 * i, captured[i]);
         for (i = 0; i < 3; ++i)
-            average[i] = (uint16_t)((rrj_s32(material_half(rrj_host_context(), actor + 268 + 2 * i)) + rrj_s32(material_half(rrj_host_context(), actor + 522 + 2 * i))) / 2);
-        ratio = contact_signed_ratio(dot, sub_8002E698((average) ? (average) : rrj_at(0, 6), rrj_at(actor + 268, 6)));
+            average[i] = (uint16_t)((((int32_t)(uint32_t)((uint32_t)r_s16((actor + 268 + 2 * i)))) + ((int32_t)(uint32_t)((uint32_t)r_s16((actor + 522 + 2 * i))))) / 2);
+        denominator = sub_8002E698(average, xport_guest_cptr(actor + 268, 6));
+        numerator_positive = (int32_t)dot > 0;
+        denominator_positive = (int32_t)denominator > 0;
+        ratio = sub_80010028(numerator_positive ? dot : 0 - dot, denominator_positive ? denominator : 0 - denominator);
+        if (numerator_positive != denominator_positive)
+            ratio = 0 - ratio;
         for (i = 0; i < 3; ++i)
-            rrj_write32(actor + 784 + 4 * i, (uint32_t)sub_8001FC90((int32_t)(int16_t)average[i] * 16, rrj_s32(ratio)) + rrj_read32(actor + 244 + 4 * i));
+        {
+            int64_t placement = (int64_t)((int32_t)(int16_t)average[i] * 16) * (int32_t)ratio;
+            w_u32(actor + 784 + 4 * i, (uint32_t)((uint64_t)placement >> 16) + r_u32(actor + 244 + 4 * i));
+        }
         for (i = 0; i < 3; ++i)
-            vector[i] = rrj_read32(actor + 784 + 4 * i) - rrj_read32(actor + 504 + 4 * i);
-        (void)rrj_normalize_vector32(rrj_host_context(), vector);
-        rrj_put16(rrj_at(actor + 528, 2), (uint16_t)pause_asr(vector[0], 4));
-        scale = rrj_read32(actor + 308);
+            vector[i] = r_u32(actor + 784 + 4 * i) - r_u32(actor + 504 + 4 * i);
+        for (i = 0; i < 3; ++i)
+        {
+            sign = (uint32_t)((int32_t)vector[i] >> 31);
+            magnitude[i] = (vector[i] + sign) ^ sign;
+        }
+        maximum = (int32_t)magnitude[1] < (int32_t)magnitude[0] ? magnitude[0] : magnitude[1];
+        if ((int32_t)magnitude[2] >= (int32_t)maximum)
+            maximum = magnitude[2];
+        bit = 0;
+        if (maximum)
+        {
+            xport_gte_write_data(30, maximum);
+            bit = 31 - xport_gte_read_data(31);
+        }
+        if ((int32_t)bit < 21)
+        {
+            shift = (20 - bit) & 31;
+            for (i = 0; i < 3; ++i)
+                normalized[i] = vector[i] << shift;
+        }
+        else
+        {
+            shift = (bit - 20) & 31;
+            for (i = 0; i < 3; ++i)
+                normalized[i] = (uint32_t)((int32_t)vector[i] >> shift);
+        }
+        sum = 0;
+        for (i = 0; i < 3; ++i)
+        {
+            int64_t component_squared = (int64_t)(int32_t)normalized[i] * (int32_t)normalized[i];
+            sum += (uint32_t)((uint64_t)component_squared >> 16);
+        }
+        if ((int32_t)sum > 0)
+        {
+            xport_gte_write_data(30, sum);
+            shift = xport_gte_read_data(31);
+            table = r_u32(0x8005B560);
+            shift = 22 - (shift & 0xFFFFFFFE);
+            if ((int32_t)shift <= 0)
+                shift = 0;
+            entry = r_u16(table + 2 * (sum >> (shift & 31)));
+            expanded = (entry >> 5) << (entry & 31);
+            scale = (uint32_t)((int32_t)expanded >> ((shift >> 1) & 31));
+            for (i = 0; i < 3; ++i)
+            {
+                int64_t component = (int64_t)(int32_t)normalized[i] * (int32_t)scale;
+                vector[i] = (uint32_t)((uint64_t)component >> 16);
+            }
+        }
+        w_u16(actor + 528, (uint16_t)((int32_t)vector[0] >> 4));
+        scale = r_u32(actor + 308);
         for (i = 1; i < 3; ++i)
-            rrj_put16(rrj_at(actor + 528 + 2 * i, 2), (uint16_t)pause_asr(vector[i], 4));
+            w_u16(actor + 528 + 2 * i, (uint16_t)((int32_t)vector[i] >> 4));
         for (i = 0; i < 3; ++i)
-            rrj_write32(actor + 504 + 4 * i, (uint32_t)sub_8001FC90(rrj_s32(material_half(rrj_host_context(), actor + 528 + 2 * i) << 4), rrj_s32(scale)) + rrj_read32(actor + 504 + 4 * i));
-        linked = rrj_read32(actor + 856);
-        if (linked && rrj_read32(actor + 1088))
+        {
+            int64_t placement = (int64_t)((int32_t)r_s16(actor + 528 + 2 * i) * 16) * (int32_t)scale;
+            w_u32(actor + 504 + 4 * i, (uint32_t)((uint64_t)placement >> 16) + r_u32(actor + 504 + 4 * i));
+        }
+        linked = r_u32(actor + 856);
+        if (linked && r_u32(actor + 1088))
         {
             for (i = 0; i < 3; ++i)
-                average[i] = (uint16_t)((rrj_s32(material_half(rrj_host_context(), linked + 814 + 2 * i)) + rrj_s32(material_half(rrj_host_context(), actor + 522 + 2 * i))) / 2);
-            reply = sub_8002E698((average) ? (average) : rrj_at(0, 6), rrj_at(linked + 814, 6));
+                average[i] = (uint16_t)((((int32_t)(uint32_t)((uint32_t)r_s16((linked + 814 + 2 * i)))) + ((int32_t)(uint32_t)((uint32_t)r_s16((actor + 522 + 2 * i))))) / 2);
+            reply = sub_8002E698(average, xport_guest_ptr(linked + 814, 6));
             for (i = 0; i < 3; ++i)
-                vector[i] = rrj_read32(linked + 184 + 4 * i) - rrj_read32(linked + 784 + 4 * i);
+                vector[i] = r_u32(linked + 184 + 4 * i) - r_u32(linked + 784 + 4 * i);
             dot = 0;
             for (i = 0; i < 3; ++i)
-                dot += (uint32_t)sub_8001FC90(rrj_s32(vector[i]), rrj_s32(material_half(rrj_host_context(), linked + 814 + 2 * i) << 4));
-            ratio = 0u - contact_signed_ratio(dot, reply);
-            for (i = 0; i < 3; ++i)
-                rrj_write32(linked + 184 + 4 * i, (uint32_t)sub_8001FC90((int32_t)(int16_t)average[i] * 16, rrj_s32(ratio)) + rrj_read32(linked + 184 + 4 * i));
-            for (i = 0; i < 3; ++i)
-                vector[i] = rrj_read32(linked + 184 + 4 * i) - rrj_read32(actor + 504 + 4 * i);
-            for (i = 0; i < 3; ++i)
-                axis[i] = material_half(rrj_host_context(), actor + 528 + 2 * i) << 4;
-            for (i = 0; i < 3; ++i)
             {
-                j = (i + 1) % 3;
-                k = (i + 2) % 3;
-                cross[i] = (uint32_t)sub_8001FC90(rrj_s32(axis[j]), rrj_s32(vector[k])) - (uint32_t)sub_8001FC90(rrj_s32(axis[k]), rrj_s32(vector[j]));
+                int64_t projection = (int64_t)(int32_t)vector[i] * ((int32_t)r_s16(linked + 814 + 2 * i) * 16);
+                dot += (uint32_t)((uint64_t)projection >> 16);
             }
-            (void)rrj_normalize_vector32(rrj_host_context(), cross);
+            numerator_positive = (int32_t)dot > 0;
+            denominator_positive = (int32_t)reply > 0;
+            ratio = sub_80010028(numerator_positive ? dot : 0 - dot, denominator_positive ? reply : 0 - reply);
+            if (numerator_positive == denominator_positive)
+                ratio = 0 - ratio;
+            (void)sub_8002EAD8(xport_guest_cptr(linked + 184, 12), average, ratio, xport_guest_ptr(linked + 184, 12));
+            for (i = 0; i < 3; ++i)
+                vector[i] = r_u32(linked + 184 + 4 * i) - r_u32(actor + 504 + 4 * i);
+            axis[1] = (uint32_t)(int32_t)r_s16(actor + 530) << 4;
+            axis[0] = (uint32_t)(int32_t)r_s16(actor + 528) << 4;
+            axis[2] = (uint32_t)(int32_t)r_s16(actor + 532) << 4;
+            x = (uint32_t)sub_8001FC90((int32_t)axis[1], (int32_t)vector[2]);
+            y = (uint32_t)sub_8001FC90((int32_t)axis[2], (int32_t)vector[1]);
+            cross[0] = x - y;
+            x = (uint32_t)sub_8001FC90((int32_t)axis[2], (int32_t)vector[0]);
+            y = (uint32_t)sub_8001FC90((int32_t)axis[0], (int32_t)vector[2]);
+            cross[1] = x - y;
+            x = (uint32_t)sub_8001FC90((int32_t)axis[0], (int32_t)vector[1]);
+            y = (uint32_t)sub_8001FC90((int32_t)axis[1], (int32_t)vector[0]);
+            cross[2] = x - y;
+            (void)sub_8002E14C(cross);
             use_actor_normal = 1;
-            if (rrj_s32(cross[1]) >= 9841)
+            if (((int32_t)(uint32_t)(cross[1])) >= 9841)
             {
                 for (i = 0; i < 3; ++i)
-                    rrj_put16(rrj_at(actor + 522 + 2 * i, 2), (uint16_t)pause_asr(cross[i], 4));
-                motion_outer_product(rrj_host_context(), actor + 522, actor + 528, actor + 516);
+                    w_u16(actor + 522 + 2 * i, (uint16_t)((int32_t)cross[i] >> 4));
+                diagonal[0] = (uint32_t)(int32_t)r_s16(actor + 522 + 0);
+                diagonal[1] = (uint32_t)(int32_t)r_s16(actor + 522 + 2);
+                xport_gte_write_control(0, diagonal[0]);
+                diagonal[2] = (uint32_t)(int32_t)r_s16(actor + 522 + 4);
+                xport_gte_write_control(2, diagonal[1]);
+                xport_gte_write_control(4, diagonal[2]);
+                direction[0] = (uint32_t)(int32_t)r_s16(actor + 528 + 0);
+                direction[1] = (uint32_t)(int32_t)r_s16(actor + 528 + 2);
+                direction[2] = (uint32_t)(int32_t)r_s16(actor + 528 + 4);
+                xport_gte_write_data(9, direction[0]);
+                xport_gte_write_data(10, direction[1]);
+                xport_gte_write_data(11, direction[2]);
+                xport_gte_execute(0x178000C);
+                product[0] = xport_gte_read_data(9);
+                product[1] = xport_gte_read_data(10);
+                product[2] = xport_gte_read_data(11);
+                w_u16(actor + 516 + 0, (uint16_t)product[0]);
+                w_u16(actor + 516 + 2, (uint16_t)product[1]);
+                w_u16(actor + 516 + 4, (uint16_t)product[2]);
                 orientation_done = 1;
             }
         }
         if (!orientation_done)
         {
-            motion_outer_product_ref(rrj_host_context(), actor + 522, use_actor_normal ? NULL : average, actor + 528, actor + 516);
-            (void)sub_8002E468(actor + 516);
-            motion_outer_product(rrj_host_context(), actor + 528, actor + 516, actor + 522);
+            diagonal[0] = use_actor_normal ? (uint32_t)(int32_t)r_s16(actor + 522) : (uint32_t)(int32_t)(int16_t)average[0];
+            diagonal[1] = use_actor_normal ? (uint32_t)(int32_t)r_s16(actor + 524) : (uint32_t)(int32_t)(int16_t)average[1];
+            xport_gte_write_control(0, diagonal[0]);
+            diagonal[2] = use_actor_normal ? (uint32_t)(int32_t)r_s16(actor + 526) : (uint32_t)(int32_t)(int16_t)average[2];
+            xport_gte_write_control(2, diagonal[1]);
+            xport_gte_write_control(4, diagonal[2]);
+            direction[0] = (uint32_t)(int32_t)r_s16(actor + 528 + 0);
+            direction[1] = (uint32_t)(int32_t)r_s16(actor + 528 + 2);
+            direction[2] = (uint32_t)(int32_t)r_s16(actor + 528 + 4);
+            xport_gte_write_data(9, direction[0]);
+            xport_gte_write_data(10, direction[1]);
+            xport_gte_write_data(11, direction[2]);
+            xport_gte_execute(0x178000C);
+            product[0] = xport_gte_read_data(9);
+            product[1] = xport_gte_read_data(10);
+            product[2] = xport_gte_read_data(11);
+            w_u16(actor + 516 + 0, (uint16_t)product[0]);
+            w_u16(actor + 516 + 2, (uint16_t)product[1]);
+            w_u16(actor + 516 + 4, (uint16_t)product[2]);
+            for (i = 0; i < 3; ++i)
+                direction[i] = (uint32_t)(int32_t)r_s16(actor + 516 + 2 * i);
+            for (i = 0; i < 3; ++i)
+                xport_gte_write_data(9 + i, direction[i]);
+            xport_gte_execute(0xA00428);
+            product[0] = xport_gte_read_data(25);
+            product[1] = xport_gte_read_data(26);
+            product[2] = xport_gte_read_data(27);
+            squared = (uint64_t)product[0] + product[1] + product[2];
+            /* Preserve the original signed ADD overflow boundary */
+            if (squared > 0x7FFFFFFF)
+                abort();
+            sum = (uint32_t)squared;
+            xport_gte_write_data(30, sum);
+            shift = xport_gte_read_data(31);
+            table = r_u32(0x8005B560);
+            shift = 22 - (shift & 0xFFFFFFFE);
+            if ((int32_t)shift <= 0)
+                shift = 0;
+            entry = r_u16(table + 2 * ((uint32_t)((int32_t)sum >> (shift & 31))));
+            expanded = (entry >> 5) << (entry & 31);
+            scale = (uint32_t)((int32_t)expanded >> ((shift >> 1) & 31));
+            for (i = 0; i < 3; ++i)
+            {
+                uint32_t component = direction[i] * scale;
+                w_u16(actor + 516 + 2 * i, (uint16_t)((int32_t)component >> 12));
+            }
+            diagonal[0] = (uint32_t)(int32_t)r_s16(actor + 528 + 0);
+            diagonal[1] = (uint32_t)(int32_t)r_s16(actor + 528 + 2);
+            xport_gte_write_control(0, diagonal[0]);
+            diagonal[2] = (uint32_t)(int32_t)r_s16(actor + 528 + 4);
+            xport_gte_write_control(2, diagonal[1]);
+            xport_gte_write_control(4, diagonal[2]);
+            direction[0] = (uint32_t)(int32_t)r_s16(actor + 516 + 0);
+            direction[1] = (uint32_t)(int32_t)r_s16(actor + 516 + 2);
+            direction[2] = (uint32_t)(int32_t)r_s16(actor + 516 + 4);
+            xport_gte_write_data(9, direction[0]);
+            xport_gte_write_data(10, direction[1]);
+            xport_gte_write_data(11, direction[2]);
+            xport_gte_execute(0x178000C);
+            product[0] = xport_gte_read_data(9);
+            product[1] = xport_gte_read_data(10);
+            product[2] = xport_gte_read_data(11);
+            w_u16(actor + 522 + 0, (uint16_t)product[0]);
+            w_u16(actor + 522 + 2, (uint16_t)product[1]);
+            w_u16(actor + 522 + 4, (uint16_t)product[2]);
         }
     }
 finish:
-    flags = rrj_read32(actor + 564);
+    flags = r_u32(actor + 564);
     if (flags & 0x04000000u)
     {
-        mode = rrj_read32(actor + 568);
+        mode = r_u32(actor + 568);
         if (mode & 0x400u)
         {
-            owner = rrj_read32(actor + 828);
+            owner = r_u32(actor + 828);
             if (owner)
             {
-                mode = rrj_s32(material_half(rrj_host_context(), owner + 50) ^ rrj_read32(actor + 364)) < 0 ? mode & 0xDFFFFFFFu : mode | 0x20000000u;
-                rrj_write32(actor + 568, mode);
+                mode = ((int32_t)(uint32_t)((uint32_t)r_s16((owner + 50)) ^ r_u32(actor + 364))) < 0 ? mode & 0xDFFFFFFFu : mode | 0x20000000u;
+                w_u32(actor + 568, mode);
             }
-            rrj_write32(actor + 708, (rrj_read32(actor + 568) & 0x20000000u) ? 6553 : 0);
+            w_u32(actor + 708, (r_u32(actor + 568) & 0x20000000u) ? 6553 : 0);
         }
-        flags = rrj_read32(actor + 564);
-        rrj_write32(actor + 828, 0);
-        rrj_write32(actor + 564, flags & 0xFBFFFFFFu);
+        flags = r_u32(actor + 564);
+        w_u32(actor + 828, 0);
+        w_u32(actor + 564, flags & 0xFBFFFFFFu);
     }
     if (special)
     {
-        reply = rrj_read32(actor + 768);
-        if (rrj_s32(distance) < rrj_s32(reply))
+        reply = r_u32(actor + 768);
+        if (((int32_t)(uint32_t)(distance)) < ((int32_t)(uint32_t)(reply)))
             distance = reply;
-        flags = rrj_read32(actor + 564) & 0xFF7FFFFFu;
-        rrj_write32(actor + 768, distance);
-        rrj_write32(actor + 564, flags);
-        if (rrj_s32(sub_8002E698(rrj_at(actor + 522, 6), rrj_at(actor + 450, 6))) < 0)
+        flags = r_u32(actor + 564) & 0xFF7FFFFFu;
+        w_u32(actor + 768, distance);
+        w_u32(actor + 564, flags);
+        if (((int32_t)(uint32_t)(sub_8002E698(xport_guest_ptr(actor + 522, 6), xport_guest_ptr(actor + 450, 6)))) < 0)
             flags |= 0x800000u;
-        rrj_write32(actor + 564, flags);
+        w_u32(actor + 564, flags);
         return flags;
     }
-    flags = rrj_read32(actor + 564);
+    flags = r_u32(actor + 564);
     if (flags & 0x400000u)
     {
-        x = rrj_read32(actor + 468);
-        y = rrj_read32(actor + 472);
-        z = rrj_read32(actor + 476);
-        correction = ((rrj_read32(actor + 560) >> 27) ^ 1) & 1;
-        reply = x - rrj_read32(actor + 796);
-        rrj_write32(actor + 184, x);
-        rrj_write32(actor + 188, y);
-        rrj_write32(actor + 504, reply);
-        rrj_write32(actor + 192, z);
-        y -= rrj_read32(actor + 800);
-        z -= rrj_read32(actor + 804);
-        rrj_write32(actor + 508, y);
-        rrj_write32(actor + 512, z);
+        x = r_u32(actor + 468);
+        y = r_u32(actor + 472);
+        z = r_u32(actor + 476);
+        correction = ((r_u32(actor + 560) >> 27) ^ 1) & 1;
+        reply = x - r_u32(actor + 796);
+        w_u32(actor + 184, x);
+        w_u32(actor + 188, y);
+        w_u32(actor + 504, reply);
+        w_u32(actor + 192, z);
+        y -= r_u32(actor + 800);
+        z -= r_u32(actor + 804);
+        w_u32(actor + 508, y);
+        w_u32(actor + 512, z);
         return sub_800374D4(actor, correction);
     }
     if (flags & 0x40000u)
     {
-        owner = rrj_read32(actor + 832);
-        (void)sub_8002ECB8(rrj_at(owner + 260, 6), rrj_at(owner + 272, 6), rrj_at(actor + 504, 12), rrj_read32(actor + 776), rrj_read32(actor + 780));
+        owner = r_u32(actor + 832);
+        (void)sub_8002ECB8(xport_guest_ptr(owner + 260, 6), xport_guest_ptr(owner + 272, 6), xport_guest_ptr(actor + 504, 12), r_u32(actor + 776), r_u32(actor + 780));
         for (i = 0; i < 3; ++i)
-            rrj_write32(actor + 504 + 4 * i, rrj_read32(actor + 504 + 4 * i) + rrj_read32(rrj_read32(actor + 832) + 12 + 4 * i));
+            w_u32(actor + 504 + 4 * i, r_u32(actor + 504 + 4 * i) + r_u32(r_u32(actor + 832) + 12 + 4 * i));
     }
-    if (rrj_read32(actor + 568) & 0x600u)
+    if (r_u32(actor + 568) & 0x600u)
     {
         (void)sub_80071D24(actor);
-        rrj_write32(actor + 568, rrj_read32(actor + 568) | 0x08000000u);
-        reply = rrj_read32(actor + 564) | 0x800000u;
-        rrj_write32(actor + 564, reply);
+        w_u32(actor + 568, r_u32(actor + 568) | 0x08000000u);
+        reply = r_u32(actor + 564) | 0x800000u;
+        w_u32(actor + 564, reply);
         return reply;
     }
-    x = rrj_read32(actor + 504) + rrj_read32(actor + 796);
-    y = rrj_read32(actor + 800);
-    z = rrj_read32(actor + 804);
-    rrj_write32(actor + 184, x);
-    reply = rrj_read32(actor + 508) + y;
-    z += rrj_read32(actor + 512);
-    rrj_write32(actor + 188, reply);
-    rrj_write32(actor + 192, z);
+    x = r_u32(actor + 504) + r_u32(actor + 796);
+    y = r_u32(actor + 800);
+    z = r_u32(actor + 804);
+    w_u32(actor + 184, x);
+    reply = r_u32(actor + 508) + y;
+    z += r_u32(actor + 512);
+    w_u32(actor + 188, reply);
+    w_u32(actor + 192, z);
     return reply;
 }
 
@@ -9179,35 +8945,35 @@ finish:
 uint32_t sub_8008A998(uint32_t player, uint32_t requested)
 {
     FUNCTION_MARKER(0x8008A998u, "RASHCDG.BIN");
-    uint32_t same = requested == rrj_read32(player + 544), value, flags, target;
-    if (requested < 4 && rrj_read32(player + 540) != requested)
+    uint32_t same = requested == r_u32(player + 544), value, flags, target;
+    if (requested < 4 && r_u32(player + 540) != requested)
     {
-        value = rrj_read32(player + 548);
-        rrj_write32(player + 544, requested);
-        target = rrj_read32(player + 568);
-        rrj_write32(player + 548, (value & 0xffffffe7u) | (same ? 2u : 6u));
-        if (rrj_u16(rrj_at(target + 172, 2)) >> 5)
-            rrj_write32(player + 568, rrj_read32(0x8005B268 + 4 * (rrj_u16(rrj_at(player + 172, 2)) == 158)));
+        value = r_u32(player + 548);
+        w_u32(player + 544, requested);
+        target = r_u32(player + 568);
+        w_u32(player + 548, (value & 0xffffffe7u) | (same ? 2u : 6u));
+        if (r_u16(target + 172) >> 5)
+            w_u32(player + 568, r_u32(0x8005B268 + 4 * (r_u16(player + 172) == 158)));
     }
-    flags = rrj_read32(player + 552);
-    rrj_write32(player + 772, requested >= 7);
+    flags = r_u32(player + 552);
+    w_u32(player + 772, requested >= 7);
     if (flags & 1)
-        rrj_write32(player + 548, rrj_read32(player + 548) | 256u);
-    flags = rrj_read32(player + 552) & 0xfffffffau;
-    value = rrj_read32(player + 540);
-    rrj_write32(player + 552, flags);
+        w_u32(player + 548, r_u32(player + 548) | 256u);
+    flags = r_u32(player + 552) & 0xfffffffau;
+    value = r_u32(player + 540);
+    w_u32(player + 552, flags);
     value = value == 12 ? flags | 128u : flags & 0xfffffc7fu;
-    rrj_write32(player + 552, value);
-    rrj_write32(player + 540, requested);
+    w_u32(player + 552, value);
+    w_u32(player + 540, requested);
     if (same)
     {
-        value = rrj_read32(player + 552) & 64u;
+        value = r_u32(player + 552) & 64u;
         if (value)
         {
-            value = rrj_read32(player + 552);
-            rrj_write32(player + 772, 1);
+            value = r_u32(player + 552);
+            w_u32(player + 772, 1);
             value |= 16u;
-            rrj_write32(player + 552, value);
+            w_u32(player + 552, value);
         }
     }
     return value;
@@ -9217,32 +8983,32 @@ uint32_t sub_8008A998(uint32_t player, uint32_t requested)
 uint32_t sub_800BC7CC(uint32_t actor)
 {
     FUNCTION_MARKER(0x800BC7CCu, "RASHCDG.BIN");
-    uint32_t count = (material_byte(rrj_host_context(), actor + 946) ^ 128u) - 128u;
-    uint32_t flags = rrj_read32(actor + 560), body = rrj_read32(actor + 852);
-    uint32_t last = rrj_u16(rrj_at(actor + 956 + 8 * (count - 1u), 2)), type, value;
+    uint32_t count = ((uint32_t)r_u8((actor + 946)) ^ 128u) - 128u;
+    uint32_t flags = r_u32(actor + 560), body = r_u32(actor + 852);
+    uint32_t last = r_u16(actor + 956 + 8 * (count - 1u)), type, value;
     uint8_t event[8] = {0};
     if (flags & 0x08000000u)
     {
-        type = rrj_u16(rrj_at(body + 544, 2));
-        if (rrj_u16(rrj_at(0x800541D4 + 8 * type + 2, 2)) == 3)
+        type = r_u16(body + 544);
+        if (r_u16(0x800541D4 + 8 * type + 2) == 3)
         {
-            type = rrj_u16(rrj_at(rrj_read32(0x8005AD4C) + 12 * material_byte(rrj_host_context(), body + 569), 2));
+            type = r_u16(r_u32(0x8005AD4C) + 12 * (uint32_t)r_u8((body + 569)));
             (void)sub_800C4550(type, body, 2);
         }
     }
     (void)sub_800BCD10(actor);
-    rrj_put16(event, 2);
-    rrj_put16(event + 2, 224);
-    (void)rrj_enqueue_actor_event_local(rrj_host_context(), event, 1, actor);
+    xport_store_le16(event, 2);
+    xport_store_le16(event + 2, 224);
+    (void)sub_800BCA68(event, 1, actor);
     value = 18;
     if (last == 0 || last == 18)
     {
-        rrj_put16(event, (uint16_t)last);
-        rrj_put16(event + 2, last == 18 ? rrj_u16(rrj_at(actor + 172, 2)) : 224);
-        value = rrj_enqueue_actor_event_local(rrj_host_context(), event, 0, actor);
+        xport_store_le16(event, (uint16_t)last);
+        xport_store_le16(event + 2, last == 18 ? r_u16(actor + 172) : 224);
+        value = sub_800BCA68(event, 0, actor);
     }
-    rrj_put16(rrj_at(actor + 944, 2), 0);
-    rrj_write32(actor + 908, 0);
+    w_u16(actor + 944, 0);
+    w_u32(actor + 908, 0);
     return value;
 }
 
@@ -9250,78 +9016,82 @@ uint32_t sub_800BC7CC(uint32_t actor)
 uint32_t sub_80092C7C(uint32_t actor, uint32_t reason)
 {
     FUNCTION_MARKER(0x80092C7Cu, "RASHCDG.BIN");
-    uint32_t flags = rrj_read32(actor + 560), descriptor = rrj_read32(actor + 1084), value, player;
-    rrj_write32(actor + 560, flags | 0x08000000u);
-    value = rrj_read32(descriptor + 40);
-    rrj_write32(0x8005B230, 0);
+    uint32_t flags = r_u32(actor + 560), descriptor = r_u32(actor + 1084), value, player;
+    w_u32(actor + 560, flags | 0x08000000u);
+    value = r_u32(descriptor + 40);
+    w_u32(0x8005B230, 0);
     if (!value)
     {
         w_u8(descriptor + 39, (uint8_t)(reason == 9 ? 254 : 255));
-        value = rrj_read32(rrj_read32(0x8005B2F8) + 16);
-        rrj_write32(descriptor + 40, value);
+        value = r_u32(r_u32(0x8005B2F8) + 16);
+        w_u32(descriptor + 40, value);
         (void)sub_800BC7CC(actor);
-        if (material_byte(rrj_host_context(), descriptor + 39) == 255 && rrj_read32(rrj_read32(actor + 852) + 604) < 2)
+        if ((uint32_t)r_u8((descriptor + 39)) == 255 && r_u32(r_u32(actor + 852) + 604) < 2)
         {
             (void)sub_8002090C(actor);
-            rrj_write32(actor + 568, rrj_read32(actor + 568) | 0x08000000u);
+            w_u32(actor + 568, r_u32(actor + 568) | 0x08000000u);
         }
     }
-    player = 0x800CD898 + 1132u * rrj_u16(rrj_at(actor + 172, 2));
+    player = 0x800CD898 + 1132u * r_u16(actor + 172);
     if (reason == 10)
     {
-        rrj_write32(player + 772, 1);
-        player = 0x800CD898 + 1132u * rrj_u16(rrj_at(actor + 172, 2));
-        rrj_write32(player + 552, rrj_read32(player + 552) | 20u);
+        w_u32(player + 772, 1);
+        player = 0x800CD898 + 1132u * r_u16(actor + 172);
+        w_u32(player + 552, r_u32(player + 552) | 20u);
         return player;
     }
-    value = rrj_read32(player + 552) & 4u;
+    value = r_u32(player + 552) & 4u;
     return value ? value : sub_8008A998(player, reason);
 }
 
 /* 8002F0F4: truncate each signed square independently before wrapping sum. */
-uint32_t sub_8002F0F4(uint32_t vector)
+uint32_t sub_8002F0F4(const uint32_t vector[3])
 {
-    FUNCTION_MARKER(0x8002F0F4u, "SLUS_010.53");
     uint32_t sum = 0;
-    unsigned i;
-    for (i = 0; i < 3; ++i)
+    uint32_t axis;
+    FUNCTION_MARKER(0x8002F0F4, "SLUS_010.53");
+    for (axis = 0; axis < 3; ++axis)
     {
-        int64_t v = rrj_s32(rrj_read32(vector + 4 * i));
-        sum += (uint32_t)((uint64_t)(v * v) >> 16);
+        int64_t value = ((int32_t)(uint32_t)(xport_load_le32((const uint8_t *)vector + 4u * axis)));
+        sum += (uint32_t)((uint64_t)(value * value) >> 16);
     }
     return sum;
 }
 
-uint32_t sub_8002E548(uint32_t vector)
+uint32_t sub_8002E548(const uint32_t vector[3])
 {
-    FUNCTION_MARKER(0x8002E548u, "SLUS_010.53");
+    FUNCTION_MARKER(0x8002E548, "SLUS_010.53");
     return sub_8004CF74(sub_8002F0F4(vector)) << 2;
 }
 
 /* 8002ED94: local first result, then in-place second, then halfword copies. */
-uint32_t sub_8002ED94(uint32_t left, uint32_t right, uint32_t angle)
+uint32_t sub_8002ED94(uint16_t left[3], uint16_t right[3], uint32_t angle)
 {
-    FUNCTION_MARKER(0x8002ED94u, "SLUS_010.53");
-    uint32_t table = 0x8005624c + 4 * (angle & 4095u), cosine = material_half(rrj_host_context(), table + 2) << 4, sine = material_half(rrj_host_context(), table) << 4;
+    uint32_t table = 0x8005624C + 4 * (angle & 4095);
+    uint32_t cosine, sine;
     uint16_t saved[3];
-    unsigned i;
-    (void)combine_short_vectors(rrj_host_context(), left, right, 0, saved, cosine, 0u - sine);
+
+    FUNCTION_MARKER(0x8002ED94, "SLUS_010.53");
+    cosine = (uint32_t)(int32_t)r_s16(table + 2) << 4;
+    sine = (uint32_t)(int32_t)r_s16(table) << 4;
+    (void)sub_8002EB78(left, right, saved, cosine, 0 - sine);
     (void)sub_8002EB78(left, right, right, sine, cosine);
-    for (i = 0; i < 3; ++i)
-        rrj_put16(rrj_at(left + 2 * i, 2), saved[i]);
+    xport_store_le16(left, saved[0]);
+    xport_store_le16(left + 1, saved[1]);
+    xport_store_le16(left + 2, saved[2]);
     return saved[2];
 }
 
 uint32_t sub_8007F08C(uint32_t actor)
 {
     FUNCTION_MARKER(0x8007F08Cu, "RASHCDG.BIN");
-    uint32_t value = rrj_read32(actor + 560), linked = rrj_read32(actor + 856);
+    uint32_t value = r_u32(actor + 560), linked = r_u32(actor + 856);
     value &= 0xff7fffffu;
-    rrj_write32(actor + 560, value);
+    w_u32(actor + 560, value);
     if (linked)
     {
-        value = rrj_read32(actor + 488);
-        rrj_write32(linked + 488, value);
+        value = r_u32(actor + 488);
+        w_u32(linked + 488, value);
     }
     return value;
 }
@@ -9330,17 +9100,17 @@ uint32_t sub_8007F08C(uint32_t actor)
 uint32_t sub_800BFE58(uint32_t actor, uint32_t kind, uint32_t side)
 {
     FUNCTION_MARKER(0x800BFE58u, "RASHCDG.BIN");
-    uint32_t count = rrj_read32(rrj_read32(0x8005B2F8) + 48);
-    uint32_t index = rrj_u16(rrj_at(actor + 172, 2)), address, value;
+    uint32_t count = r_u32(r_u32(0x8005B2F8) + 48);
+    uint32_t index = r_u16(actor + 172), address, value;
     if (index >= count)
     {
-        value = rrj_read32(actor + 1088);
+        value = r_u32(actor + 1088);
         if (value)
             return value;
-        index = rrj_u16(rrj_at(rrj_read32(actor + 856) + 172, 2)) + 2u;
+        index = r_u16(r_u32(actor + 856) + 172) + 2u;
     }
     address = 0x800D81D8 + 36u * index + 4u * side + kind + 24u;
-    value = material_byte(rrj_host_context(), address) + 1u;
+    value = (uint32_t)r_u8(address) + 1u;
     w_u8(address, (uint8_t)value);
     return value;
 }
@@ -9352,17 +9122,17 @@ uint32_t sub_800BF51C(uint32_t actor)
     uint32_t slot = 0x800CD548, index, age, tag;
     for (index = 0; index < 4; ++index, slot += 12)
     {
-        if (rrj_read32(slot + 4) != actor)
+        if (r_u32(slot + 4) != actor)
             continue;
-        age = rrj_read32(rrj_read32(0x8005B2F8) + 16) - rrj_read32(slot + 8);
-        if (rrj_s32(age) >= 240)
+        age = r_u32(r_u32(0x8005B2F8) + 16) - r_u32(slot + 8);
+        if (((int32_t)(uint32_t)(age)) >= 240)
             continue;
-        (void)sub_800BFE58(rrj_read32(slot), 1, 0);
+        (void)sub_800BFE58(r_u32(slot), 1, 0);
         (void)sub_800BFE58(actor, 1, 1);
-        tag = rrj_u16(rrj_at(rrj_read32(slot) + 172, 2));
+        tag = r_u16(r_u32(slot) + 172);
         if (tag > 1)
             tag = 1;
-        rrj_write32(0x800D6198 + 224u * tag + 140, 1);
+        w_u32(0x800D6198 + 224u * tag + 140, 1);
     }
     return 0;
 }
@@ -9375,8 +9145,8 @@ uint32_t sub_8005C338(uint32_t actor, uint32_t output)
     uint32_t value = 0;
     for (i = 0; i < 4; ++i)
     {
-        value = rrj_u16(rrj_at(actor + offsets[i], 2));
-        rrj_put16(rrj_at(output + 2 * i, 2), (uint16_t)value);
+        value = r_u16(actor + offsets[i]);
+        w_u16(output + 2 * i, (uint16_t)value);
     }
     return value;
 }
@@ -9389,8 +9159,8 @@ uint32_t sub_8005C36C(uint32_t actor, uint32_t input)
     uint32_t value = 0;
     for (i = 0; i < 4; ++i)
     {
-        value = rrj_u16(rrj_at(input + 2 * i, 2));
-        rrj_put16(rrj_at(actor + offsets[i], 2), (uint16_t)value);
+        value = r_u16(input + 2 * i);
+        w_u16(actor + offsets[i], (uint16_t)value);
     }
     return value;
 }
@@ -9415,36 +9185,36 @@ uint32_t sub_8008CF74(uint32_t object)
     static const uint32_t one_offsets[] = {0x1C0, 0x1B8, 0x1B0, 0x214, 0x20C, 0x204, 0x1C6};
     uint32_t i;
     for (i = 0; i < sizeof(zero_offsets) / sizeof(zero_offsets[0]); ++i)
-        rrj_put16(rrj_at(object + zero_offsets[i], 2), 0);
+        w_u16(object + zero_offsets[i], 0);
     for (i = 0; i < sizeof(one_offsets) / sizeof(one_offsets[0]); ++i)
-        rrj_put16(rrj_at(object + one_offsets[i], 2), 4096);
-    rrj_put16(rrj_at(object + 0x1C2, 2), 0);
-    rrj_put16(rrj_at(object + 0x1C4, 2), 0);
+        w_u16(object + one_offsets[i], 4096);
+    w_u16(object + 0x1C2, 0);
+    w_u16(object + 0x1C4, 0);
     return 4096;
 }
 
 uint32_t sub_8008DF74(uint32_t object)
 {
     FUNCTION_MARKER(0x8008DF74u, "RASHCDG.BIN");
-    uint32_t body = rrj_read32(object + 596);
+    uint32_t body = r_u32(object + 596);
     uint32_t i;
     uint32_t value;
     if (r_u8(object + 572) & 0x20)
-        body = rrj_read32(body + 856);
+        body = r_u32(body + 856);
     for (i = 0; i < 9; ++i)
     {
-        value = rrj_u16(rrj_at(object + 432 + 2 * i, 2));
-        rrj_put16(rrj_at(object + 516 + 2 * i, 2), (uint16_t)value);
+        value = r_u16(object + 432 + 2 * i);
+        w_u16(object + 516 + 2 * i, (uint16_t)value);
     }
-    (void)sub_8001E0B4(object + 328, body + 328, 32);
-    (void)sub_8001E0B4(object + 360, body + 360, 12);
-    rrj_write32(object + 492, rrj_read32(body + 492));
-    rrj_write32(object + 496, rrj_read32(body + 496));
-    (void)sub_8001E0B4(object + 372, body + 372, 56);
-    rrj_write32(object + 428, rrj_read32(body + 428));
+    (void)sub_8001E0B4(xport_guest_ptr(object + 328, 32), xport_guest_ptr(body + 328, 1), 32);
+    (void)sub_8001E0B4(xport_guest_ptr(object + 360, 12), xport_guest_ptr(body + 360, 1), 12);
+    w_u32(object + 492, r_u32(body + 492));
+    w_u32(object + 496, r_u32(body + 496));
+    (void)sub_8001E0B4(xport_guest_ptr(object + 372, 56), xport_guest_ptr(body + 372, 1), 56);
+    w_u32(object + 428, r_u32(body + 428));
     sub_8003AF9C(object + 172, 1, 0);
-    rrj_write32(object + 324, rrj_read32(body + 324));
-    value = rrj_u16(rrj_at(body + 320, 2));
-    rrj_put16(rrj_at(object + 320, 2), (uint16_t)value);
+    w_u32(object + 324, r_u32(body + 324));
+    value = r_u16(body + 320);
+    w_u16(object + 320, (uint16_t)value);
     return value;
 }

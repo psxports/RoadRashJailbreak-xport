@@ -1,3 +1,4 @@
+#include "rrj_debug.h"
 #include "platform_smoke.h"
 
 #include "psx.h"
@@ -32,7 +33,7 @@ int rrj_platform_smoke(unsigned frames, int headless)
         ticks = VSync(-1);
         if (VSync(1) != 0 || VSync(-1) != ticks || VSync(0) != 1 || VSync(-1) != ticks + 1)
         {
-            fprintf(stderr, "platform smoke: VSync tick contract failed\n");
+            RRJ_DEBUG_FPRINTF(stderr, "platform smoke: VSync tick contract failed\n");
             return 2;
         }
     }
@@ -43,6 +44,6 @@ int rrj_platform_smoke(unsigned frames, int headless)
         colored += VRAM[frame] != 0;
         checksum = (checksum ^ VRAM[frame]) * 16777619u;
     }
-    printf("platform smoke: vblank=%d, colored_pixels=%u, headless=%d, framebuffer_hash=%08X\n", VSync(-1), colored, headless, checksum);
+    RRJ_DEBUG_PRINTF("platform smoke: vblank=%d, colored_pixels=%u, headless=%d, framebuffer_hash=%08X\n", VSync(-1), colored, headless, checksum);
     return colored > 0 && (unsigned)VSync(-1) == frames ? 0 : 2;
 }

@@ -3,6 +3,6 @@
 
 #include "race_leaf.h"
 
-uint32_t sub_800657A8(RRJRaceLeafCall call);
+uint32_t sub_800657A8(void);
 
 #endif

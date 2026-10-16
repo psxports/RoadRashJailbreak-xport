@@ -1,0 +1,27 @@
+# Local game data and licensed/vendor runtimes are not source distribution.
+/iso/
+/bin/
+/_build/
+/tools/duckstation/runtime/
+/tools/duckstation/data/
+/tools/gdb/
+/tools/archive/
+/orig/*.idb
+/orig/*.id0
+/orig/*.id1
+/orig/*.nam
+/orig/*.til
+/orig/*.sqlite*
+/orig/images/
+/status/runtime/*.bin
+/status/runtime/*.sav
+/status/decompilation/**/*.bin
+/status/menu/*.bin
+/status/menu/**/*.bin
+**/__pycache__/
+*.pyc
+
+/status/
+/tools/
+/orig/
+/.cursor/

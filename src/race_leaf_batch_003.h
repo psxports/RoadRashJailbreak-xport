@@ -10,10 +10,10 @@ uint32_t sub_8009F478(uint32_t player, uint32_t actor, uint32_t route);
 uint32_t sub_8009F44C(uint32_t player);
 uint32_t sub_8009FF2C(uint32_t active[2], uint32_t state);
 uint32_t sub_8009FF24(uint32_t active[2]);
-uint32_t sub_800C45D8(uint32_t object, uint32_t flags_out);
+uint32_t sub_800C45D8(uint32_t object, uint32_t *flags_out);
 uint32_t sub_800A3ECC(uint32_t object, uint32_t index);
 uint32_t sub_800710C0(uint32_t amount, uint32_t first, uint32_t second, uint32_t output);
 uint32_t sub_8005D36C(uint32_t actor);
-uint32_t sub_800B6BD0(uint32_t first, const uint16_t normal[3], const uint16_t plane[3], uint32_t edge);
+uint32_t sub_800B6BD0(const uint32_t first[3], const uint16_t normal[3], const uint16_t plane[3], const uint32_t edge[3]);
 
 #endif

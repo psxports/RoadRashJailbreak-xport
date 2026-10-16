@@ -1,184 +1,165 @@
+#include "native_game_api.h"
+#include "resource_value.h"
+#include "menu_transition.h"
+#include "draft_quick.h"
 #include "psx.h"
 /* F6883C: player/mode reset, reconciled with full MIPS switch. */
 #include "menu_reset.h"
 #include "menu_flags.h"
 #include <stdlib.h>
 
-static void B(RRJMemory *m, uint32_t a, uint32_t v)
+static void set_resource_value(uint32_t slot, uint32_t value)
 {
-    w_u8(a, (uint8_t)v);
+    (void)sub_800630C0(r_u32(slot), value);
 }
 
-static void H(RRJMemory *m, uint32_t a, uint32_t v)
+static uint32_t select_item(uint32_t id)
 {
-    rrj_put16(rrj_at(a, 2), (uint16_t)v);
-}
-
-static uint32_t S(RRJMemory *m, uint32_t a)
-{
-    uint32_t v = r_u8(a);
-    return v & 128 ? v | 0xffffff00 : v;
-}
-
-static uint32_t C(RRJMemory *m, RRJResetCall cb, uint32_t fn, uint32_t a, uint32_t b, uint32_t c)
-{
-    if (!cb)
-        abort();
-    return cb(m, fn, a, b, c);
-}
-
-static void R(RRJMemory *m, RRJResetCall cb, uint32_t slot, uint32_t value)
-{
-    (void)C(m, cb, 0x800630C0, rrj_read32(slot), value, 0);
-}
-
-static uint32_t select_item(RRJMemory *m, RRJResetCall cb, uint32_t id)
-{
-    uint32_t menu = rrj_read32(rrj_read32(0x8009C68C) + 4 * id), value = C(m, cb, 0x80080A70, menu, 0, 0);
-    menu = rrj_read32(rrj_read32(0x8009C68C) + 4 * id);
-    H(m, menu + 4, value);
+    uint32_t menu = r_u32(r_u32(0x8009C68C) + 4 * id), value = sub_80080A70(menu);
+    menu = r_u32(r_u32(0x8009C68C) + 4 * id);
+    w_u16((menu + 4), (uint16_t)value);
     return value;
 }
 
-uint32_t sub_F_8006883C(uint32_t id, RRJResetCall cb)
+uint32_t sub_8006883C(uint32_t id)
 {
     FUNCTION_MARKER(0x8006883Cu, "RASHCDF.BIN");
     uint32_t i, p, v, result;
     (void)sub_8002D250();
-    B(rrj_host_context(), 0x800D80E9, 0);
-    B(rrj_host_context(), 0x800D81DE, 127);
-    B(rrj_host_context(), 0x800D8202, 127);
-    B(rrj_host_context(), 0x800D80DD, 48);
-    B(rrj_host_context(), 0x800D80ED, 0);
-    B(rrj_host_context(), 0x800D80EE, 0);
-    H(rrj_host_context(), 0x8009C5D4, 40);
-    B(rrj_host_context(), 0x800D80F5, 0);
+    w_u8(0x800D80E9, (uint8_t)0);
+    w_u8(0x800D81DE, (uint8_t)127);
+    w_u8(0x800D8202, (uint8_t)127);
+    w_u8(0x800D80DD, (uint8_t)48);
+    w_u8(0x800D80ED, (uint8_t)0);
+    w_u8(0x800D80EE, (uint8_t)0);
+    w_u16(0x8009C5D4, (uint16_t)40);
+    w_u8(0x800D80F5, (uint8_t)0);
     for (i = 0, p = 0x800D81D8; i < 6; ++i, p += 36)
     {
-        H(rrj_host_context(), p + 12, 0);
-        B(rrj_host_context(), p + 14, 0);
-        B(rrj_host_context(), p + 15, 0);
-        rrj_write32(p + 16, 0);
-        B(rrj_host_context(), p + 20, 0);
-        B(rrj_host_context(), p + 22, 0);
+        w_u16((p + 12), (uint16_t)0);
+        w_u8((p + 14), (uint8_t)0);
+        w_u8((p + 15), (uint8_t)0);
+        w_u32(p + 16, 0);
+        w_u8((p + 20), (uint8_t)0);
+        w_u8((p + 22), (uint8_t)0);
     }
-    (void)C(rrj_host_context(), cb, 0x8001E100, 0x800D8118, 0, 128);
-    (void)C(rrj_host_context(), cb, 0x8001E100, 0x800D80F8, 0, 16);
-    (void)C(rrj_host_context(), cb, 0x8001E100, 0x800D8108, 0, 16);
+    (void)sub_8001E100(0x800D8118, 0, 128);
+    (void)sub_8001E100(0x800D80F8, 0, 16);
+    (void)sub_8001E100(0x800D8108, 0, 16);
     switch (id)
     {
         case 7:
-            rrj_write32(0x800D80D8, 32);
-            B(rrj_host_context(), 0x800D80DE, 1);
-            B(rrj_host_context(), 0x800D81E1, 0);
-            R(rrj_host_context(), cb, 0x8009C4B0, 0);
-            B(rrj_host_context(), 0x800D81E2, 0);
-            R(rrj_host_context(), cb, 0x8009C4B4, 0);
-            R(rrj_host_context(), cb, 0x8009C4B8, 0);
-            (void)select_item(rrj_host_context(), cb, id);
+            w_u32(0x800D80D8, 32);
+            w_u8(0x800D80DE, (uint8_t)1);
+            w_u8(0x800D81E1, (uint8_t)0);
+            set_resource_value(0x8009C4B0, 0);
+            w_u8(0x800D81E2, (uint8_t)0);
+            set_resource_value(0x8009C4B4, 0);
+            set_resource_value(0x8009C4B8, 0);
+            (void)select_item(id);
             /* original falls through into mode8 setup */
         case 8:
-            rrj_write32(0x800D80D8, 32);
-            B(rrj_host_context(), 0x800D80F3, 1);
-            B(rrj_host_context(), 0x800D80DE, 1);
-            B(rrj_host_context(), 0x800D80F0, 0);
-            B(rrj_host_context(), 0x800D80DC, 0);
-            v = S(rrj_host_context(), 0x800D81E1);
-            B(rrj_host_context(), 0x800D80E0, 4);
+            w_u32(0x800D80D8, 32);
+            w_u8(0x800D80F3, (uint8_t)1);
+            w_u8(0x800D80DE, (uint8_t)1);
+            w_u8(0x800D80F0, (uint8_t)0);
+            w_u8(0x800D80DC, (uint8_t)0);
+            v = (uint32_t)r_s8(0x800D81E1);
+            w_u8(0x800D80E0, (uint8_t)4);
             if (v == 1)
             {
-                B(rrj_host_context(), 0x800D81DF, 9);
-                if (S(rrj_host_context(), 0x800D81E2) == 1)
-                    B(rrj_host_context(), 0x800D80F5, 2);
+                w_u8(0x800D81DF, (uint8_t)9);
+                if ((uint32_t)r_s8(0x800D81E2) == 1)
+                    w_u8(0x800D80F5, (uint8_t)2);
             }
             else
-                B(rrj_host_context(), 0x800D81DF, 0);
-            R(rrj_host_context(), cb, 0x8009C4BC, S(rrj_host_context(), 0x800D80E0));
-            R(rrj_host_context(), cb, 0x8009C4C0, 0);
-            R(rrj_host_context(), cb, 0x8009C4B8, 9);
+                w_u8(0x800D81DF, (uint8_t)0);
+            set_resource_value(0x8009C4BC, (uint32_t)r_s8(0x800D80E0));
+            set_resource_value(0x8009C4C0, 0);
+            set_resource_value(0x8009C4B8, 9);
             break;
         case 24:
-            rrj_write32(0x800D80D8, 4);
-            B(rrj_host_context(), 0x8009C5F2, 0);
-            B(rrj_host_context(), 0x800D80EE, 1);
-            H(rrj_host_context(), 0x8009C5D4, 24);
+            w_u32(0x800D80D8, 4);
+            w_u8(0x8009C5F2, (uint8_t)0);
+            w_u8(0x800D80EE, (uint8_t)1);
+            w_u16(0x8009C5D4, (uint16_t)24);
             /* fall through */
         case 38:
-            rrj_write32(0x800D80D8, 4);
-            B(rrj_host_context(), 0x8009C5F2, 0);
-            B(rrj_host_context(), 0x800D80DE, 1);
-            B(rrj_host_context(), 0x800D80E0, 56);
-            B(rrj_host_context(), 0x800D81DF, 0);
-            B(rrj_host_context(), 0x800D80EB, 0);
-            B(rrj_host_context(), 0x800D80DC, 0);
-            B(rrj_host_context(), 0x8009C5F3, 0);
-            B(rrj_host_context(), 0x800D80E3, 1);
-            B(rrj_host_context(), 0x800D80E2, 1);
-            B(rrj_host_context(), 0x800D80E1, 1);
-            R(rrj_host_context(), cb, 0x8009C4D0, 56);
-            R(rrj_host_context(), cb, 0x8009C4CC, S(rrj_host_context(), 0x800D81DF));
-            R(rrj_host_context(), cb, 0x8009C4E4, S(rrj_host_context(), 0x800D80E3));
-            R(rrj_host_context(), cb, 0x8009C4E0, S(rrj_host_context(), 0x800D80E2));
-            R(rrj_host_context(), cb, 0x8009C4DC, S(rrj_host_context(), 0x800D80E1));
-            R(rrj_host_context(), cb, 0x8009C4C8, S(rrj_host_context(), 0x800D80DC));
-            R(rrj_host_context(), cb, 0x8009C4D4, r_u8(0x800D80EA));
+            w_u32(0x800D80D8, 4);
+            w_u8(0x8009C5F2, (uint8_t)0);
+            w_u8(0x800D80DE, (uint8_t)1);
+            w_u8(0x800D80E0, (uint8_t)56);
+            w_u8(0x800D81DF, (uint8_t)0);
+            w_u8(0x800D80EB, (uint8_t)0);
+            w_u8(0x800D80DC, (uint8_t)0);
+            w_u8(0x8009C5F3, (uint8_t)0);
+            w_u8(0x800D80E3, (uint8_t)1);
+            w_u8(0x800D80E2, (uint8_t)1);
+            w_u8(0x800D80E1, (uint8_t)1);
+            set_resource_value(0x8009C4D0, 56);
+            set_resource_value(0x8009C4CC, (uint32_t)r_s8(0x800D81DF));
+            set_resource_value(0x8009C4E4, (uint32_t)r_s8(0x800D80E3));
+            set_resource_value(0x8009C4E0, (uint32_t)r_s8(0x800D80E2));
+            set_resource_value(0x8009C4DC, (uint32_t)r_s8(0x800D80E1));
+            set_resource_value(0x8009C4C8, (uint32_t)r_s8(0x800D80DC));
+            set_resource_value(0x8009C4D4, r_u8(0x800D80EA));
             break;
         case 27:
-            rrj_write32(0x800D80D8, 1);
-            B(rrj_host_context(), 0x800D80F3, 1);
-            B(rrj_host_context(), 0x800D80DE, 1);
-            B(rrj_host_context(), 0x800D80F0, 0);
-            B(rrj_host_context(), 0x800D80DC, 0);
-            B(rrj_host_context(), 0x800D81E1, 2);
-            B(rrj_host_context(), 0x800D80E0, 38);
-            B(rrj_host_context(), 0x800D81DF, 18);
-            (void)select_item(rrj_host_context(), cb, id);
-            return C(rrj_host_context(), cb, 0x8002D298, 0, 0, 0);
+            w_u32(0x800D80D8, 1);
+            w_u8(0x800D80F3, (uint8_t)1);
+            w_u8(0x800D80DE, (uint8_t)1);
+            w_u8(0x800D80F0, (uint8_t)0);
+            w_u8(0x800D80DC, (uint8_t)0);
+            w_u8(0x800D81E1, (uint8_t)2);
+            w_u8(0x800D80E0, (uint8_t)38);
+            w_u8(0x800D81DF, (uint8_t)18);
+            (void)select_item(id);
+            return sub_8002D298();
         case 30:
         case 32:
-            rrj_write32(0x800D80D8, id == 30 ? 16 : 17);
-            B(rrj_host_context(), 0x800D80DE, 2);
-            B(rrj_host_context(), 0x800D80E0, id == 30 ? 1 : 38);
-            B(rrj_host_context(), 0x800D80F0, 0);
-            B(rrj_host_context(), 0x800D81DF, id == 30 ? 0 : 18);
-            B(rrj_host_context(), 0x800D8203, 9);
-            R(rrj_host_context(), cb, id == 30 ? 0x8009C4EC : 0x8009C4F8, id == 30 ? 1 : 38);
-            R(rrj_host_context(), cb, id == 30 ? 0x8009C4F0 : 0x8009C4FC, S(rrj_host_context(), 0x800D81DF));
-            p = id == 30 ? 0x8009C4F4 : (rrj_s32(S(rrj_host_context(), 0x800D81DF)) < 18 ? 0x8009C500 : 0x8009C504);
-            R(rrj_host_context(), cb, p, S(rrj_host_context(), 0x800D8203));
-            R(rrj_host_context(), cb, 0x8009C4C8, S(rrj_host_context(), 0x800D80DC));
+            w_u32(0x800D80D8, id == 30 ? 16 : 17);
+            w_u8(0x800D80DE, (uint8_t)2);
+            w_u8(0x800D80E0, (uint8_t)(id == 30 ? 1 : 38));
+            w_u8(0x800D80F0, (uint8_t)0);
+            w_u8(0x800D81DF, (uint8_t)(id == 30 ? 0 : 18));
+            w_u8(0x800D8203, (uint8_t)9);
+            set_resource_value(id == 30 ? 0x8009C4EC : 0x8009C4F8, id == 30 ? 1 : 38);
+            set_resource_value(id == 30 ? 0x8009C4F0 : 0x8009C4FC, (uint32_t)r_s8(0x800D81DF));
+            p = id == 30 ? 0x8009C4F4 : (((int32_t)(uint32_t)((uint32_t)r_s8(0x800D81DF))) < 18 ? 0x8009C500 : 0x8009C504);
+            set_resource_value(p, (uint32_t)r_s8(0x800D8203));
+            set_resource_value(0x8009C4C8, (uint32_t)r_s8(0x800D80DC));
             break;
         case 34:
-            rrj_write32(0x800D80D8, 24);
-            B(rrj_host_context(), 0x800D80E0, 1);
-            B(rrj_host_context(), 0x800D80F0, 0);
-            B(rrj_host_context(), 0x800D80DE, 2);
-            B(rrj_host_context(), 0x800D81DF, 7);
-            B(rrj_host_context(), 0x800D8203, 7);
-            R(rrj_host_context(), cb, 0x8009C4EC, 1);
-            R(rrj_host_context(), cb, 0x8009C510, S(rrj_host_context(), 0x800D81DF));
-            R(rrj_host_context(), cb, 0x8009C514, S(rrj_host_context(), 0x800D8203));
-            R(rrj_host_context(), cb, 0x8009C4C8, S(rrj_host_context(), 0x800D80DC));
-            result = select_item(rrj_host_context(), cb, id);
-            B(rrj_host_context(), 0x800D81ED, 2);
-            B(rrj_host_context(), 0x800D8211, 2);
+            w_u32(0x800D80D8, 24);
+            w_u8(0x800D80E0, (uint8_t)1);
+            w_u8(0x800D80F0, (uint8_t)0);
+            w_u8(0x800D80DE, (uint8_t)2);
+            w_u8(0x800D81DF, (uint8_t)7);
+            w_u8(0x800D8203, (uint8_t)7);
+            set_resource_value(0x8009C4EC, 1);
+            set_resource_value(0x8009C510, (uint32_t)r_s8(0x800D81DF));
+            set_resource_value(0x8009C514, (uint32_t)r_s8(0x800D8203));
+            set_resource_value(0x8009C4C8, (uint32_t)r_s8(0x800D80DC));
+            result = select_item(id);
+            w_u8(0x800D81ED, (uint8_t)2);
+            w_u8(0x800D8211, (uint8_t)2);
             return result;
         case 36:
-            rrj_write32(0x800D80D8, 8);
-            B(rrj_host_context(), 0x800D80F0, 0);
-            B(rrj_host_context(), 0x800D80F3, 1);
-            B(rrj_host_context(), 0x800D80DE, 1);
-            B(rrj_host_context(), 0x800D80DC, 0);
-            B(rrj_host_context(), 0x800D80E0, 4);
-            B(rrj_host_context(), 0x800D81DF, 7);
-            B(rrj_host_context(), 0x800D8203, 7);
-            R(rrj_host_context(), cb, 0x8009C508, 4);
-            R(rrj_host_context(), cb, 0x8009C50C, S(rrj_host_context(), 0x800D81DF));
-            result = select_item(rrj_host_context(), cb, id);
-            B(rrj_host_context(), 0x800D81ED, 1);
+            w_u32(0x800D80D8, 8);
+            w_u8(0x800D80F0, (uint8_t)0);
+            w_u8(0x800D80F3, (uint8_t)1);
+            w_u8(0x800D80DE, (uint8_t)1);
+            w_u8(0x800D80DC, (uint8_t)0);
+            w_u8(0x800D80E0, (uint8_t)4);
+            w_u8(0x800D81DF, (uint8_t)7);
+            w_u8(0x800D8203, (uint8_t)7);
+            set_resource_value(0x8009C508, 4);
+            set_resource_value(0x8009C50C, (uint32_t)r_s8(0x800D81DF));
+            result = select_item(id);
+            w_u8(0x800D81ED, (uint8_t)1);
             return result;
         default:
             return id - 7 < 32 ? 0x80068e68 : 0x80060000;
     }
-    return select_item(rrj_host_context(), cb, id);
+    return select_item(id);
 }

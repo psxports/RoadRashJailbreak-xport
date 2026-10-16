@@ -55,7 +55,7 @@ void rrj_spu_initialize(const void *ram)
     SpuSetCommonAttr(&common);
 }
 
-uint32 rrj_spu_setup(RRJMemory *memory, uint32 voice, const RRJVoiceSetup *setup)
+uint32 rrj_spu_setup(uint32 voice, const RRJVoiceSetup *setup)
 {
     SpuVoiceAttr attr;
 
@@ -80,22 +80,7 @@ uint32 rrj_spu_setup(RRJMemory *memory, uint32 voice, const RRJVoiceSetup *setup
     return 0;
 }
 
-void rrj_spu_command(RRJMemory *memory, uint32 function, uint32 mode, uint32 mask)
-{
-    if (function == 0x80050D08)
-    {
-        if (mode != 0 && mode != 1)
-            abort();
-        SpuSetKey(mode == 0 ? SPU_OFF : SPU_ON, mask & SPU_ALLCH);
-        return;
-    }
-    if (function == 0x80050678)
-    {
-        (void)rrj_spu_reverb(memory, mode, mask);
-        return;
-    }
-    RRJ_WIP3(memory, function, "spu_command", mode, mask, 0);
-}
+
 
 void rrj_spu_set_cd_volume(sint16 left, sint16 right)
 {

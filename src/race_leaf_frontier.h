@@ -3,18 +3,18 @@
 
 #include "race_leaf.h"
 
-uint32_t sub_800A13C4(int32_t delta, RRJRaceLeafCall call);
-uint32_t sub_80090814(int32_t delta, RRJRaceLeafCall call);
-uint32_t sub_800C5078(uint32_t actor, RRJRaceLeafCall call);
+uint32_t sub_800A13C4(int32_t delta);
+uint32_t sub_80090814(int32_t delta);
+uint32_t sub_800C5078(uint32_t actor);
 uint32_t sub_800C47CC(uint32_t actor);
 uint32_t sub_800C4860(uint32_t actor);
 uint32_t sub_800C4B30(uint32_t actor);
 uint32_t sub_800C4BA0(uint32_t actor);
 uint32_t sub_800C4E18(uint32_t actor);
-uint32_t sub_800881B4(uint32_t actor, int32_t delta, RRJRaceLeafCall call);
-uint32_t sub_80087420(uint32_t actor, int32_t delta, RRJRaceLeafCall call);
+uint32_t sub_800881B4(uint32_t actor, int32_t delta);
+uint32_t sub_80087420(uint32_t actor, int32_t delta);
 uint32_t sub_800853E4(uint32_t actor, uint32_t descriptor);
-uint32_t sub_80086E1C(uint32_t actor, RRJRaceLeafCall call);
+uint32_t sub_80086E1C(uint32_t actor);
 uint32_t sub_80088140(uint32_t actor);
 uint32_t sub_8008CFDC(void);
 uint32_t sub_8008DBCC(uint32_t actor);
