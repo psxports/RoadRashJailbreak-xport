@@ -1,7 +1,6 @@
 #include "rrj_debug.h"
 #include "gpu.h"
 #include "psx_gpu.h"
-#include "race_trace_runtime.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -101,16 +100,10 @@ static int live_draw_packet(uint32 address, uint32 *packet)
 
 int rrj_gpu_draw_ot(uint32 address)
 {
-    uint32 *ot = (uint32 *)xport_guest_ptr(address, sizeof(uint32));
     uint32 link;
     uint32 visited = 0;
 
     gpu_register_dma_range(DRAM, PSX_DRAM_SIZE);
-    if (!rrj_trace_runtime_is_live())
-    {
-        DrawOTag(ot);
-        return 1;
-    }
     link = address & 0x00FFFFFFu;
     while (link != 0x00FFFFFFu)
     {

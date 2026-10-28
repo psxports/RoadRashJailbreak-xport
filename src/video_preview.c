@@ -1,3 +1,4 @@
+#include "rrj_fmv.h"
 #include "rrj_debug.h"
 #include "race_bodyless_batch_003.h"
 #include <stdio.h>
@@ -12,7 +13,6 @@
 #include "video_preview.h"
 #include "rrj_cd_transport.h"
 #include "rrj_data.h"
-#include "race_trace_runtime.h"
 #include "video_stop.h"
 #include "menu_latch.h"
 #include "resource.h"
@@ -746,11 +746,8 @@ uint32_t sub_80061F04(uint32_t *length)
     for (;;)
     {
         uint32_t available;
-        if (rrj_trace_runtime_is_live())
-        {
-            psx_native_poll_events();
-            rrj_cd_stream_service();
-        }
+        psx_native_poll_events();
+        rrj_cd_stream_service();
         context = r_u32(0x8009C2D0u);
         available = (r_u32(context + 0x448u) << 11) - ((r_u32(context + 0x440u) << 11) + r_u32(context + 0x444u));
         if (((int32_t)(uint32_t)(available)) < 0)
@@ -799,6 +796,8 @@ uint32_t sub_8005F484(uint32_t x, uint32_t y, uint32_t channel, uint32_t mode, u
     uint32_t scalar_word_2;
 
     FUNCTION_MARKER(0x8005F484u, "RASHCDF.BIN");
+    if (rrj_menu_fmv_active())
+        return rrj_menu_fmv_next(x, y, mode);
     for (;;)
     {
         uint32_t length = 8u, header = sub_80061F04(&length), tag, data;
@@ -851,39 +850,18 @@ uint32_t sub_8005F484(uint32_t x, uint32_t y, uint32_t channel, uint32_t mode, u
     }
 }
 
+/* Replace standalone menu movie transport while retaining its lifecycle flags */
 uint32_t sub_8006FEF4(uint32_t desc)
 {
-    uint32_t scalar_v_14;
-    uint32_t scalar_v_15;
-
-    char path[128];
-    uint32_t file, flags, channel, x, y, mode, loop;
     FUNCTION_MARKER(0x8006FEF4u, "RASHCDF.BIN");
-    if (sub_80022A78(0u))
+    if (sub_80022A78(0u) || (r_u16(0x8009C5DAu) & 1u))
         return 0u;
-    if ((uint32_t)r_u16(0x8009C5DAu) & 1u)
-        return 0u;
-    sprintf(path, (const char *)xport_guest_cptr(0x8005BF84u, 1), (const char *)xport_guest_cptr(r_u32(0x8008973Cu + 4u * r_u32(desc)), 1));
-    file = sub_8001458C(path, 0u);
-    w_u32(0x8009C684u, file);
-    if (((int32_t)(uint32_t)(file)) < 0)
-        return 1u;
-    w_u32(desc + 16u, 0u);
-    flags = (uint32_t)r_u16(0x8009C5DAu);
-    file = r_u32(0x8009C684u);
-    w_u16(0x8009C5DAu, (uint16_t)(flags | 1u));
-    channel = (uint32_t)r_u16((desc + 8u));
-    w_u16(0x8009C688u, (uint16_t)channel);
-    x = ((scalar_v_14 = ((uint32_t)r_u16((desc + 12u)))), (((uint32_t)(scalar_v_14 & 0x8000 ? scalar_v_14 | 0xffff0000 : scalar_v_14))));
-    y = ((scalar_v_15 = ((uint32_t)r_u16((desc + 14u)))), (((uint32_t)(scalar_v_15 & 0x8000 ? scalar_v_15 | 0xffff0000 : scalar_v_15))));
-    loop = (uint32_t)r_u16((desc + 10u));
-    mode = r_u32(desc + 4u);
-    if (!sub_8005F36C(file, mode, ((uint32_t)(((uint32_t)(channel)) & 0x8000 ? ((uint32_t)(channel)) | 0xffff0000 : ((uint32_t)(channel)))), x, y, 2048u, 64u, 1024u, loop))
-    {
-        sub_8006FE6C();
-        return 0u;
-    }
-    w_u32(desc + 16u, r_u32(desc + 16u) + 1u);
+    if (!rrj_menu_fmv_open(desc))
+        abort();
+    w_u32(0x8009C684u, 0xffffffffu);
+    w_u32(desc + 16u, 1u);
+    w_u16(0x8009C688u, r_u16(desc + 8u));
+    w_u16(0x8009C5DAu, (uint16_t)(r_u16(0x8009C5DAu) | 1u));
     return 1u;
 }
 

@@ -3,12 +3,8 @@
 
 #include "audio_flush.h"
 
-void rrj_spu_initialize(const void *ram);
 uint32 rrj_spu_setup(uint32 voice, const RRJVoiceSetup *setup);
 void rrj_spu_set_cd_volume(sint16 left, sint16 right);
 uint32 rrj_spu_reverb(RRJMemory *memory, uint32 mode, uint32 mask);
-#if defined(LOCKSTEP_DEBUG)
-sint32 rrj_spu_checkpoint_io(FILE *file, sint32 load);
-#endif
 
 #endif

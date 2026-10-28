@@ -2,7 +2,6 @@
 #define RRJ_RACE_BODYLESS_BATCH_005_H
 
 #include "race_leaf.h"
-#include "race_native_abi.h"
 
 uint32_t sub_80020BEC(const uint32_t *pairs);
 uint32_t sub_80021058(const uint32_t *pairs, uint32_t key, uint32_t *output, uint32_t *index_output);

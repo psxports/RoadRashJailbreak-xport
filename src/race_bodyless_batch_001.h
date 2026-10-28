@@ -2,7 +2,6 @@
 #define RRJ_RACE_BODYLESS_BATCH_001_H
 
 #include "race_bodyless_batch_006.h"
-#include "race_native_abi.h"
 
 uint32_t sub_80047430(void);
 uint32_t sub_800473F0(void);

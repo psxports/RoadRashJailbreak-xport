@@ -18,7 +18,7 @@
 /* Small leaf translations shared by the race dependency branch */
 #include "race_leaf.h"
 #include "solo_file_dependencies.h"
-#include "race_trace_runtime.h"
+#include "rrj_runtime.h"
 #include "audio.h"
 #include "audio_flush.h"
 #include "fixed_math.h"
@@ -2583,9 +2583,7 @@ uint32_t sub_800C09B0(uint32_t object)
         }
         else
             type = r_u16(group);
-        rrj_trace_dispatch_target(0x800C4550u);
         (void)sub_800C4550(type, body, flags);
-        rrj_trace_dispatch_target(0x800C09B0u);
     }
     return action & 1;
 }
@@ -3007,6 +3005,8 @@ uint32_t sub_80012224(void)
                 mode = r_s8(state);
                 if (!mode || mode == 2 || r_s8(state) == 5)
                     break;
+                if (!rrj_runtime_frame())
+                    return 0;
                 (uint32_t)sub_8001CB3C();
                 state = r_u32(0x8005B2F8);
                 if (r_s8(state + 3))
@@ -3054,132 +3054,7 @@ uint32_t sub_80012224(void)
     return 0;
 }
 
-/* Host resume points share the original resident loop */
-static uint32_t rrj_resume_race_loop(int resume_frame)
-{
-    uint32_t state = 0;
-    int32_t mode;
-    int first_inner = resume_frame;
-    int after_frame = resume_frame == 2;
-    while (resume_frame || r_s8(state = r_u32(0x8005B2F8)))
-    {
-        if (!resume_frame)
-        {
-            if (r_s8(state) == 2)
-            {
-                sub_800118A0(16, r_u32(0x80010E34));
-                sub_8001B868();
-                (void)sub_8007FF4C();
-            }
-            sub_800118A0(2, r_u32(0x80010E34));
-            (void)sub_80064610();
-        }
-        do
-        {
-            if (!resume_frame)
-            {
-                (void)sub_80063B90();
-                sub_800118A0(4, r_u32(0x80010E34));
-                sub_8001F080();
-                state = r_u32(0x8005B2F8);
-                if (r_u32(state + 0x30) == 1)
-                {
-                    sub_800247A0();
-                    sub_80020E30(0);
-                }
-                sub_800119C0();
-                sub_8001B868();
-            }
-            resume_frame = 0;
-            if (!first_inner)
-                state = r_u32(0x8005B2F8);
-            for (;;)
-            {
-                if (after_frame)
-                {
-                    after_frame = 0;
-                    first_inner = 0;
-                    goto frame_complete;
-                }
-                if (!first_inner)
-                {
-                    mode = r_s8(state);
-                    if (!mode || mode == 2 || r_s8(state) == 5)
-                        break;
-                }
-                if (!first_inner && rrj_trace_phase_boundary(rrj_host_context(), 0x80012370))
-                    return 0;
-                first_inner = 0;
-                if (rrj_trace_phase_boundary(rrj_host_context(), 0x8001CB3C))
-                    return 0;
-                (void)sub_8001CB3C();
-                state = r_u32(0x8005B2F8);
-                if (r_s8(state + 3))
-                {
-                    w_u32(0x8005B228, 0x00050000);
-                    w_u16(0x800CD542, 0);
-                    w_u16(0x800CD540, 0);
-                    sub_8008AB00(1094u);
-                    (void)sub_800881B4(0x800CD898, 1094);
-                    state = r_u32(0x8005B2F8);
-                    if (r_u32(state + 0x30) >= 2)
-                        (void)sub_800881B4(0x800CDD04, 1094);
-                    (void)sub_8008CFDC();
-                    (void)sub_8005E1D8(0x800CE170);
-                    state = r_u32(0x8005B2F8);
-                    w_u8(state + 3, 0);
-                }
-                else
-                {
-                    if (rrj_trace_phase_boundary(rrj_host_context(), 0x8001C428))
-                        return 0;
-                    (void)sub_8001C428();
-                }
-                sub_80011C4C();
-            frame_complete:
-                if (rrj_trace_phase_boundary(rrj_host_context(), 0x8001241C))
-                    return 0;
-                state = r_u32(0x8005B2F8);
-                if (r_s8(state + 2))
-                {
-                    w_u8(state, 3);
-                    state = r_u32(0x8005B2F8);
-                    w_u8(state + 2, 0);
-                    sub_80018C1C(1);
-                    sub_80020E30(1);
-                    state = r_u32(0x8005B2F8);
-                }
-            }
-            sub_8001C408();
-            sub_80022FC0();
-            sub_800118A0(2, r_u32(0x80010E34));
-            (void)sub_80063A20();
-            state = r_u32(0x8005B2F8);
-            if (r_s8(state) != 5)
-                break;
-            sub_80063FA0();
-        } while (r_s8(r_u32(0x8005B2F8)) == 5);
-    }
-    sub_800121E4();
-    return 0;
-}
 
-uint32_t rrj_resume_after_race_frame(void)
-{
-    return rrj_resume_race_loop(2);
-}
-
-/* Continuation at the recorded race-loop checkpoint */
-uint32_t sub_80012370(void)
-{
-    return rrj_resume_race_loop(1);
-}
-
-/* Resume after the saved menu loop without replacing its live state */
-uint32_t rrj_resume_after_menu(void)
-{
-    return rrj_resume_race_loop(0);
-}
 
 uint32_t sub_80012764(uint32_t index)
 {
@@ -3242,16 +3117,6 @@ uint32_t sub_800140E8(void)
     return 0;
 }
 
-/* Host diagnostic hook does not alter native allocation paths */
-static RRJHeapFailureProbe heap_failure_probe;
-
-RRJHeapFailureProbe rrj_heap_set_failure_probe(RRJHeapFailureProbe replacement)
-{
-    RRJHeapFailureProbe previous = heap_failure_probe;
-    heap_failure_probe = replacement;
-    return previous;
-}
-
 uint32_t sub_800142B4(uint32_t size, uint32_t index)
 {
     uint32_t link = 0x800D6500 + index * 16;
@@ -3280,10 +3145,7 @@ uint32_t sub_800142B4(uint32_t size, uint32_t index)
         link = block;
         block = r_u32(block);
     }
-    if (heap_failure_probe)
-        heap_failure_probe(requested);
-    else
-        (void)RRJ_DEBUG_PRINTF((const char *)xport_guest_cptr(0x800107F0u, 1), (long)((int32_t)(uint32_t)(requested)), requested);
+    (void)RRJ_DEBUG_PRINTF((const char *)xport_guest_cptr(0x800107F0u, 1), (long)((int32_t)(uint32_t)(requested)), requested);
     return 0;
 }
 
@@ -3755,18 +3617,6 @@ uint32_t sub_80015314(uint32_t packed_handle, uint32_t base, uint32_t offset, vo
     else
     {
         int32_t blocks = ((int32_t)(uint32_t)(offset));
-        unsigned pending = 0;
-
-        if (callback == 0x800151ECu)
-            while (r_u32(0x800D6728u) && pending++ < 64u)
-            {
-                uint32_t active_callback = rrj_trace_vblank_boundary(rrj_host_context());
-
-                if (active_callback)
-                    rrj_file_function(active_callback)();
-            }
-        if (r_u32(0x800D6728u))
-            abort();
         if (blocks < 0)
             blocks += 2047;
         blocks >>= 11;
@@ -3775,25 +3625,6 @@ uint32_t sub_80015314(uint32_t packed_handle, uint32_t base, uint32_t offset, vo
         if (r_u32(0x8005B200))
             RRJ_DEBUG_PRINTF((const char *)xport_guest_cptr(0x800109E4, 46), (long)((int32_t)(uint32_t)(size)), (unsigned int)(uintptr_t)buffer);
 
-        if (callback == 0x800151EC && rrj_trace_runtime_is_live())
-        {
-            uint32_t sector = r_u32(0x800D6720);
-            uint32_t completed = sector + (size + 2047) / 2048;
-            /* The synchronous file API accepts native automatic C buffers */
-            if (!rrj_live_cd_read(sector, buffer, size))
-            {
-                RRJ_DEBUG_FPRINTF(stderr, "RRJ native CD read failed: sector=%u bytes=%u\n", sector, size);
-                abort();
-            }
-            w_u32(0x800D6720, completed);
-            w_u32(0x800D6724, completed);
-            w_u32(0x800D672C, completed);
-            w_u32(0x800D6718, 0);
-            w_u32(0x800D671C, 0);
-            w_u32(0x800D6728, 0);
-            (void)rrj_file_function(callback)();
-            return 1;
-        }
         sub_8001564C(buffer, size);
         if (callback == 0x800151ECu)
         {
@@ -4485,11 +4316,7 @@ static uint32_t game_vblank_register(PsxInterruptCallback callback)
     return previous_guest;
 }
 
-/* Rebind the saved interrupt owner without resetting its guest state */
-void rrj_restore_native_vblank(void)
-{
-    game_vblank_register(r_u8(0x8005B450) ? game_vblank_callback : NULL);
-}
+
 
 uint32_t sub_8001B4C0(void)
 {
@@ -4747,12 +4574,17 @@ uint32_t sub_8001C590(void)
     return sub_8001C4D0();
 }
 
+static sint32 rrj_timer_event(void)
+{
+    return (sint32)sub_8001DF64();
+}
+
 uint32_t sub_8001DFE4(void)
 {
     uint32_t handle;
     FUNCTION_MARKER(0x8001DFE4, "SLUS_010.53");
     sub_80043DA4();
-    handle = (uint32_t)OpenEventPSX(0xF2000002, 2, 4096, 0x8001DF64);
+    handle = (uint32_t)OpenEvent(0xF2000002, 2, 4096, rrj_timer_event);
     w_u32(0x800527D4, handle);
     if (!(uint32_t)EnableEvent(((int32_t)(uint32_t)(handle))))
         abort();
@@ -8799,20 +8631,15 @@ uint32_t sub_800C035C(uint32_t actor, uint16_t other_id, uint32_t retained_produ
     {
         if (type - 30 < 8)
         {
-            rrj_trace_dispatch_target(0x800C1014u);
             return sub_800C1014(secondary);
         }
         if (r_u16(0x800541D4 + 8 * type + 2) == 3)
         {
-            rrj_trace_dispatch_target(0x800C09B0u);
             pending = sub_800C09B0(actor);
-            rrj_trace_dispatch_target(0x800C035Cu);
         }
         else
         {
-            rrj_trace_dispatch_target(0x800C110Cu);
             (void)sub_800C110C(actor, other);
-            rrj_trace_dispatch_target(0x800C035Cu);
             setup = 1;
         }
         if (other_id == 224)
@@ -8822,7 +8649,6 @@ uint32_t sub_800C035C(uint32_t actor, uint16_t other_id, uint32_t retained_produ
     {
         return 224;
     }
-    rrj_trace_dispatch_target(0x800B6AACu);
     lateral = ((int32_t)(uint32_t)(sub_800B6AAC(xport_guest_ptr(actor + 504, 12), xport_guest_ptr(other + 528, 6), xport_guest_ptr(other + 504, 12))));
     if (retained_product_hi)
     {
@@ -8830,14 +8656,11 @@ uint32_t sub_800C035C(uint32_t actor, uint16_t other_id, uint32_t retained_produ
         /* Preserve the high product word consumed by collision events */
         w_u32(retained_product_hi, (uint32_t)((uint64_t)product >> 32));
     }
-    rrj_trace_dispatch_target(0x800C035Cu);
     if (r_u8(race + 57) == 3 && r_u16(other + 172) < r_u32(race + 48))
         response = 5;
     else
     {
-        rrj_trace_dispatch_target(0x800BC1ECu);
         response = sub_800BC1EC(actor, other, -lateral);
-        rrj_trace_dispatch_target(0x800C035Cu);
     }
     {
         uint32_t relation = r_u32(actor + 360);
@@ -8849,7 +8672,6 @@ uint32_t sub_800C035C(uint32_t actor, uint16_t other_id, uint32_t retained_produ
         }
         else
         {
-            rrj_trace_dispatch_target(0x800B6AACu);
             longitudinal = ((int32_t)(uint32_t)(sub_800B6AAC(xport_guest_ptr(actor + 184, 12), xport_guest_ptr(other + 432, 6), xport_guest_ptr(other + 184, 12))));
             if (retained_product_hi)
             {
@@ -8857,7 +8679,6 @@ uint32_t sub_800C035C(uint32_t actor, uint16_t other_id, uint32_t retained_produ
                 /* Preserve the high product word consumed by collision events */
                 w_u32(retained_product_hi, (uint32_t)((uint64_t)product >> 32));
             }
-            rrj_trace_dispatch_target(0x800C035Cu);
         }
     }
     {
@@ -10427,79 +10248,60 @@ uint32_t sub_800BA4CC(uint32_t delta, uint32_t skip_mask, uint32_t active_mask)
                         if (r_u16(contact + 4) || (actor_id < players && ((r_u8(descriptor + 1) & 15) == 2) && (r_u32(0x8005AD48) & 0x1F)))
                         {
                             uint32_t linked;
-                            rrj_trace_dispatch_target(0x800BAA2Cu);
                             (void)sub_800BAA2C(actor, contact, delta);
-                            rrj_trace_dispatch_target(0x800BA4CCu);
                             linked = r_u32(actor + 856);
                             if (linked && r_u16(contact) == 4)
                             {
                                 uint32_t linked_slot = (uint32_t)(int32_t)r_s8(linked + 946);
-                                rrj_trace_dispatch_target(0x800BAA2Cu);
                                 (void)sub_800BAA2C(linked, linked + 948 + 8 * linked_slot, delta);
-                                rrj_trace_dispatch_target(0x800BA4CCu);
                             }
                         }
                         else if (r_u32(secondary + 552) & 0x40)
                         {
-                            rrj_trace_dispatch_target(0x80092AD4u);
                             (void)sub_80092AD4(actor);
-                            rrj_trace_dispatch_target(0x800BA4CCu);
                         }
                     }
                     else
                     {
-                        rrj_trace_dispatch_target(0x80092AD4u);
                         (void)sub_80092AD4(actor);
-                        rrj_trace_dispatch_target(0x800BA4CCu);
                     }
                     break;
                 case 2:
-                    rrj_trace_dispatch_target(0x800BADB8u);
                     sub_800BADB8(actor, contact);
                     break;
                 case 4:
                     if (!(active_mask & bit) && (r_u32(actor + 560) & 0x08000000))
                     {
-                        rrj_trace_dispatch_target(0x800BA7F4u);
                         (void)sub_800BA7F4(actor);
                     }
                     break;
                 case 5:
-                    rrj_trace_dispatch_target(0x800BB280u);
                     (void)sub_800BB280(actor, other_id);
                     break;
                 case 6:
-                    rrj_trace_dispatch_target(0x800BB5B8u);
                     (void)sub_800BB5B8(actor, other_id);
                     break;
                 case 7:
-                    rrj_trace_dispatch_target(0x800BBA18u);
                     (void)sub_800BBA18(actor, other_id);
                     break;
                 case 8:
-                    rrj_trace_dispatch_target(0x800BBC20u);
                     (void)sub_800BBC20(actor, other_id);
                     break;
                 case 9:
-                    rrj_trace_dispatch_target(0x800BBE00u);
                     (void)sub_800BBE00(actor, other_id);
                     break;
                 case 16:
-                    rrj_trace_dispatch_target(0x800C035Cu);
                     (void)sub_800C035C(actor, other_id, 0x801FFE8Cu);
                     break;
                 case 17:
-                    rrj_trace_dispatch_target(0x800BBEBCu);
                     (void)sub_800BBEBC(actor, other_id);
                     break;
                 case 18:
-                    rrj_trace_dispatch_target(0x80092E04u);
                     (void)sub_80092E04(actor, delta);
                     break;
                 default:
                     break;
             }
-            rrj_trace_dispatch_target(0x800BA4CCu);
             w_u16(contact + 6, r_u16(contact + 6) & 0x7FFF);
         }
     }
@@ -10972,7 +10774,6 @@ uint32_t sub_800B941C(uint32_t delta)
     uint32_t finished_mask = 0;
     uint32_t index;
     FUNCTION_MARKER(0x800B941C, "RASHCDG.BIN");
-    rrj_trace_dispatch_target(0x800B941Cu);
     w_u32(inactive_out, 0);
     w_u32(active_out, 0);
     w_u32(marked_out, 0);
@@ -11015,15 +10816,10 @@ uint32_t sub_800B941C(uint32_t delta)
             }
         }
     }
-    rrj_trace_dispatch_target(0x800B9794u);
     (void)sub_800B9794(inactive_out);
-    rrj_trace_dispatch_target(0x800BA304u);
     (void)sub_800BA304(delta, r_u32(inactive_out), active_out, marked_out);
-    rrj_trace_dispatch_target(0x800BA4CCu);
     (void)sub_800BA4CC(delta, r_u32(inactive_out), r_u32(active_out));
-    rrj_trace_dispatch_target(0x800BCD48u);
     (void)sub_800BCD48(delta, r_u32(inactive_out), r_u32(marked_out));
-    rrj_trace_dispatch_target(0x800B941Cu);
     for (index = 0; index < players; ++index)
     {
         uint32_t actor = r_u32(0x8005B268 + 4 * index);
@@ -11034,9 +10830,7 @@ uint32_t sub_800B941C(uint32_t delta)
             uint32_t contact = linked + 948 + 8u * (uint32_t)(int32_t)r_s8(linked + 946);
             if (r_u16(contact) == 16)
             {
-                rrj_trace_dispatch_target(0x800C035Cu);
                 (void)sub_800C035C(linked, r_u16(contact + 2), 0u);
-                rrj_trace_dispatch_target(0x800B941Cu);
             }
         }
         if (linked && r_u8(race + 57) == 2)
@@ -11044,9 +10838,7 @@ uint32_t sub_800B941C(uint32_t delta)
             uint32_t previous = linked + 948 + 8u * (uint32_t)((int32_t)r_s8(linked + 946) - 1);
             if (r_u16(previous) == 18)
             {
-                rrj_trace_dispatch_target(0x80092E04u);
                 (void)sub_80092E04(linked, delta);
-                rrj_trace_dispatch_target(0x800B941Cu);
             }
         }
     }

@@ -9,9 +9,6 @@ ifeq ($(CONFIG),Release)
 APP_DEFINES += -DXPORT_DISABLE_FUNCTION_MARKERS
 endif
 
-WEB_PACKAGER_FLAGS += --extra-file "$(PROJECT_ROOT)/status/menu/state1-menu-ram.bin" status/menu/state1-menu-ram.bin
-WEB_PACKAGER_FLAGS += --extra-file "$(PROJECT_ROOT)/status/menu/state1-vram.bin" status/menu/state1-vram.bin
-WEB_PACKAGER_FLAGS += --extra-file "$(PROJECT_ROOT)/status/menu/state1-spu.bin" status/menu/state1-spu.bin
 WEB_PACKAGER_FLAGS += --extra-file "$(PROJECT_ROOT)/tools/duckstation/data/user/bios/scph5502.bin" tools/duckstation/data/user/bios/scph5502.bin
 
 include ../../../../xport/src/platform/web/Makefile

@@ -84,27 +84,9 @@ uint32_t sub_80068EB8(uint32_t object);
 uint32_t sub_80069200(uint32_t object);
 uint32_t sub_80035958(uint32_t player_index);
 
-typedef struct RRJObjectContinuation
-{
-    uint32_t player_index;
-    uint32_t far_count;
-    uint32_t near_count;
-    uint32_t next_far_index;
-    uint32_t synchronized;
-    int32_t near_minimum;
-    int32_t near_maximum;
-    uint32_t far_indices[12];
-    uint32_t near_indices[12];
-} RRJObjectContinuation;
-
-uint32_t rrj_resume_sub_80035958(const RRJObjectContinuation *phase);
-#if defined(LOCKSTEP_DEBUG)
-uint32_t rrj_resume_sub_80035958_wait(const RRJObjectContinuation *phase, uint32_t stage);
-#endif
 uint32_t sub_8006929C(uint32_t base_index, uint32_t packed_indices, uint32_t depth_shift);
 uint32_t sub_80069784(uint32_t base_index, uint32_t packed_indices, uint32_t depth_shift);
 uint32_t sub_80069CF0(uint32_t base_index, uint32_t packed_indices, uint32_t depth_shift);
-void rrj_resume_sub_80069CF0(uint32_t base_index, uint32_t depth_shift, uint32_t first_quad, const uint8_t indices[9], uint32_t current_clip_or);
 uint32_t sub_8006A25C(uint32_t base_index, uint32_t packed_indices, uint32_t packet_color);
 uint32_t sub_8006A630(uint32_t object, uint32_t group_index);
 uint32_t sub_8006C888(uint32_t object, uint32_t group_index);
@@ -112,24 +94,8 @@ uint32_t sub_8006D350(uint32_t object, uint32_t group_index);
 uint32_t sub_8006DC20(uint32_t object, uint32_t group_index);
 uint32_t sub_8006E474(uint32_t object, uint32_t group_index);
 
-typedef struct RRJRoadContinuation
-{
-    uint32_t face;
-    uint32_t remaining_faces;
-    uint32_t segment_count;
-    uint32_t next_vertex_position;
-    uint32_t pattern_shift;
-    uint32_t depth_band;
-    uint32_t texture_group;
-    uint32_t texture_pattern;
-    uint32_t ordering_bucket;
-    uint32_t vertices[18][8];
-} RRJRoadContinuation;
-
-uint32_t rrj_resume_sub_8006E474(const RRJRoadContinuation *phase);
 uint32_t sub_8006F5D0(uint32_t object, uint32_t group_index);
 uint32_t sub_80068FCC(uint32_t object);
-void rrj_resume_sub_80068FCC(uint32_t object, uint32_t group, uint32_t end, uint32_t shift);
 uint32_t sub_800706A4(uint32_t object);
 int32_t sub_800669E8(uint32_t object, uint32_t output);
 uint32_t sub_800220A4(uint32_t matrix, uint32_t count, uint32_t vertices, uint32_t records, uint32_t screens, uint32_t clips);

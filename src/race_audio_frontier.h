@@ -3,9 +3,6 @@
 
 #include "audio_flush.h"
 #include "race_leaf.h"
-#if defined(LOCKSTEP_DEBUG)
-sint32 rrj_audio_checkpoint_io(FILE *file, sint32 load);
-#endif
 
 uint32_t sub_800270F0(uint32_t record);
 uint32_t sub_8004F0A8(int32_t index, uint32_t value);

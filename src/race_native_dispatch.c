@@ -1,1 +1,0 @@
-/* Legacy frame dispatcher removed from the native game call path */

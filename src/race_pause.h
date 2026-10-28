@@ -25,13 +25,6 @@ uint32_t sub_80031B4C(uint32_t object);
 uint32_t sub_800319F8(uint32_t object, uint32_t group);
 uint32_t sub_80032190(uint32_t from, uint32_t to);
 
-typedef struct RRJObjectCounterProbe
-{
-    uint32_t (*enter)(void);
-    uint32_t (*leave)(void);
-} RRJObjectCounterProbe;
-
-const RRJObjectCounterProbe *rrj_object_counter_set_probe(const RRJObjectCounterProbe *probe);
 uint32_t sub_800322D0(uint32_t from, uint32_t to);
 uint32_t sub_800313EC(uint32_t object);
 uint32_t sub_80031604(uint32_t object, uint32_t group);

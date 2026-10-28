@@ -174,4 +174,3 @@ uint32_t sub_80040964(uint32_t a1)
     }
     return result;
 }
-

@@ -17,14 +17,6 @@ static int32_t race_audio_mul_asr(int32_t first, int32_t second, uint32_t shift)
     return (int32_t)product >> shift;
 }
 
-#if defined(LOCKSTEP_DEBUG)
-static uint16_t race_audio_spu_registers[0x100];
-
-sint32 rrj_audio_checkpoint_io(FILE *file, sint32 load)
-{
-    return file && (load ? fread(race_audio_spu_registers, sizeof(race_audio_spu_registers), 1, file) == 1 : fwrite(race_audio_spu_registers, sizeof(race_audio_spu_registers), 1, file) == 1);
-}
-#endif
 
 static uint16_t race_audio_read_half(uint32_t address)
 {

@@ -1,7 +1,7 @@
 #include "psx.h"
 /* Raw PSX controller decoding and original per-button repeat state. */
 #include "pad.h"
-#include "race_trace_runtime.h"
+#include "rrj_runtime.h"
 #include "pad_service.h"
 
 uint32_t sub_8001C4A8(uint32_t pad, uint32_t mode)
@@ -37,8 +37,7 @@ uint32_t sub_8001C5F8(void)
     {
         uint32_t raw = 0x800D70E0 + (multi ? 2 + 8 * player : 36 * player), bits, type, old, i, n = 15, keys[19];
         uint8_t snapshot[8];
-        if (!rrj_trace_input_packet(rrj_host_context(), player, raw))
-            return result;
+        rrj_runtime_input(player, raw);
         w_u32(pad + 16, 0);
         w_u32(pad, r_u32(r_u32(0x8005B2F8) + 12));
         if (multi)

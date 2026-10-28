@@ -1,6 +1,5 @@
 #include "rrj_debug.h"
 #include "psx_memory.h"
-#include "race_trace_runtime.h"
 #include "psx_spu.h"
 #include "wip.h"
 #include <stdio.h>
@@ -14,11 +13,7 @@ static sint32 rrj_mmio_read(void *user, uint32 address, uint32 width, uint32 *va
         return spu_mmio_read(NULL, address, width, value);
     if (!memory || !value || offset > sizeof(memory->root_counters) || width > sizeof(memory->root_counters) - offset || (width != 1u && width != 2u && width != 4u))
         return 0;
-#if defined(LOCKSTEP_DEBUG)
     if ((offset & 15) < 4 && width <= 4 - (offset & 15))
-#else
-    if (rrj_trace_runtime_is_live() && (offset & 15) < 4 && width <= 4 - (offset & 15))
-#endif
     {
         uint32 counter = (uint32)GetRCnt(offset >> 4);
         uint32 register_byte = offset & 15;

@@ -6,7 +6,6 @@
 #include "native_game_api.h"
 #include "menu_latch.h"
 #include "fixed_math.h"
-#include "race_trace_runtime.h"
 #include "wip.h"
 #include "xport.h"
 #include <stdlib.h>
@@ -423,32 +422,18 @@ uint32_t sub_80032190(uint32_t from, uint32_t to)
     return result;
 }
 
-static const RRJObjectCounterProbe *object_counter_probe;
-
-const RRJObjectCounterProbe *rrj_object_counter_set_probe(const RRJObjectCounterProbe *probe)
-{
-    const RRJObjectCounterProbe *previous = object_counter_probe;
-    object_counter_probe = probe;
-    return previous;
-}
-
 uint32_t sub_800322D0(uint32_t from, uint32_t to)
 {
     FUNCTION_MARKER(0x800322D0u, "SLUS_010.53");
     uint32_t result;
     if (!r_u32(0x800541D0u))
     {
-        if (object_counter_probe)
-            (void)object_counter_probe->enter();
-        else
-            sub_80043DA4();
+        sub_80043DA4();
     }
     (void)sub_80032190(from, to);
     result = r_u32(0x800541D0u);
     if (!result)
     {
-        if (object_counter_probe)
-            return object_counter_probe->leave();
         sub_80043DB4();
     }
     return result;
@@ -4418,18 +4403,12 @@ uint32_t sub_800C4550(uint32_t type, uint32_t object, uint32_t flags)
     FUNCTION_MARKER(0x800C4550u, "RASHCDG.BIN");
     uint32_t result;
     type &= 65535;
-    rrj_trace_dispatch_target(0x800C3E9Cu);
     result = sub_800C3E9C(type, object, &flags);
-    rrj_trace_dispatch_target(0x800C4550u);
     if (result == 1)
     {
-        rrj_trace_dispatch_target(0x800C4500u);
         (void)sub_800C4500(type, object, flags);
-        rrj_trace_dispatch_target(0x800C4454u);
         sub_800C4454(type, object, flags);
-        rrj_trace_dispatch_target(0x800C2FF4u);
         (void)sub_800C2FF4(type, object, flags);
-        rrj_trace_dispatch_target(0x800C4550u);
     }
     return result;
 }

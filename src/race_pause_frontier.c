@@ -1,6 +1,5 @@
 #include "rrj_debug.h"
 #include "game_main.h"
-#include "rrj_lockstep.h"
 #include "vblank.h"
 #include "native_game_api.h"
 #include "music_stop.h"
@@ -5714,13 +5713,7 @@ uint32_t sub_80035958(uint32_t player_index)
         }
         if (player_index == 0)
         {
-#if defined(LOCKSTEP_DEBUG)
-            rrj_lockstep_object_wait(player_index, 1u, far_count, far_indices, near_count, near_indices, near_minimum, near_maximum);
-#endif
             (void)sub_8001C408();
-#if defined(LOCKSTEP_DEBUG)
-            rrj_lockstep_object_wait_end();
-#endif
             synchronized = 1;
             if (r_u32(0x8005B588u) == 1)
             {
@@ -5747,13 +5740,7 @@ uint32_t sub_80035958(uint32_t player_index)
         }
         if (player_index == 0 && !synchronized)
         {
-#if defined(LOCKSTEP_DEBUG)
-            rrj_lockstep_object_wait(player_index, 2u, far_count, far_indices, near_count, near_indices, near_minimum, near_maximum);
-#endif
             (void)sub_8001C408();
-#if defined(LOCKSTEP_DEBUG)
-            rrj_lockstep_object_wait_end();
-#endif
             if (r_u32(0x8005B588u) == 1)
             {
                 w_u32(0x8005B588u, 2);
@@ -5771,180 +5758,8 @@ uint32_t sub_80035958(uint32_t player_index)
     return result;
 }
 
-/* Continue at 80035C0C after the current far model returns */
-uint32_t rrj_resume_sub_80035958(const RRJObjectContinuation *phase)
-{
-    uint32_t player_index;
-    uint32_t far_count;
-    uint32_t near_count;
-    uint32_t synchronized;
-    const uint32_t *far_indices;
-    const uint32_t *near_indices;
-    int32_t near_minimum;
-    int32_t near_maximum;
-    uint32_t index;
-    uint32_t result = 0;
 
-    if (phase == NULL || phase->far_count == 0 || phase->far_count > 12 || phase->near_count > 12 || phase->next_far_index > phase->far_count)
-        abort();
-    player_index = phase->player_index;
-    far_count = phase->far_count;
-    near_count = phase->near_count;
-    synchronized = phase->synchronized;
-    far_indices = phase->far_indices;
-    near_indices = phase->near_indices;
-    near_minimum = phase->near_minimum;
-    near_maximum = phase->near_maximum;
-    for (index = phase->next_far_index; index != far_count; ++index)
-    {
-        frontier_configure_model_scratch();
-        (void)sub_80069200(0x800D87ECu + 112 * far_indices[index]);
-    }
-    if (player_index == 0 && !synchronized)
-    {
-#if defined(LOCKSTEP_DEBUG)
-        rrj_lockstep_object_wait(player_index, 1u, far_count, far_indices, near_count, near_indices, near_minimum, near_maximum);
-#endif
-        (void)sub_8001C408();
-#if defined(LOCKSTEP_DEBUG)
-        rrj_lockstep_object_wait_end();
-#endif
-        synchronized = 1;
-        if (r_u32(0x8005B588u) == 1)
-        {
-            w_u32(0x8005B588u, 2);
-            (void)DrawOTag((uint32 *)xport_guest_ptr(r_u32(0x8005B59Cu) + 16, sizeof(uint32)));
-        }
-    }
-    (void)DrawOTag((uint32 *)xport_guest_ptr(r_u32(r_u32(0x8005B470u) + 264) + 4 * r_u32(0x8005ADFCu) - 4, sizeof(uint32)));
-    {
-        PSX_RECT *rectangle = (PSX_RECT *)xport_guest_ptr(0x8005B398u, sizeof(PSX_RECT));
-        uint32_t destination = 0x800D75D0u + 64u * r_u32(0x8005AE00u);
-        size_t bytes = rectangle->w > 0 && rectangle->h > 0 ? (size_t)rectangle->w * rectangle->h * 2u : 0;
-        result = (uint32_t)StoreImage(rectangle, (uint32 *)xport_guest_ptr(destination, bytes));
-    }
 
-    if (near_count != 0)
-    {
-        (void)sub_80021988(near_minimum, near_maximum);
-        (void)frontier_prepare_object_indices(near_indices, (int32_t)near_count, player_index);
-        for (index = 0; index != near_count; ++index)
-        {
-            frontier_configure_model_scratch();
-            (void)sub_80069200(0x800D87ECu + 112 * near_indices[index]);
-        }
-        if (player_index == 0 && !synchronized)
-        {
-#if defined(LOCKSTEP_DEBUG)
-            rrj_lockstep_object_wait(player_index, 2u, far_count, far_indices, near_count, near_indices, near_minimum, near_maximum);
-#endif
-            (void)sub_8001C408();
-#if defined(LOCKSTEP_DEBUG)
-            rrj_lockstep_object_wait_end();
-#endif
-            if (r_u32(0x8005B588u) == 1)
-            {
-                w_u32(0x8005B588u, 2);
-                (void)DrawOTag((uint32 *)xport_guest_ptr(r_u32(0x8005B59Cu) + 16, sizeof(uint32)));
-            }
-        }
-        (void)DrawOTag((uint32 *)xport_guest_ptr(r_u32(r_u32(0x8005B470u) + 264) + 4 * r_u32(0x8005ADFCu) - 4, sizeof(uint32)));
-        {
-            PSX_RECT *rectangle = (PSX_RECT *)xport_guest_ptr(0x8005B398u, sizeof(PSX_RECT));
-            uint32_t destination = 0x800D75D0u + 64u * r_u32(0x8005AE00u);
-            size_t bytes = rectangle->w > 0 && rectangle->h > 0 ? (size_t)rectangle->w * rectangle->h * 2u : 0;
-            result = (uint32_t)StoreImage(rectangle, (uint32 *)xport_guest_ptr(destination, bytes));
-        }
-    }
-    return result;
-}
-
-#if defined(LOCKSTEP_DEBUG)
-uint32_t rrj_resume_sub_80035958_wait(const RRJObjectContinuation *phase, uint32_t stage)
-{
-    uint32_t player_index;
-    uint32_t far_count;
-    uint32_t near_count;
-    uint32_t synchronized;
-    const uint32_t *far_indices;
-    const uint32_t *near_indices;
-    int32_t near_minimum;
-    int32_t near_maximum;
-    uint32_t index;
-    uint32_t result = 0;
-
-    if (!phase || phase->far_count > 12 || phase->near_count > 12 || (stage != 1 && stage != 2) || (stage == 2 && !phase->near_count))
-        abort();
-    player_index = phase->player_index;
-    far_count = phase->far_count;
-    near_count = phase->near_count;
-    synchronized = phase->synchronized;
-    far_indices = phase->far_indices;
-    near_indices = phase->near_indices;
-    near_minimum = phase->near_minimum;
-    near_maximum = phase->near_maximum;
-    if (stage == 2)
-        goto near_wait;
-    if (player_index == 0 && !synchronized)
-    {
-    #if defined(LOCKSTEP_DEBUG)
-        rrj_lockstep_object_wait(player_index, 1u, far_count, far_indices, near_count, near_indices, near_minimum, near_maximum);
-    #endif
-        rrj_lockstep_object_wait_resume();
-    #if defined(LOCKSTEP_DEBUG)
-        rrj_lockstep_object_wait_end();
-    #endif
-        synchronized = 1;
-        if (r_u32(0x8005B588u) == 1)
-        {
-            w_u32(0x8005B588u, 2);
-            (void)DrawOTag((uint32 *)xport_guest_ptr(r_u32(0x8005B59Cu) + 16, sizeof(uint32)));
-        }
-    }
-    (void)DrawOTag((uint32 *)xport_guest_ptr(r_u32(r_u32(0x8005B470u) + 264) + 4 * r_u32(0x8005ADFCu) - 4, sizeof(uint32)));
-    {
-        PSX_RECT *rectangle = (PSX_RECT *)xport_guest_ptr(0x8005B398u, sizeof(PSX_RECT));
-        uint32_t destination = 0x800D75D0u + 64u * r_u32(0x8005AE00u);
-        size_t bytes = rectangle->w > 0 && rectangle->h > 0 ? (size_t)rectangle->w * rectangle->h * 2u : 0;
-        result = (uint32_t)StoreImage(rectangle, (uint32 *)xport_guest_ptr(destination, bytes));
-    }
-
-    if (near_count != 0)
-    {
-        (void)sub_80021988(near_minimum, near_maximum);
-        (void)frontier_prepare_object_indices(near_indices, (int32_t)near_count, player_index);
-        for (index = 0; index != near_count; ++index)
-        {
-            frontier_configure_model_scratch();
-            (void)sub_80069200(0x800D87ECu + 112 * near_indices[index]);
-        }
-    near_wait:
-        if (player_index == 0 && !synchronized)
-        {
-    #if defined(LOCKSTEP_DEBUG)
-            rrj_lockstep_object_wait(player_index, 2u, far_count, far_indices, near_count, near_indices, near_minimum, near_maximum);
-    #endif
-            rrj_lockstep_object_wait_resume();
-    #if defined(LOCKSTEP_DEBUG)
-            rrj_lockstep_object_wait_end();
-    #endif
-            if (r_u32(0x8005B588u) == 1)
-            {
-                w_u32(0x8005B588u, 2);
-                (void)DrawOTag((uint32 *)xport_guest_ptr(r_u32(0x8005B59Cu) + 16, sizeof(uint32)));
-            }
-        }
-        (void)DrawOTag((uint32 *)xport_guest_ptr(r_u32(r_u32(0x8005B470u) + 264) + 4 * r_u32(0x8005ADFCu) - 4, sizeof(uint32)));
-        {
-            PSX_RECT *rectangle = (PSX_RECT *)xport_guest_ptr(0x8005B398u, sizeof(PSX_RECT));
-            uint32_t destination = 0x800D75D0u + 64u * r_u32(0x8005AE00u);
-            size_t bytes = rectangle->w > 0 && rectangle->h > 0 ? (size_t)rectangle->w * rectangle->h * 2u : 0;
-            result = (uint32_t)StoreImage(rectangle, (uint32 *)xport_guest_ptr(destination, bytes));
-        }
-    }
-    return result;
-}
-#endif
 
 uint32_t sub_8006929C(uint32_t base_index, uint32_t packed_indices, uint32_t depth_shift)
 {
@@ -6228,69 +6043,7 @@ uint32_t sub_80069CF0(uint32_t base_index, uint32_t packed_indices, uint32_t dep
     return 0;
 }
 
-/* Continue the accepted quad at 8006A0B0 with the saved pre-IRQ clip flags */
-void rrj_resume_sub_80069CF0(uint32_t base_index, uint32_t depth_shift, uint32_t first_quad, const uint8_t indices[9], uint32_t current_clip_or)
-{
-    uint32_t triangle;
 
-    if (first_quad >= 4)
-        abort();
-    for (triangle = first_quad; triangle != 4; ++triangle)
-    {
-        uint32_t selectors = r_u32(0x800CCA40u + 4 * triangle);
-        uint32_t first_index = indices[selectors >> 12];
-        uint32_t second_index = indices[(selectors >> 8) & 0xFu];
-        uint32_t third_index = indices[(selectors >> 4) & 0xFu];
-        uint32_t fourth_index = indices[selectors & 0xFu];
-        uint32_t first = 0x1F800100u + 32 * first_index;
-        uint32_t second = 0x1F800100u + 32 * second_index;
-        uint32_t third = 0x1F800100u + 32 * third_index;
-        uint32_t fourth = 0x1F800100u + 32 * fourth_index;
-        uint32_t first_clip = triangle == first_quad ? 0 : r_u8(first + 31);
-        uint32_t second_clip = triangle == first_quad ? 0 : r_u8(second + 31);
-        uint32_t third_clip = triangle == first_quad ? 0 : r_u8(third + 31);
-        uint32_t fourth_clip = triangle == first_quad ? 0 : r_u8(fourth + 31);
-        uint32_t combined = first_clip | second_clip | third_clip | fourth_clip;
-
-        if (triangle == first_quad)
-            combined = current_clip_or;
-        else if ((first_clip & second_clip & third_clip & fourth_clip & 0x1Fu) != 0)
-            continue;
-        if ((combined >> (depth_shift & 31u)) != 0 || (((int32_t)(uint32_t)(base_index)) < 14 && (combined & 0x10u) != 0))
-        {
-            (void)sub_80069CF0(base_index + 5, first_index | (second_index << 8) | (third_index << 16) | (fourth_index << 24), depth_shift);
-        }
-        else
-        {
-            uint32_t packet = r_u32(0x1F800020u);
-            if (packet + 52u >= r_u32(0x8005B4D0u))
-            {
-                packet = sub_80021C98(packet, 52);
-                w_u32(0x1F800020u, packet);
-            }
-            w_u32(packet, r_u32(0x1F800028u) | 0x0C000000u);
-            w_u32(packet + 4, (r_u32(first + 28) & 0xFFFFFFu) | 0x3C000000u);
-            w_u32(packet + 8, r_u32(first + 24));
-            w_u32(packet + 12, r_u32(first + 16) | r_u32(0x1F800034u));
-            w_u32(packet + 16, r_u32(second + 28) & 0xFFFFFFu);
-            w_u32(packet + 20, r_u32(second + 24));
-            w_u32(packet + 24, r_u32(second + 16) | r_u32(0x1F800038u));
-            w_u32(packet + 28, r_u32(fourth + 28) & 0xFFFFFFu);
-            w_u32(packet + 32, r_u32(fourth + 24));
-            w_u32(packet + 36, r_u32(fourth + 16));
-            w_u32(packet + 40, r_u32(third + 28) & 0xFFFFFFu);
-            {
-                uint32_t screen = r_u32(third + 24);
-                uint32_t uv;
-                w_u32(0x1F800028u, packet);
-                w_u32(packet + 44, screen);
-                uv = r_u32(third + 16);
-                w_u32(0x1F800020u, packet + 52);
-                w_u32(packet + 48, uv);
-            }
-        }
-    }
-}
 
 uint32_t sub_8006A25C(uint32_t base_index, uint32_t packed_indices, uint32_t packet_color)
 {
@@ -7717,45 +7470,7 @@ static uint32_t frontier_resume_road_faces(uint32_t face, uint32_t count)
     return cursor;
 }
 
-/* Continue at 8006F53C after the interrupted clip call returns */
-uint32_t rrj_resume_sub_8006E474(const RRJRoadContinuation *phase)
-{
-    uint32_t position;
-    uint32_t pattern_shift;
-    uint32_t cursor;
 
-    if (phase == NULL || phase->remaining_faces == 0 || phase->segment_count > 8 || (phase->next_vertex_position & 1u) != 0 || phase->next_vertex_position > 2 * phase->segment_count)
-        abort();
-    pattern_shift = phase->pattern_shift;
-    for (position = phase->next_vertex_position; position < 2 * phase->segment_count; position += 2)
-    {
-        uint32_t texture_code = (phase->texture_pattern >> (pattern_shift & 31u)) & 3u;
-        uint32_t clut_code = (phase->texture_pattern >> ((pattern_shift + 2) & 31u)) & 3u;
-        uint32_t uv_table = 0x800CC8B4u + 32 * texture_code + 16 * phase->depth_band;
-        uint32_t clut = r_u16(0x800D5EC8u + 2 * (clut_code + 1 + phase->texture_group));
-        uint32_t index;
-
-        for (index = 0; index != 4; ++index)
-        {
-            const uint32_t *vertex = phase->vertices[position + index];
-            uint32_t record = 0x1F800100u + 32 * index;
-            uint32_t word;
-            for (word = 0; word != 8; ++word)
-                w_u32(record + 4 * word, vertex[word]);
-            w_u32(record + 16, r_u16(uv_table + 4 * index));
-        }
-        w_u32(0x1F800034u, clut << 16);
-        w_u32(0x1F800038u, r_u16(0x8005B370u) << 16);
-        pattern_shift += 5;
-        (void)sub_80069CF0(4, 0x01030200u, 5);
-    }
-    w_u32(r_u32(0x800CCE2Cu) + 4 * phase->ordering_bucket, r_u32(0x1F800028u));
-    if (phase->remaining_faces > 1)
-        return frontier_resume_road_faces(phase->face + 24, phase->remaining_faces - 1);
-    cursor = r_u32(0x1F800020u);
-    w_u32(r_u32(0x8005B470u) + 268, cursor);
-    return cursor;
-}
 
 uint32_t sub_80068FCC(uint32_t object)
 {
@@ -7819,39 +7534,7 @@ uint32_t sub_80068FCC(uint32_t object)
     return 0;
 }
 
-/* Resume the row dispatcher at 80069158 after the textured-road call */
-void rrj_resume_sub_80068FCC(uint32_t object, uint32_t group, uint32_t end, uint32_t shift)
-{
-    (void)sub_8006A630(object, group + r_u16(r_u32(object) + 6));
-    ++group;
-    shift += 4;
-    for (; (int32_t)group < (int32_t)end; ++group, shift += 4)
-    {
-        uint32_t filtered = r_u32(0x800CC86Cu);
-        uint32_t flags = r_u32(object + 52);
-        uint32_t mode = (flags >> (shift & 31u)) & (filtered != 0 ? 0x0Du : 0x0Fu);
 
-        if ((mode & 1u) == 0)
-            continue;
-        if ((mode & 2u) != 0)
-        {
-            if ((mode & 4u) != 0)
-            {
-                (void)sub_8006E474(object, group + 2 * r_u16(r_u32(object) + 6));
-                (void)sub_8006A630(object, group + r_u16(r_u32(object) + 6));
-            }
-            else
-            {
-                (void)sub_8006F5D0(object, group + 2 * r_u16(r_u32(object) + 6));
-                (void)sub_8006C888(object, group + r_u16(r_u32(object) + 6));
-            }
-        }
-        else if ((mode & 4u) != 0)
-            (void)sub_8006D350(object, group);
-        else
-            (void)sub_8006DC20(object, group);
-    }
-}
 
 uint32_t sub_800706A4(uint32_t object)
 {

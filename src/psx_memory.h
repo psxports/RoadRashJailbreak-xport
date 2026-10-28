@@ -2,7 +2,6 @@
 #define RRJ_MEMORY_H
 #include "types.h"
 #include "psx.h"
-#include "race_native_abi.h"
 
 /* Transitional storage for original 32-bit addresses and packed data. This is
  * a byte-addressed data arena, not a CPU emulator. Native functions use ordinary
@@ -12,16 +11,11 @@ typedef void (*RRJDisplayWaitService)(void);
 
 struct RRJMemory
 {
-    void *sdk_user;
     uint32_t cpu_status;
-    /* Original SP at the resident menu continuation */
-    uint32_t menu_stack_pointer;
-    /* Optional immutable BIOS image used by exact trace replay */
+    /* Immutable BIOS data used by native SDK services */
     uint8 *bios;
     /* Explicit root-counter MMIO registers */
     uint8 root_counters[48];
-    RRJNativeCheckpointABI checkpoint_abi;
-    int checkpoint_abi_valid;
     RRJDisplayWaitService display_wait_service;
 };
 

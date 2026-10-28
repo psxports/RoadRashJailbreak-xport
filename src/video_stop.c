@@ -1,3 +1,4 @@
+#include "rrj_fmv.h"
 #include "rrj_cd_transport.h"
 #include "rrj_data.h"
 #include "psx.h"
@@ -126,6 +127,13 @@ uint32_t sub_8006FE6C(void)
 {
     uint32_t channel, flags;
     FUNCTION_MARKER(0x8006FE6Cu, "RASHCDF.BIN");
+    if (rrj_menu_fmv_active())
+    {
+        rrj_menu_fmv_close();
+        w_u32(0x8009C684u, 0xffffffffu);
+        w_u16(0x8009C5DAu, (uint16_t)(r_u16(0x8009C5DAu) & 0xfff8u));
+        return 1u;
+    }
     if (r_u16(0x8009C5DAu) & 1u)
     {
         channel = r_u16(0x8009C688u);

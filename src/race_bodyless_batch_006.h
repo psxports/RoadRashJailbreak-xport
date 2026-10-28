@@ -2,7 +2,6 @@
 #define RRJ_RACE_BODYLESS_BATCH_006_H
 
 #include "race_leaf.h"
-#include "race_native_abi.h"
 
 uint32_t sub_8002289C(uint8_t record[9], const uint32_t keys[3], const uint32_t pointers[3], uint32_t slot);
 uint32_t sub_80033EA0(uint32_t flags, uint32_t output, const uint8_t record[9]);

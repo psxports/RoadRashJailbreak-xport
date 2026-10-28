@@ -8,7 +8,7 @@
 #include "input.h"
 /* Original resident/menu VBlank counters and display-ready gates. */
 #include "vblank.h"
-#include "race_trace_runtime.h"
+#include "rrj_runtime.h"
 #include <stdlib.h>
 
 typedef char RRJVBlankDrawEnvLayout[(sizeof(DRAWENV) == 92) ? 1 : -1];
@@ -31,11 +31,8 @@ uint32_t sub_8001B700(void)
 {
     FUNCTION_MARKER(0x8001B700u, "SLUS_010.53");
     uint32_t state = r_u32(0x8005B2F8), frames = r_u32(0x8005B46C), ticks = r_u32(state + 12), count, ctx, result;
-    uint32_t cd_callback;
     w_u32(0x8005B46C, frames + 1);
-    cd_callback = rrj_trace_vblank_boundary(rrj_host_context());
-    if (cd_callback)
-        (void)rrj_file_function(cd_callback)();
+    rrj_spu_completion_service();
     count = r_u32(state + 100);
     w_u32(state + 12, ticks + 5);
     ctx = r_u32(0x8005B470);

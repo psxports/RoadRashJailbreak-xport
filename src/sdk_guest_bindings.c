@@ -1,6 +1,7 @@
 #include "rrj_debug.h"
 #include "psx.h"
 #include "sdk_build_stubs.h"
+#include "wip.h"
 #include "race_bodyless_batch_001.h"
 #include "native_game_api.h"
 #include "race_audio_frontier.h"
@@ -89,8 +90,7 @@ uint32_t sub_80050C58(uint32_t address)
 
 uint32 rrj_missing_pad_init_mtap(uint32 first, uint32 second)
 {
-    RRJ_DEBUG_FPRINTF(stderr, "RRJ: missing SDK PadInitMtap adapter, buffers %08X and %08X\n", first, second);
-    abort();
+    return InitPAD(first, 34, second, 34);
 }
 
 
@@ -162,8 +162,7 @@ uint8_t *rrj_tim_read(uint8_t output[20])
 
 uint32_t rrj_missing_spu_start(void)
 {
-    RRJ_DEBUG_FPUTS("RRJ: missing SDK SpuStart adapter\n", stderr);
-    abort();
+    return SpuStart();
 }
 
 uint32_t rrj_missing_pc_seek(uint32_t handle, uint32_t offset, uint32_t mode)
@@ -225,26 +224,23 @@ uint32_t rrj_cd_read_callback_psx(uint32_t callback)
 
 void rrj_missing_init_card(uint32_t mode)
 {
-    RRJ_DEBUG_FPRINTF(stderr, "RRJ: missing SDK InitCARD adapter, mode %u\n", mode);
-    abort();
+    RRJ_WIP3(rrj_host_context(), 0x800116B8, "memory_card", mode, 0, 0);
+    (void)xport_bios_init_card(mode);
 }
 
 void rrj_missing_card_auto(uint32_t mode)
 {
-    RRJ_DEBUG_FPRINTF(stderr, "RRJ: missing BIOS _card_auto adapter, mode %u\n", mode);
-    abort();
+    RRJ_WIP3(rrj_host_context(), 0x800116B8, "memory_card", mode, 0, 0);
 }
 
 void rrj_missing_start_card(void)
 {
-    RRJ_DEBUG_FPUTS("RRJ: missing SDK StartCARD adapter\n", stderr);
-    abort();
+    StartCARD();
 }
 
 uint32_t rrj_missing_stop_card(void)
 {
-    RRJ_DEBUG_FPUTS("RRJ: missing SDK StopCARD adapter\n", stderr);
-    abort();
+    return xport_bios_stop_card();
 }
 
 uint32_t rrj_file_buffer_address(const void *buffer)
@@ -462,4 +458,3 @@ void rrj_missing_bios_b0_19(uint32_t context)
     RRJ_DEBUG_FPRINTF(stderr, "RRJ: missing BIOS B0:19 adapter, context %08X\n", context);
     abort();
 }
-

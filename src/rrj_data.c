@@ -1,6 +1,5 @@
 #include "rrj_data.h"
 #include "psx.h"
-#include "race_trace_runtime.h"
 #include "xport_trace.h"
 #include <stdlib.h>
 #include <string.h>
@@ -21,11 +20,7 @@ static uint32_t stream_base, stream_size;
 
 int rrj_data_enabled(void)
 {
-#if defined(LOCKSTEP_DEBUG)
-    return 0;
-#else
-    return rrj_trace_runtime_is_live();
-#endif
+    return 1;
 }
 
 static int load_index(void)

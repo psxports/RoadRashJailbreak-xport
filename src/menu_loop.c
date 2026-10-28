@@ -1,4 +1,6 @@
 #include "menu_transition.h"
+#include "rrj_fmv.h"
+#include "rrj_runtime.h"
 #include "menu_frame.h"
 #include "menu_update.h"
 #include "resource.h"
@@ -61,6 +63,7 @@ void rrj_menu_finish_iteration(void)
     count = r_u32(0x8009C2F4);
     if (count)
         sub_80062774(0x8009C3D0, count);
+    rrj_menu_fmv_present();
     (void)sub_80080488();
     w_u32(0x8009C2F0, 0);
     w_u32(0x8009C2F4, 0);
@@ -71,6 +74,10 @@ uint32_t sub_80080274(void)
 {
     FUNCTION_MARKER(0x80080274u, "RASHCDF.BIN");
     while (r_u8(r_u32(0x8005B2F8)) == 2)
+    {
+        if (!rrj_runtime_frame())
+            return 0;
         rrj_menu_iteration();
+    }
     return 2;
 }

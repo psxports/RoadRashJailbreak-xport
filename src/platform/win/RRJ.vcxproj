@@ -33,6 +33,9 @@
     <WholeProgramOptimization>false</WholeProgramOptimization>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\masm.props" />
+  </ImportGroup>
   <PropertyGroup>
     <OutDir>$(ProjectDir)..\..\..\bin\</OutDir>
     <IntDir>$(ProjectDir)..\..\..\_build\x86\$(Configuration)\</IntDir>
@@ -97,6 +100,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\rrj_runtime.c" />
     <ClCompile Include="..\..\game.c">
       <WholeProgramOptimization>false</WholeProgramOptimization>
     </ClCompile>
@@ -105,7 +109,6 @@
     <ClCompile Include="..\..\psx_memory.c" />
     <ClCompile Include="..\..\packet.c" />
     <ClCompile Include="..\..\flare.c" />
-    <ClCompile Include="..\..\platform_smoke.c" />
     <ClCompile Include="..\..\first2_saved.c" />
     <ClCompile Include="..\..\first2_dependencies.c" />
     <ClCompile Include="..\..\first2_runtime_dependencies.c" />
@@ -148,7 +151,6 @@
     <ClCompile Include="..\..\race_coverage_batch_001.c" />
     <ClCompile Include="..\..\race_input_audit_batch_001.c" />
     <ClCompile Include="..\..\race_bodyless_batch_001.c" />
-    <ClCompile Include="..\..\race_native_abi.c" />
     <ClCompile Include="..\..\race_bodyless_batch_002.c" />
     <ClCompile Include="..\..\race_bodyless_batch_003.c" />
     <ClCompile Include="..\..\race_bodyless_batch_004.c" />
@@ -188,7 +190,6 @@
     <ClCompile Include="..\..\race_global_8009E8A4.c" />
     <ClCompile Include="..\..\race_global_8009D004.c" />
     <ClCompile Include="..\..\race_global_8008C45C.c" />
-    <ClCompile Include="..\..\race_trace_runtime.c" />
     <ClCompile Include="..\..\rrj_cd_transport.c" />
     <ClCompile Include="..\..\race_audio_frontier.c" />
     <ClCompile Include="..\..\race_pause.c" />
@@ -243,6 +244,12 @@
     <ClCompile Include="..\..\video_phase.c" />
     <ClCompile Include="..\..\video_tick.c" />
     <ClCompile Include="..\..\video_preview.c" />
+    <ClCompile Include="..\..\rrj_ea_vlc.c" />
+    <ClCompile Include="..\..\rrj_ea_frame.c" />
+    <ClCompile Include="..\..\rrj_fmv.c" />
+    <ClCompile Include="..\..\rrj_menu_fmv.c" />
+    <ClCompile Include="..\..\..\..\xport\src\xport_fmv.c" />
+    <ClCompile Include="..\..\..\..\xport\src\psx_vlc.c" />
     <ClCompile Include="..\..\spu.c" />
     <ClCompile Include="..\..\menu.c" />
     <ClCompile Include="..\..\dummy.c" />
@@ -266,13 +273,11 @@
     <ClInclude Include="..\..\race_global_8009E8A4.h" />
     <ClInclude Include="..\..\race_global_8009D004.h" />
     <ClInclude Include="..\..\race_global_8008C45C.h" />
-    <ClInclude Include="..\..\race_trace_runtime.h" />
     <ClInclude Include="..\..\race_audio_frontier.h" />
     <ClInclude Include="..\..\race_pause_frontier.h" />
     <ClInclude Include="..\..\psx_memory.h" />
     <ClInclude Include="..\..\packet.h" />
     <ClInclude Include="..\..\flare.h" />
-    <ClInclude Include="..\..\platform_smoke.h" />
     <ClInclude Include="..\..\..\..\xport\src\xport_trace.h" />
     <ClInclude Include="..\..\..\..\xport\src\psx.h" />
     <ClInclude Include="..\..\..\..\xport\src\psx_gpu.h" />
@@ -340,43 +345,24 @@
     <ClInclude Include="..\..\..\..\xport\src\xport.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\game_except.c" />
-    <ClCompile Include="..\..\rrj_lockstep.c" />
-    <ClInclude Include="..\..\rrj_lockstep.h" />
-  </ItemGroup>
-  <PropertyGroup Condition="'$(LockstepDebug)'=='true'">
-    <IntDir>$(ProjectDir)..\..\..\_build\x86\Debug\Lockstep\</IntDir>
-  </PropertyGroup>
-  <ItemDefinitionGroup Condition="'$(LockstepDebug)'=='true'">
-    <ClCompile>
-      <PreprocessorDefinitions>LOCKSTEP_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <Optimization>Disabled</Optimization>
-      <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
-      <OmitFramePointers>false</OmitFramePointers>
-    </ClCompile>
-    <Link>
-      <ProgramDatabaseFile>$(ProjectDir)..\..\..\_build\x86\Debug\$(TargetName).pdb</ProgramDatabaseFile>
-    </Link>
-  </ItemDefinitionGroup>
-  <ItemGroup>
     <ClCompile Include="..\..\..\..\xport\src\psx_mdec.c" />
     <ClInclude Include="..\..\..\..\xport\src\psx_mdec.h" />
   </ItemGroup>
   <PropertyGroup Label="XportTemplateSync">
     <UseXcrt Condition="'$(UseXcrt)'==''">true</UseXcrt>
     <XcrtEnabled>false</XcrtEnabled>
-    <XcrtEnabled Condition="'$(Configuration)|$(Platform)'=='Release|Win32' and '$(UseXcrt)'=='true' and '$(LockstepDebug)'!='true'">true</XcrtEnabled>
-    <OutDir Condition="'$(LockstepDebug)'!='true'">$(ProjectDir)..\..\..\bin\</OutDir>
-    <IntDir Condition="'$(LockstepDebug)'!='true'">$(ProjectDir)..\..\..\_build\x86\$(Configuration)\</IntDir>
-    <LinkIncremental Condition="'$(LockstepDebug)'!='true'">false</LinkIncremental>
-    <LocalDebuggerWorkingDirectory Condition="'$(LockstepDebug)'!='true'">$(OutDir)</LocalDebuggerWorkingDirectory>
-    <LocalDebuggerCommand Condition="'$(LockstepDebug)'!='true'">$(TargetPath)</LocalDebuggerCommand>
-    <DebuggerFlavor Condition="'$(LockstepDebug)'!='true'">WindowsLocalDebugger</DebuggerFlavor>
+    <XcrtEnabled Condition="'$(Configuration)|$(Platform)'=='Release|Win32' and '$(UseXcrt)'=='true'">true</XcrtEnabled>
+    <OutDir>$(ProjectDir)..\..\..\bin\</OutDir>
+    <IntDir>$(ProjectDir)..\..\..\_build\x86\$(Configuration)\</IntDir>
+    <LinkIncremental>false</LinkIncremental>
+    <LocalDebuggerWorkingDirectory>$(OutDir)</LocalDebuggerWorkingDirectory>
+    <LocalDebuggerCommand>$(TargetPath)</LocalDebuggerCommand>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32' and '$(LockstepDebug)'!='true'" Label="XportTemplateSync">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="XportTemplateSync">
     <TargetName>RRJ_debug</TargetName>
   </PropertyGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32' and '$(LockstepDebug)'!='true'" Label="XportTemplateSync">
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="XportTemplateSync">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <TreatWarningAsError>true</TreatWarningAsError>
@@ -387,7 +373,7 @@
       <ProgramDataBaseFileName>$(IntDir)RRJ-compile.pdb</ProgramDataBaseFileName>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <DisableSpecificWarnings>4100;4244;4554;%(DisableSpecificWarnings)</DisableSpecificWarnings>
-      <PreprocessorDefinitions>FULL_NAME="Road Rash: Jailbreak";GAPI_OGL;_DEBUG;XPORT_ENABLE_AUDIT;XPORT_MEMORY_DIAGNOSTICS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>FULL_NAME="Road Rash: Jailbreak";GAPI_OGL;_DEBUG;XPORT_MEMORY_DIAGNOSTICS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -397,12 +383,12 @@
       <AdditionalDependencies>opengl32.lib;user32.lib;gdi32.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32' and '$(LockstepDebug)'!='true'" Label="XportTemplateSync">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="XportTemplateSync">
     <TargetName>RRJ</TargetName>
     <GenerateManifest>false</GenerateManifest>
     <WholeProgramOptimization>true</WholeProgramOptimization>
   </PropertyGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32' and '$(LockstepDebug)'!='true'" Label="XportTemplateSync">
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="XportTemplateSync">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <TreatWarningAsError>true</TreatWarningAsError>
@@ -437,23 +423,12 @@
       <AdditionalDependencies>opengl32.lib;user32.lib;gdi32.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32' and '$(LockstepDebug)'!='true'" Label="XportTemplateSync">
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="XportTemplateSync">
     <ClCompile>
       <PreprocessorDefinitions>XPORT_DISABLE_FUNCTION_MARKERS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(LockstepDebug)'=='true'">
-    <ClCompile>
-      <PreprocessorDefinitions>LOCKSTEP_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <Optimization>Disabled</Optimization>
-      <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
-      <OmitFramePointers>false</OmitFramePointers>
-    </ClCompile>
-    <Link>
-      <ProgramDatabaseFile>$(ProjectDir)..\..\..\_build\x86\Debug\$(TargetName).pdb</ProgramDatabaseFile>
-    </Link>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(XcrtEnabled)'=='true'" Label="XportTemplateSync">
+<ItemDefinitionGroup Condition="'$(XcrtEnabled)'=='true'" Label="XportTemplateSync">
     <ClCompile>
       <PreprocessorDefinitions>GAPI_OGL;XPORT_XCRT;_NO_CRT_STDIO_INLINE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <OmitDefaultLibName>true</OmitDefaultLibName>
@@ -478,85 +453,14 @@
       <ForcedIncludeFiles />
     </ClCompile>
   </ItemGroup>
-  <PropertyGroup Condition="'$(LockstepDebug)'=='true'" Label="XportLockstepPreserved">
-    <OutDir>$(ProjectDir)..\..\..\bin\</OutDir>
-    <IntDir>$(ProjectDir)..\..\..\_build\x86\$(Configuration)\</IntDir>
-    <TargetName Condition="'$(Configuration)'=='Debug'">RRJ_debug</TargetName>
-    <TargetName Condition="'$(Configuration)'=='Release'">RRJ</TargetName>
-    <LinkIncremental>false</LinkIncremental>
-    <LocalDebuggerWorkingDirectory>$(OutDir)</LocalDebuggerWorkingDirectory>
-    <LocalDebuggerCommand>$(TargetPath)</LocalDebuggerCommand>
-    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
-  </PropertyGroup>
-  <ItemDefinitionGroup Condition="'$(LockstepDebug)'=='true'" Label="XportLockstepPreserved">
-    <ClCompile>
-      <WarningLevel>Level4</WarningLevel>
-      <TreatWarningAsError>true</TreatWarningAsError>
-      <DisableSpecificWarnings>4100;%(DisableSpecificWarnings)</DisableSpecificWarnings>
-      <SDLCheck>true</SDLCheck>
-      <Optimization>MaxSpeed</Optimization>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
-      <SupportJustMyCode>false</SupportJustMyCode>
-      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
-      <RuntimeLibrary Condition="'$(Configuration)'=='Debug'">MultiThreadedDebugDLL</RuntimeLibrary>
-      <RuntimeLibrary Condition="'$(Configuration)'=='Release'">MultiThreaded</RuntimeLibrary>
-      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <CompileAs>CompileAsC</CompileAs>
-      <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <PreprocessorDefinitions Condition="'$(Configuration)'=='Debug'">GAPI_OGL;_DEBUG;_CRT_SECURE_NO_WARNINGS;_WINSOCKAPI_;XPORT_GAME_GPU_GUEST_DISPATCH=1;WND_TITLE="Road Rash: Jailbreak (xport)";WND_WIDTH=960;WND_HEIGHT=720;FIELD_RATE=60;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <PreprocessorDefinitions Condition="'$(Configuration)'=='Release'">GAPI_OGL;NDEBUG;_CRT_SECURE_NO_WARNINGS;_WINSOCKAPI_;XPORT_GAME_GPU_GUEST_DISPATCH=1;WND_TITLE="Road Rash: Jailbreak (xport)";WND_WIDTH=960;WND_HEIGHT=720;FIELD_RATE=60;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\..;$(ProjectDir)..\..\..\..\xport\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <ProgramDataBaseFileName>$(IntDir)RRJ-compile.pdb</ProgramDataBaseFileName>
-    </ClCompile>
-    <Link>
-      <SubSystem>Windows</SubSystem>
-      <TargetMachine>MachineX86</TargetMachine>
-      <BaseAddress>0x02000000</BaseAddress>
-      <RandomizedBaseAddress>false</RandomizedBaseAddress>
-      <EnableCOMDATFolding Condition="'$(Configuration)'=='Debug'">false</EnableCOMDATFolding>
-      <EnableCOMDATFolding Condition="'$(Configuration)'=='Release'">true</EnableCOMDATFolding>
-      <OptimizeReferences Condition="'$(Configuration)'=='Release'">true</OptimizeReferences>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <ProgramDatabaseFile>$(IntDir)$(TargetName).pdb</ProgramDatabaseFile>
-      <ImportLibrary>$(IntDir)RRJ.lib</ImportLibrary>
-      <AdditionalDependencies>opengl32.lib;user32.lib;gdi32.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
-    </Link>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="('$(Configuration)'=='Debug') and '$(LockstepDebug)'=='true'" Label="XportLockstepPreserved">
-    <ClCompile>
-      <Optimization>Disabled</Optimization>
-      <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
-      <IntrinsicFunctions>false</IntrinsicFunctions>
-      <OmitFramePointers>false</OmitFramePointers>
-    </ClCompile>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="('$(Configuration)'=='Release') and '$(LockstepDebug)'=='true'" Label="XportLockstepPreserved">
-    <ClCompile>
-      <FunctionLevelLinking>true</FunctionLevelLinking>
-    </ClCompile>
-    <Link>
-      <GenerateMapFile>true</GenerateMapFile>
-      <MapFileName>$(IntDir)RRJ.map</MapFileName>
-    </Link>
-  </ItemDefinitionGroup>
-  <PropertyGroup Condition="('$(LockstepDebug)'=='true') and '$(LockstepDebug)'=='true'" Label="XportLockstepPreserved">
-    <IntDir>$(ProjectDir)..\..\..\_build\x86\Debug\Lockstep\</IntDir>
-  </PropertyGroup>
-  <ItemDefinitionGroup Condition="('$(LockstepDebug)'=='true') and '$(LockstepDebug)'=='true'" Label="XportLockstepPreserved">
-    <ClCompile>
-      <PreprocessorDefinitions>LOCKSTEP_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <Optimization>Disabled</Optimization>
-      <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
-      <OmitFramePointers>false</OmitFramePointers>
-    </ClCompile>
-    <Link>
-      <ProgramDatabaseFile>$(ProjectDir)..\..\..\_build\x86\Debug\$(TargetName).pdb</ProgramDatabaseFile>
-    </Link>
-  </ItemDefinitionGroup>
-  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+<Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\masm.targets" />
+  </ImportGroup>
   <ItemGroup>
+    <MASM Include="..\..\..\..\xport\src\platform\win\xcrt_x86.asm">
+      <ExcludedFromBuild Condition="'$(XcrtEnabled)'!='true'">true</ExcludedFromBuild>
+    </MASM>
     <ClCompile Include="..\..\game_link_stubs.c" />
     <ClCompile Include="..\..\rrj_data.c" />
   </ItemGroup>

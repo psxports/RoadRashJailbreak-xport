@@ -2,7 +2,6 @@
 #define RRJ_RACE_BODYLESS_BATCH_004_H
 
 #include "race_leaf.h"
-#include "race_native_abi.h"
 
 uint32_t sub_8002C9D4(uint32_t index);
 uint32_t sub_8001B67C(uint32_t index);

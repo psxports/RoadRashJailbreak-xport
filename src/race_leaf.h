@@ -19,14 +19,10 @@ uint32_t sub_800119C0(void);
 uint32_t sub_800121E4(void);
 uint32_t sub_80012224(void);
 uint32_t sub_80012370(void);
-uint32_t rrj_resume_after_menu(void);
-uint32_t rrj_resume_after_race_frame(void);
 uint32_t sub_80012764(uint32_t index);
 void sub_80014044(uint8_t record[20], uint32_t tim);
 uint32_t sub_8001408C(const char *path, uint32_t *buffer_out, uint8_t record[20]);
 uint32_t sub_800140E8(void);
-typedef void (*RRJHeapFailureProbe)(uint32_t requested);
-RRJHeapFailureProbe rrj_heap_set_failure_probe(RRJHeapFailureProbe replacement);
 uint32_t sub_800142B4(uint32_t size, uint32_t index);
 uint32_t sub_8001426C(uint32_t arena, uint32_t size, uint32_t index);
 void sub_80014370(uint32_t pointer);
@@ -90,7 +86,6 @@ int32_t sub_80019E40(uint32_t index, int32_t x, int32_t z, int32_t other_x, int3
 uint32_t sub_8001A760(uint32_t actor_index, uint32_t mode);
 uint32_t sub_8001B494(void);
 uint32_t sub_8001B4C0(void);
-void rrj_restore_native_vblank(void);
 uint32_t sub_8001B564(void);
 uint32_t sub_8001B594(uint32_t callback);
 uint32_t sub_8001B5C8(void);
@@ -107,7 +102,6 @@ uint32_t sub_8001C004(void);
 uint32_t sub_8001C4D0(void);
 uint32_t sub_8001C590(void);
 uint32_t sub_8001CB3C(void);
-uint32_t rrj_input_audit_probe(RRJMemory *m, const uint32_t args[6]);
 int32_t sub_8001CA58(uint32_t input, uint32_t table);
 uint32_t sub_8001DC94(uint32_t index, int32_t delay);
 uint32_t sub_8001DD08(uint32_t index, int32_t delay, uint32_t value);
@@ -372,5 +366,4 @@ uint32_t sub_800C9E74(void);
 uint32_t sub_800CA05C(uint32_t mode);
 
 uint32_t sub_80048428(void);
-int rrj_coverage_probe(RRJMemory *m, uint32_t target, const uint32_t args[6], uint32_t *result);
 #endif

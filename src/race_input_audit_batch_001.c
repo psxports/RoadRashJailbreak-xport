@@ -115,75 +115,6 @@ uint32_t sub_8008B428(uint32_t source, uint32_t mask)
     return best_id;
 }
 
-/* Optional host fixture hooks are inactive during native gameplay */
-typedef struct InputProbeHooks
-{
-    void (*primary)(uint32_t input, uint32_t entity);
-    void (*secondary)(uint32_t input, uint32_t entity);
-    uint32_t (*bits)(uint32_t input, uint32_t entity, int32_t direction);
-    void (*camera)(uint32_t camera, uint32_t mode);
-} InputProbeHooks;
-
-static InputProbeHooks input_probe_hooks;
-static uint32_t input_probe_args[6];
-
-static FILE *input_probe_stream(void)
-{
-    FILE *stream = (FILE *)rrj_host_context()->sdk_user;
-    if (!stream)
-        abort();
-    return stream;
-}
-
-static void input_probe_actor(uint32_t address, uint32_t input, uint32_t entity)
-{
-    RRJ_DEBUG_FPRINTF(input_probe_stream(), "%08X %08X %08X\n", address, input, entity);
-    if (input_probe_args[2] & 1)
-        w_u32(entity + 852, input_probe_args[3]);
-    if (input_probe_args[2] & 2)
-        w_u32(0x8005B2F8, input_probe_args[4]);
-}
-
-static void input_probe_primary(uint32_t input, uint32_t entity)
-{
-    input_probe_actor(0x800C2348, input, entity);
-}
-
-static void input_probe_secondary(uint32_t input, uint32_t entity)
-{
-    input_probe_actor(0x800C258C, input, entity);
-}
-
-static uint32_t input_probe_bits(uint32_t input, uint32_t entity, int32_t direction)
-{
-    RRJ_DEBUG_FPRINTF(input_probe_stream(), "%08X %08X %08X %08X\n", 0x800C2218u, input, entity, (uint32_t)direction);
-    if (input_probe_args[2] & 4)
-        w_u16(entity + 172, 9);
-    return input_probe_args[1];
-}
-
-static void input_probe_camera(uint32_t camera, uint32_t mode)
-{
-    RRJ_DEBUG_FPRINTF(input_probe_stream(), "%08X %08X %08X\n", 0x8008A998u, camera, mode);
-    (void)sub_8008A998(camera, mode);
-}
-
-uint32_t rrj_input_audit_probe(RRJMemory *m, const uint32_t args[6])
-{
-    InputProbeHooks saved = input_probe_hooks;
-    unsigned index;
-    for (index = 0; index < 6; ++index)
-        input_probe_args[index] = args[index];
-    m->cpu_status = args[0];
-    input_probe_hooks.primary = input_probe_primary;
-    input_probe_hooks.secondary = input_probe_secondary;
-    input_probe_hooks.bits = input_probe_bits;
-    input_probe_hooks.camera = input_probe_camera;
-    (void)sub_8001CB3C();
-    input_probe_hooks = saved;
-    return m->cpu_status;
-}
-
 uint32_t sub_8001CB3C(void)
 {
     uint32_t state, players, player, changed = 0;
@@ -455,23 +386,17 @@ uint32_t sub_8001CB3C(void)
                     w_u32(entity + 560, (r_u32(entity + 560) & ~clear_flags) | set_flags);
                     if (r_u16(entity + 948 + 8 * (uint32_t)r_s8(entity + 946)) == 16)
                     {
-                        if (input_probe_hooks.secondary)
-                            input_probe_hooks.secondary(input, entity);
-                        else
-                            (void)sub_800C258C(input, entity);
+                        (void)sub_800C258C(input, entity);
                     }
                     else
                     {
-                        if (input_probe_hooks.primary)
-                            input_probe_hooks.primary(input, entity);
-                        else
-                            (void)sub_800C2348(input, entity);
+                        (void)sub_800C2348(input, entity);
                     }
                     proxy = r_u32(entity + 852);
                     if (r_u16(proxy + 544) && !(r_u8(r_u32(entity + 1084)) & 0x40))
                     {
                         uint32_t id = r_u32(entity + 1088) ? r_u16(entity + 172) : r_u16(r_u32(entity + 856) + 172);
-                        uint32_t bits = input_probe_hooks.bits ? input_probe_hooks.bits(input, entity, -1) : sub_800C2218(input, entity, -1);
+                        uint32_t bits = sub_800C2218(input, entity, -1);
                         w_u32(0x8005AD18 + 4 * id, r_u32(0x8005AD18 + 4 * id) | bits);
                     }
                     state = r_u32(0x8005B2F8);
@@ -485,7 +410,7 @@ uint32_t sub_8001CB3C(void)
                             if (r_u16(proxy + 544) && !(r_u8(r_u32(entity + 1084)) & 0x40))
                             {
                                 uint32_t id = r_u32(entity + 1088) ? r_u16(entity + 172) : r_u16(r_u32(entity + 856) + 172);
-                                uint32_t bits = input_probe_hooks.bits ? input_probe_hooks.bits(input, entity, 1) : sub_800C2218(input, entity, 1);
+                                uint32_t bits = sub_800C2218(input, entity, 1);
                                 w_u32(0x8005AD18 + 4 * id, r_u32(0x8005AD18 + 4 * id) | bits);
                             }
                         }
@@ -533,10 +458,7 @@ uint32_t sub_8001CB3C(void)
                     if (r_s8(input + 26 + 8 * r_u32(r_u32(input + 184))) && !r_u32(camera + 772))
                     {
                         sub_80017BA0(0, 0, 107, 0);
-                        if (input_probe_hooks.camera)
-                            input_probe_hooks.camera(camera, (r_u32(camera + 540) + 1) & 3);
-                        else
-                            (void)sub_8008A998(camera, (r_u32(camera + 540) + 1) & 3);
+                        (void)sub_8008A998(camera, (r_u32(camera + 540) + 1) & 3);
                     }
                     if (((int32_t)(uint32_t)(r_u32(input + 20 + 8 * r_u32(r_u32(input + 184) + 8)))) > 0)
                     {

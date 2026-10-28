@@ -3,7 +3,6 @@
 #include "race_leaf.h"
 #include "music_stop.h"
 uint32_t sub_80011C4C(void);
-uint32_t rrj_resume_sub_80011C4C(uint32_t index);
 uint32_t rrj_race_movement_block(uint32_t delta);
 uint32_t rrj_race_movement_contact_block(uint32_t delta);
 uint32_t rrj_race_movement_route_block(uint32_t delta);
